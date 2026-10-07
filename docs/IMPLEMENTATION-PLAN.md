@@ -1,11 +1,14 @@
 # Implementation sequence
 
-Status: Lot 1 partially implemented. Native recipe catalog access and secret
-binding are now observed; complete source-family retrieval remains unqualified.
-The disabled package is installed for recipe qualification. See the
-[current native evidence](qualification/NATIVE-ACCESS.md).
-Lots 2 and 3 must not start until all L1-A through L1-G criteria are satisfied.
-The acceptance checks below remain authoritative and unchanged.
+Status: **Lot 1 complete (L1-A through L1-G PASS).** The native 0.1.4
+qualification returned a complete parent family, including three children,
+blocking relations, full descriptions and repeated pagination. Installed bytes
+match candidate `6747347` and its successful CI. The plugin remains disabled,
+all temporary enrollment is removed, and native connection health is `ok`.
+See the [criterion ledger and native evidence](qualification/SOURCE-READER.md).
+
+Lot 2 is now eligible to begin; it has not started. Lot 3 must wait for Lot 2's
+acceptance checks. The acceptance checks below remain authoritative and unchanged.
 
 Local transport continuation: the operator approved an opt-in direct loopback
 client while VPS deployment is deferred. Its scope is plugin-only code, tests

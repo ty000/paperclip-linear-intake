@@ -5,7 +5,7 @@ const run = (...args) => execFileSync(...args, { encoding: 'utf8' }).trim();
 const result = {
   schema: 'linear-intake-lot1-build-evidence.v1',
   candidate: run('git', ['rev-parse', 'HEAD']),
-  base: 'f418c1e8ae2961844d498264957642596d23c98a',
+  base: 'f85ab5d19dcdbcf1146003ea9945dfb3a9c59925',
   node: process.version,
   npm: run('npm', ['--version']),
   sdk: JSON.parse(readFileSync('node_modules/@paperclipai/plugin-sdk/package.json')).version,

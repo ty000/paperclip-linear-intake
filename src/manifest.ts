@@ -4,7 +4,7 @@ import { configSchema } from "./config.js";
 export default {
   id: "ty000.linear-intake",
   apiVersion: 1,
-  version: "0.1.2",
+  version: "0.1.4",
   displayName: "Linear Todo Intake (qualification)",
   description: "Disabled intake with catalog discovery and operator-only source qualification.",
   author: "ty000",

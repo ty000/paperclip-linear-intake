@@ -1,7 +1,9 @@
-import { definePlugin, runWorker, type PluginPerformActionContext } from "@paperclipai/plugin-sdk";
+import { definePlugin, runWorker, z, type PluginPerformActionContext } from "@paperclipai/plugin-sdk";
 import { parseConfig } from "./config.js";
 import { probeSource } from "./source-probe.js";
 import { inspectGateway } from "./gateway.js";
+import { readSourceFamily } from "./source-family.js";
+import { SourceReadError } from "./source-client.js";
 
 function isAuthenticatedOperator(context: PluginPerformActionContext | undefined) {
   return context?.actor.type === "user" && Boolean(context.actor.userId);
@@ -13,6 +15,19 @@ function hasMatchingCompany(context: PluginPerformActionContext): context is Plu
 
 const plugin = definePlugin({
   async setup(ctx) {
+    ctx.actions.register("read-source-family", async (params, actionContext) => {
+      if (!isAuthenticatedOperator(actionContext) || !hasMatchingCompany(actionContext)) {
+        return { status: "blocked", reason: "source_reader_operator_required", intakeEnabled: false };
+      }
+      try {
+        // The native bridge adds companyId/renderEnvironment. Only issueId is
+        // caller input; authority comes exclusively from the action context.
+        const input = z.object({ issueId: z.uuid() }).parse(params);
+        return await readSourceFamily(ctx, actionContext.companyId, input.issueId);
+      } catch (error) {
+        return familyReadFailure(error);
+      }
+    });
     // Explicit invocation only. Setup and health perform no network/secret reads.
     ctx.actions.register("probe-source", async (_params, actionContext) => {
       // The bridge permits company agents too. Only an authenticated operator
@@ -47,5 +62,10 @@ const plugin = definePlugin({
     return { status: "degraded", message: "Intake disabled; native Linear source access remains unqualified." };
   },
 });
+
+function familyReadFailure(error: unknown) {
+  if (error instanceof SourceReadError) return { status: "blocked", reason: error.code, intakeEnabled: false };
+  return { status: "blocked", reason: "source_read_failed", intakeEnabled: false };
+}
 export default plugin;
 runWorker(plugin, import.meta.url);

@@ -144,3 +144,17 @@ for (const actor of [undefined, { type: 'agent', agentId: 'synthetic-agent' }, {
     assert.equal(configReads, 0); assert.deepEqual(f.requests, []); assert.deepEqual(f.refs, []);
   });
 }
+
+test('workspace metadata probe is opt-in, schema-pinned and argument-free', async () => {
+  const workspace = { name: 'synthetic:get-workspace', inputSchema: { type: 'object', properties: {} } };
+  const scoped = structuredClone(config);
+  scoped.sourceProbe.tools.getWorkspace = { name: workspace.name,
+    inputSchemaSha256: createHash('sha256').update(JSON.stringify(workspace.inputSchema)).digest('hex') };
+  const f = await fixture({ config: scoped, tools: [...tools, workspace] });
+  assert.equal((await f.run({ organizationId: 'untrusted', query: 'widen' })).status, 'source_probe_observed');
+  assert.deepEqual(f.requests.find(r => r.method === 'tools/call').params,
+    { name: workspace.name, arguments: {} });
+  const missing = await fixture({ config: scoped });
+  assert.equal((await missing.run()).status, 'blocked');
+  assert.equal(missing.requests.some(r => r.method === 'tools/call'), false);
+});

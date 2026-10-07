@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { z, type PluginContext } from "@paperclipai/plugin-sdk";
 import { parseConfig } from "./config.js";
 import { postGateway } from "./gateway-transport.js";
+import { callNativeGateway } from "./gateway-native-call.js";
 
 const toolSchema = z.object({
   name: z.string().min(1).max(256),
@@ -66,15 +67,30 @@ async function readCatalog(rpc: GatewayRpc) {
   throw new Error("gateway_catalog_page_bound_exceeded");
 }
 
+function configuredRpc(mode: GatewayConfig["gatewayToolCallMode"], mcp: GatewayRpc,
+  nativeCall: (params: Record<string, unknown>) => Promise<unknown>): GatewayRpc {
+  if (mode !== "native_rest") return mcp;
+  return (method, params, notification) => {
+    if (method === "tools/call") return nativeCall(params);
+    return mcp(method, params, notification);
+  };
+}
+
 // Native config/secrets and named gateway. Explicit loopback transport is opt-in.
 // Catalog discovery and bounded qualification share native authentication.
-// The only caller of tools/call is the explicitly configured read probe.
+// Only explicitly configured source readers call tools/call.
 export async function openGateway(ctx: PluginContext, companyId: string) {
   if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
   const config = await readGatewayConfig(ctx, companyId);
   if (!config.gatewayDiscoveryEnabled) return undefined;
   const token = await resolveGatewaySecret(ctx, companyId, config.gatewayTokenRef!);
   validateGatewaySecret(token);
+
+  function assertCredentialAbsent(value: unknown) {
+    if (JSON.stringify(value).includes(JSON.stringify(token).slice(1, -1))) {
+      throw new Error("gateway_response_rejected");
+    }
+  }
 
   let sequence = 0;
   async function rpc(method: "initialize" | "notifications/initialized" | "tools/list" | "tools/call", params: Record<string, unknown>, notification = false) {
@@ -99,7 +115,7 @@ export async function openGateway(ctx: PluginContext, companyId: string) {
 
   const initialized = await rpc("initialize", {
     protocolVersion: "2025-03-26", capabilities: {},
-    clientInfo: { name: "paperclip-linear-intake", version: "0.1.2" },
+    clientInfo: { name: "paperclip-linear-intake", version: "0.1.4" },
   });
   const init = z.object({
     protocolVersion: z.literal("2025-03-26"),
@@ -108,8 +124,12 @@ export async function openGateway(ctx: PluginContext, companyId: string) {
   if (!init.success) throw new Error("gateway_protocol_unsupported");
   await rpc("notifications/initialized", {}, true);
   const tools = await readCatalog(rpc);
+  // Expose REST dispatch only after the named MCP gateway authenticated and
+  // returned its complete catalog. Callers still validate all source role pins.
+  const sessionRpc = configuredRpc(config.gatewayToolCallMode, rpc,
+    params => callNativeGateway(ctx, config, token, params, assertCredentialAbsent));
   return {
-    rpc, config, protocolVersion: init.data.protocolVersion,
+    rpc: sessionRpc, assertCredentialAbsent, config, protocolVersion: init.data.protocolVersion,
     catalogSha256: createHash("sha256").update(JSON.stringify(tools)).digest("hex"), tools,
   };
 }

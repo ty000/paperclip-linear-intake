@@ -1,0 +1,31 @@
+{
+  "schema": "linear-intake-native-catalog-readback.v1",
+  "observedAt": "2026-10-07T19:50:23.189Z",
+  "pluginVersion": "0.1.4",
+  "pluginStatus": "ready",
+  "intakeEnabled": false,
+  "sourceProbeConfigured": false,
+  "manifestHasSourceProbe": true,
+  "sourceReaderConfigured": false,
+  "manifestHasSourceReader": true,
+  "dedicatedReadProfileVerified": true,
+  "readToolCount": 8,
+  "totalCatalogCount": 12,
+  "catalogSha256": "618ba65cb6ea7402703c5b19ad1b04c5adbce0c41bbcbc509eaad882d9f4fc8f",
+  "sourceCoverage": "unqualified",
+  "installedWorkerSha256": "9d255e5f4d659dae7abc793b262183e2ad57acd4a0ec79927c8369f95dc65bca",
+  "installedManifestSha256": "49a7245a513c3ffb585c8a4bb39ba446e74e56f78c798a8436b19b1d1d092112",
+  "installedRuntimeSha256": {
+    "dist/config.js": "38d4c49119a4aed0147ef3875f8e97972257cbd58179015f04b528fa07dc7777",
+    "dist/gateway-native-call.js": "a7fb24247c09d29ad4d8eb5752a54f115bdd0e41401f474d4f0647ac7347b594",
+    "dist/gateway-transport.js": "4d01aae274fde36c5f12da7b100d26fb8b69c234bb9b24af83f48b4b1a24c0eb",
+    "dist/gateway.js": "5025546455ede4b1d2185d0baf637abc134e9f4a039a530b9c2b9b7a6b71b57d",
+    "dist/manifest.js": "49a7245a513c3ffb585c8a4bb39ba446e74e56f78c798a8436b19b1d1d092112",
+    "dist/source-client.js": "ddb577dbbf71a5179c5e23272c105b54cc357a9e256e0076340b13bc5da09180",
+    "dist/source-family.js": "20800841c89f268d59d8711c41fdf1bbea921f17de5ffa072113073ac8208718",
+    "dist/source-graph.js": "16fc444a62f24c8636f81bac7a6b83b54056684eef149a01816baef1ae6e84bf",
+    "dist/source-payload.js": "6fb802cce3682c86c6a11c3da4ac32f6fe3065e5a24a63307277466acedfb127",
+    "dist/source-probe.js": "9590fc4349e4be3780fd2322757f1a3622ff6056e5c60d2fa1be712e29cae761",
+    "dist/worker.js": "9d255e5f4d659dae7abc793b262183e2ad57acd4a0ec79927c8369f95dc65bca"
+  }
+}

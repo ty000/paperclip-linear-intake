@@ -1,0 +1,74 @@
+{
+  "schema": "linear-intake-native-family-summary.v1",
+  "inputSha256": {
+    "workspace": "8b3540c1df3c2aeed8924f6a9de1df4dbf04f85701e7e2fc6cd0783214b1a3a2",
+    "families": [
+      "65b0641f266b97f51982538f0b0cb552d62b8da5d058a26f3d0073044ae81e28",
+      "d89b5f1a0a2e64a2a28b8eb5a0abff86aadce305858a94a72cb94db15b926f1c"
+    ]
+  },
+  "workspace": {
+    "fieldNames": [
+      "id",
+      "name",
+      "url"
+    ],
+    "idIsUuid": true
+  },
+  "families": [
+    {
+      "issueCount": 1,
+      "descendantCount": 0,
+      "descriptions": [
+        {
+          "characters": 5452,
+          "sha256": "186328ae8f2895e4bd1dcdbb491871eb6b3697bfaa7c0e367b4399b81813e6d7"
+        }
+      ],
+      "internalBlockerCount": 0,
+      "externalBlockerCount": 3,
+      "childInventory": {
+        "parentCount": 1,
+        "childCount": 0,
+        "childrenPerParent": [
+          0
+        ]
+      },
+      "rootStateFlags": {
+        "selectedRootInTodo": false,
+        "selectedRootArchived": false
+      },
+      "requests": 12,
+      "catalogSha256": "618ba65cb6ea7402703c5b19ad1b04c5adbce0c41bbcbc509eaad882d9f4fc8f",
+      "sourceSha256": "8f8e2e883a0087981f1bd32302c871a141ecc77f543ab887b44b8b4346bacf72",
+      "consistency": "repeated_details_and_child_inventories"
+    },
+    {
+      "issueCount": 1,
+      "descendantCount": 0,
+      "descriptions": [
+        {
+          "characters": 5641,
+          "sha256": "435444c34c8330329d34689b91b191382249c9f63027528a206ed09a46bf04ea"
+        }
+      ],
+      "internalBlockerCount": 0,
+      "externalBlockerCount": 3,
+      "childInventory": {
+        "parentCount": 1,
+        "childCount": 0,
+        "childrenPerParent": [
+          0
+        ]
+      },
+      "rootStateFlags": {
+        "selectedRootInTodo": false,
+        "selectedRootArchived": false
+      },
+      "requests": 12,
+      "catalogSha256": "618ba65cb6ea7402703c5b19ad1b04c5adbce0c41bbcbc509eaad882d9f4fc8f",
+      "sourceSha256": "82292afefd41cef80e5fdcf84b0740b687794d0777e2b4340559979db1fe99d4",
+      "consistency": "repeated_details_and_child_inventories"
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "schema": "linear-intake-native-rest-qualification.v1",
+  "candidate": "6747347b7b2b6e4d0854effc4d10481d73b5aa6d",
+  "packageVersion": "0.1.4",
+  "sdk": "2026.1005.0",
+  "hostReference": "61b3fd57a695614dc4a37e2303f426a34a9795cf",
+  "ciRun": "https://github.com/ty000/paperclip-linear-intake/actions/runs/37677160128",
+  "ciJobsPassed": 3,
+  "callMode": "native_rest",
+  "toolTimeoutMs": 30000,
+  "readerDeadlineMs": 120000,
+  "maxIssues": 50,
+  "pageSize": 1,
+  "observedAt": "2026-10-07T19:50:11.544Z",
+  "completedSourceCalls": 28,
+  "failedSourceCalls": 0,
+  "uniqueInvocations": 28,
+  "sameNamedGatewayVerified": true,
+  "completedCallsByRole": {
+    "get-workspace": 2,
+    "get-project": 2,
+    "get-team": 2,
+    "list-issue-statuses": 2,
+    "get-issue": 8,
+    "list-issues": 12
+  },
+  "pageObservations": [
+    {
+      "parentIsSelectedRoot": true,
+      "requestedLimit": 1,
+      "inputCursorPresent": false,
+      "issueCount": 1,
+      "hasNextPage": true,
+      "outputCursorPresent": true
+    },
+    {
+      "parentIsSelectedRoot": true,
+      "requestedLimit": 1,
+      "inputCursorPresent": true,
+      "issueCount": 1,
+      "hasNextPage": true,
+      "outputCursorPresent": true
+    },
+    {
+      "parentIsSelectedRoot": true,
+      "requestedLimit": 1,
+      "inputCursorPresent": true,
+      "issueCount": 1,
+      "hasNextPage": false,
+      "outputCursorPresent": false
+    },
+    {
+      "parentIsSelectedRoot": false,
+      "requestedLimit": 1,
+      "inputCursorPresent": false,
+      "issueCount": 0,
+      "hasNextPage": false,
+      "outputCursorPresent": false
+    },
+    {
+      "parentIsSelectedRoot": false,
+      "requestedLimit": 1,
+      "inputCursorPresent": false,
+      "issueCount": 0,
+      "hasNextPage": false,
+      "outputCursorPresent": false
+    },
+    {
+      "parentIsSelectedRoot": false,
+      "requestedLimit": 1,
+      "inputCursorPresent": false,
+      "issueCount": 0,
+      "hasNextPage": false,
+      "outputCursorPresent": false
+    },
+    {
+      "parentIsSelectedRoot": true,
+      "requestedLimit": 1,
+      "inputCursorPresent": false,
+      "issueCount": 1,
+      "hasNextPage": true,
+      "outputCursorPresent": true
+    },
+    {
+      "parentIsSelectedRoot": true,
+      "requestedLimit": 1,
+      "inputCursorPresent": true,
+      "issueCount": 1,
+      "hasNextPage": true,
+      "outputCursorPresent": true
+    },
+    {
+      "parentIsSelectedRoot": true,
+      "requestedLimit": 1,
+      "inputCursorPresent": true,
+      "issueCount": 1,
+      "hasNextPage": false,
+      "outputCursorPresent": false
+    },
+    {
+      "parentIsSelectedRoot": false,
+      "requestedLimit": 1,
+      "inputCursorPresent": false,
+      "issueCount": 0,
+      "hasNextPage": false,
+      "outputCursorPresent": false
+    },
+    {
+      "parentIsSelectedRoot": false,
+      "requestedLimit": 1,
+      "inputCursorPresent": false,
+      "issueCount": 0,
+      "hasNextPage": false,
+      "outputCursorPresent": false
+    },
+    {
+      "parentIsSelectedRoot": false,
+      "requestedLimit": 1,
+      "inputCursorPresent": false,
+      "issueCount": 0,
+      "hasNextPage": false,
+      "outputCursorPresent": false
+    }
+  ],
+  "cleanup": {
+    "intakeEnabled": false,
+    "sourceProbeConfigured": false,
+    "sourceReaderConfigured": false,
+    "originalConfigRestoredExactly": true,
+    "unreconciledEffects": 0,
+    "connectionHealth": "ok"
+  },
+  "runtimeMatchesCandidateCi": true,
+  "inputSha256": {
+    "native-rest-receipt.json": "6d75f1863653115ca2fd09488eababd36f6b4a696022d52131c408a44449b37b",
+    "native-rest-activity.json": "0de948aa70d49c53127afc49f5a7457a0561c30d568b15d676bb3f85fae4b4c9",
+    "rest_parent_family.json": "180e8b23c9b3878107ab27c16b85f5ec7d4d0c6da1779ed05cef5ce57aa1a56f",
+    "rest-final-readback.json": "716e2e9ea74561d097aa3e4d9b8da02e7f80a409fefb16337a9c2c7f8f3da2ac",
+    "native-rest-connection-status.json": "41332ae74f010664783db17627d5ae2ed20e2a3d8811519f76d4f95ca57a77d1"
+  },
+  "limitations": [
+    "Repeated reads are optimistic consistency, not an atomic Linear snapshot.",
+    "Selected root is not in Todo; source qualification grants no admission.",
+    "Codex secondary description uses three issue tags where the native connector uses Markdown links.",
+    "No webhook, import, implementation agent or provider-model execution was qualified."
+  ]
+}

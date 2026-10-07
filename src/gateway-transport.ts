@@ -1,6 +1,6 @@
 import { request } from "node:http";
-import type { PluginContext } from "@paperclipai/plugin-sdk";
-import { parseLocalGatewayUrl, type parseConfig } from "./config.js";
+import { z, type PluginContext } from "@paperclipai/plugin-sdk";
+import { parseConfig, parseLocalGatewayUrl } from "./config.js";
 
 type GatewayConfig = ReturnType<typeof parseConfig>;
 interface GatewayReply {
@@ -8,28 +8,61 @@ interface GatewayReply {
   body: string;
 }
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
+const NATIVE_CALL_PATH = "/api/tool-gateway/tools/call";
+const mcpTimeoutSchema = z.number().int().min(100).max(10_000);
 
 /** Only called with a parsed config and a natively resolved, request-local token. */
 export async function postGateway(
   ctx: PluginContext, config: GatewayConfig, token: string, body: string,
 ): Promise<GatewayReply> {
-  const headers = {
-    authorization: `Bearer ${token}`,
-    "content-type": "application/json",
-    accept: "application/json",
+  return postRequest(ctx, config, token, body, false);
+}
+
+/** The original named gateway is still validated; the REST endpoint is fixed. */
+export async function postNativeGatewayCall(
+  ctx: PluginContext, config: GatewayConfig, token: string, body: string,
+): Promise<GatewayReply> {
+  const validated = parseConfig(config);
+  if (validated.gatewayToolCallMode !== "native_rest") throw new Error("invalid_configuration");
+  return postRequest(ctx, validated, token, body, true);
+}
+
+function requestHeaders(token: string, nativeCall: boolean) {
+  // REST authenticates the same gateway credential via its dedicated header.
+  // A Bearer header there would instead enter the board/agent auth middleware.
+  const credential = nativeCall
+    ? { "x-paperclip-tool-gateway-token": token }
+    : { authorization: `Bearer ${token}` };
+  return {
+    ...credential, "content-type": "application/json", accept: "application/json",
     "MCP-Protocol-Version": "2025-03-26",
   };
+}
+
+async function postRequest(
+  ctx: PluginContext, config: GatewayConfig, token: string, body: string, nativeCall: boolean,
+): Promise<GatewayReply> {
+  const headers = requestHeaders(token, nativeCall);
   if (config.gatewayTransport === "local_loopback") {
-    return postLoopback(ctx, config, headers, body);
+    return postLoopback(ctx, config, headers, body, nativeCall);
   }
+  const url = nativeCall ? new URL(NATIVE_CALL_PATH, config.gatewayUrl).href : config.gatewayUrl!;
+  return postHostRequest(ctx, url, headers, body);
+}
+
+async function postHostRequest(ctx: PluginContext, url: string, headers: Record<string, string>, body: string) {
   let response: Response;
   try {
-    response = await ctx.http.fetch(config.gatewayUrl!, {
+    response = await ctx.http.fetch(url, {
       method: "POST", redirect: "error", headers, body,
     });
   } catch { throw new Error("gateway_transport_failed"); }
   // Preserve host policy and SDK semantics; no fallback to local transport.
   if (!response.ok) throw new Error("gateway_http_rejected");
+  return readHostResponse(response);
+}
+
+async function readHostResponse(response: Response): Promise<GatewayReply> {
   let raw: string;
   try { raw = await response.text(); }
   catch { throw new Error("gateway_response_unreadable"); }
@@ -37,16 +70,26 @@ export async function postGateway(
   return { contentType: response.headers.get("content-type"), body: raw };
 }
 
-function postLoopback(
-  ctx: PluginContext, config: GatewayConfig, headers: Record<string, string>, body: string,
-): Promise<GatewayReply> {
+function loopbackTarget(config: GatewayConfig, nativeCall: boolean) {
   // Recheck at the effect boundary as well as during config parsing. A caller
   // cannot accidentally use this transport with a normalized/remote URL.
   const target = parseLocalGatewayUrl(config.gatewayUrl);
-  const timeoutMs = config.localGatewayTimeoutMs ?? 5000;
-  if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 10_000) {
-    throw new Error("invalid_configuration");
+  if (nativeCall) {
+    return { port: target.port, path: NATIVE_CALL_PATH, timeoutMs: (config.nativeToolTimeoutMs ?? 20_000) + 2000 };
   }
+  return { ...target, timeoutMs: mcpLocalTimeout(config) };
+}
+
+function mcpLocalTimeout(config: GatewayConfig) {
+  const timeout = mcpTimeoutSchema.safeParse(config.localGatewayTimeoutMs ?? 5000);
+  if (!timeout.success) throw new Error("invalid_configuration");
+  return timeout.data;
+}
+
+function postLoopback(
+  ctx: PluginContext, config: GatewayConfig, headers: Record<string, string>, body: string, nativeCall: boolean,
+): Promise<GatewayReply> {
+  const target = loopbackTarget(config, nativeCall);
   return new Promise((resolve, reject) => {
     const started = performance.now();
     let settled = false;
@@ -70,7 +113,7 @@ function postLoopback(
       else reject(new Error(outcome));
     };
     // Absolute deadline includes connecting, response headers and body streaming.
-    const timer = setTimeout(() => finish("gateway_request_timeout"), timeoutMs);
+    const timer = setTimeout(() => finish("gateway_request_timeout"), target.timeoutMs);
     try {
       req = request({
         hostname: "127.0.0.1", family: 4, port: target.port, path: target.path,
