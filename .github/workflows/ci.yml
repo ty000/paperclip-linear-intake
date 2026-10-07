@@ -1,0 +1,51 @@
+name: Repository CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bootstrap:
+    name: Bootstrap checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Check commit whitespace
+        run: git show --format= --check HEAD
+
+      - name: Check local Markdown links
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          import subprocess
+          from pathlib import Path
+          from urllib.parse import unquote, urlsplit
+
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          missing = []
+          for name in tracked:
+              source = Path(name)
+              if source.suffix != '.md':
+                  continue
+              for target in re.findall(r'\[[^\]]*\]\(([^\s)]+)\)', source.read_text()):
+                  parsed = urlsplit(target)
+                  if parsed.scheme or not parsed.path:
+                      continue
+                  if not (source.parent / unquote(parsed.path)).is_file():
+                      missing.append(f'{source}: {target}')
+          if missing:
+              raise SystemExit('\n'.join(missing))
+          print('Local Markdown links resolve.')
+          PY
