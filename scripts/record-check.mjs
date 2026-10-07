@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 const run = (...args) => execFileSync(...args, { encoding: 'utf8' }).trim();
 const result = {
   schema: 'linear-intake-lot1-build-evidence.v1',
@@ -10,6 +10,8 @@ const result = {
   npm: run('npm', ['--version']),
   sdk: JSON.parse(readFileSync('node_modules/@paperclipai/plugin-sdk/package.json')).version,
   lockSha256: createHash('sha256').update(readFileSync('package-lock.json')).digest('hex'),
+  builtRuntimeSha256: Object.fromEntries(readdirSync('dist').filter(name => name.endsWith('.js')).sort()
+    .map(name => [`dist/${name}`, createHash('sha256').update(readFileSync(`dist/${name}`)).digest('hex')])),
   commands: ['npm ci --ignore-scripts --no-audit --no-fund', 'npm run check', 'npm pack --dry-run --json'],
   layer: 'published-sdk-build-harness-rpc-and-synthetic-loopback-http',
   gatewayTransports: ['host_http', 'local_loopback'],

@@ -17,7 +17,8 @@ At 15:52 UTC, the installed **0.1.0** worker returned `catalog_observed` using
 the real named gateway on loopback, SDK config/secret RPC and Paperclip's native
 encrypted secret provider. The catalog contains seven configured Linear reads
 and four built-in resource/prompt wrappers. It does not contain a Linear write
-tool. The catalog JSON digest is
+tool. The [recorded input schemas](native-input-schemas.json) preserve the observed
+contracts, with connection-specific name prefixes redacted. The catalog JSON digest is
 `e51b76295ba8ac5f60f71294807f2390a9036e685667cd5ab27e4555079ca522`.
 
 The setup used one new profile with default deny and seven explicit catalog
@@ -32,7 +33,7 @@ driver, never passed to the plugin; the Linear OAuth credential stays managed.
 
 ## Bounded source probe
 
-Version **0.1.1** adds `probe-source`, absent/disabled unless `sourceProbe` is
+Version **0.1.2** includes `probe-source`, absent/disabled unless `sourceProbe` is
 explicitly configured. It requires an authenticated `user` actor from the real
 SDK action context, with a user ID and matching company. Caller-supplied actor,
 scope, query, tool or issue fields cannot widen the operation.
@@ -57,25 +58,90 @@ schema says a UUID team filter also includes descendant teams, irrespective of
 family reader must validate exact returned `teamId` and project membership;
 sample UUID enrollment also needs an operator readback of their membership.
 
-Probe results always retain `sourceCoverage: unqualified`. Without actual
-output observations, do not infer UUID versus issue identifier semantics,
-cursor/terminal-page shapes, relation direction/completeness, organization ID,
-exact workflow-state ID, complete descriptions or stable source revisions.
+Probe results always retain `sourceCoverage: unqualified`. The observations below establish some output shapes. They do not establish
+terminal-page semantics, complete relation inventory, source organization
+binding, independent description completeness or stable source revisions.
 The native gateway mapper drops output schemas, so their absence in this
 catalog alone is not a proven Linear provider limitation or a reason for a
 GraphQL fallback.
+
+## Managed Linear observations and native upgrade
+
+The installed source candidate is **`448f21840d73010a4b3097046edcef01415e7c88`**,
+package **0.1.2**. Two bounded probe invocations completed: four calls for scoped
+metadata and a two-item page, then six calls including the two enrolled issues.
+Both sample UUIDs were checked against the observed project and exact team
+before enrollment. No parent, blocker or other ticket was fetched by following
+a relation. The probe enrollment was removed afterward; intake stays disabled.
+The [final native readback](native-catalog-readback.json) verifies the ready
+version, current manifest schema, seven-read profile, eleven-tool catalog and
+disabled probe. Worker/manifest digests bind this receipt to installed bytes.
+
+The [redacted source summary](native-source-summary.json) records:
+
+- Managed MCP data is nested in the gateway's `structuredContent`; the actual
+  provider JSON is in that inner envelope's text block. Both `isError` values
+  were false. A future parser must check both layers.
+- Issue `id` and `parentId` are readable identifiers; `uuid` is separate.
+- The first two-item page has `hasNextPage:true` and a `cursor`; no terminal
+  page or complete descendant traversal was exercised.
+- List descriptions have 500 characters. Detail reads returned **5,452** and
+  **5,641** characters with a matching prefix. This proves detail retrieval
+  exceeds list previews, not independent end-to-end source completeness.
+- Relations have `blocks`, `blockedBy`, `relatedTo`, `duplicateOf`; each sample
+  had three blockers. Relation IDs are readable identifiers. No external
+  blocker state or completeness criterion was inferred.
+- Each sample has one open `stateHistory` interval (`endedAt:null`) whose
+  `state` includes an ID. This is a candidate for exact Todo validation,
+  requiring consistency checks with the current issue state.
+- These project/team/issue outputs do not expose the organization ID. That
+  observation does not prove every managed connector tool lacks it, nor
+  justify adding new authentication. Organization binding remains to qualify.
+
+The native upgrade exposed a packaging defect: the host cache-busts the
+manifest entry by mtime, while its transitive `config.js` import remained
+cached. The 0.1.1 registry manifest therefore lacked the new config property.
+The build now materializes a self-contained data manifest in a fresh process;
+0.1.2 native upgrade and config readback succeed without changing/restarting the
+host. Both previous package trees were preserved before swapping this plugin's
+own active local package. The native upgrade API preserves its plugin UUID.
+An earlier install-API attempt was reconciled by readback as no registry/config
+change; it was not retried as a new plugin identity. There is no unresolved
+effect in the final receipts.
+
+Replay the published redaction from the three **private** observation files:
+
+```bash
+node scripts/qualification/summarize-native-source.mjs \
+  <catalog.json> <probe.json> <samples.json>
+```
+
+Their SHA-256 hashes are in the redacted summary; raw ticket text stays in the
+ignored operator artifacts, never in this public repository. Native catalog
+replay is available without source reads or provisioning:
+
+```bash
+node --import <host-tsx-loader> scripts/qualification/native-catalog-readback.mjs \
+  <host-repo> <private-receipt.json>
+```
+
+The receipt supplies `gatewayUrl`, `companyId`, `connectionId`, `profileId`,
+`gatewayId`, `pluginId` and `secretId` only. The existing native board login is
+resolved locally; no token argument or environment variable is required. This
+optional native check is separate from portable CI and needs the authorized
+recipe plus an unexpired dedicated gateway client.
 
 ## Evidence and acceptance
 
 | Criterion | Current result and limit |
 | --- | --- |
-| L1-A | PASS: independently installable pinned SDK package, disabled schema, real installed 0.1.0 worker |
-| L1-B | PARTIAL: native input catalog observed; provider output contracts and full coverage still need qualification |
+| L1-A | PASS: independently installable pinned SDK package, disabled schema, real installed 0.1.2 worker |
+| L1-B | PARTIAL: input catalog and bounded actual outputs observed; full read coverage still needs qualification |
 | L1-C | UNQUALIFIED: no complete family reader; a bounded probe is not a substitute |
-| L1-D | Native catalog path PASS without model/agent run or operator token inside the plugin; actual provider reads pending |
+| L1-D | PASS for native catalog and bounded managed Linear reads, without a model/agent run or operator token inside the plugin |
 | L1-E | Native company/plugin-bound secret resolution PASS during installed discovery; value never returned or logged by the plugin |
 | L1-F | PASS for documented transport/catalog limitations; no demonstrated provider gap and no GraphQL fallback |
-| L1-G | Candidate checks and exact-head CI are required for this continuation; build evidence remains separate from native receipts |
+| L1-G | Local typecheck/build and 84 tests PASS; final CI must pass on the published PR candidate, whose build artifact records its SHA and runtime digests |
 
 The first contextual probe review found missing operator authorization on the
 native action bridge, which also permits company agents. The guard was corrected
@@ -85,12 +151,11 @@ catalog-only action. The real SDK bridge test also rejects actor spoofing before
 any config or secret request.
 
 Replay local checks with `npm ci --ignore-scripts --no-audit --no-fund`,
-`npm run check`, `npm pack --dry-run --json`. Static Fallow remains unavailable:
+`npm run check`, `npm pack --dry-run --json`. The [static gate](native-static-audit.json) reports Fallow unavailable:
 controlled skip, not a passed static audit. Native evidence must be replayed
 separately against the authorized recipe and its finite-lived client.
 
-Next: establish provider output contracts through the bounded probe, then
-implement and test complete family reads (pagination, long descriptions,
+Next: implement and test complete family reads from these observed contracts (pagination, long descriptions,
 internal/external typed blockers, child-only selection, historical outcomes,
 cycles, revisions and incomplete responses). L1-A through L1-G must all pass
 before Lot 2 begins. No acceptance criterion is waived by this continuation.

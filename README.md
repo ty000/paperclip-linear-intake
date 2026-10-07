@@ -7,10 +7,11 @@ prepared work to a governed implementation workflow such as Council.
 **Current state:** Lot 1 partial: disabled executable plugin, native gateway
 catalog access qualified in local recipe against SDK `2026.1005.0`, and a bounded
 operator-only source probe. The complete source-family reader remains unfinished.
-The merged `0.1.0` package was installed in recipe with intake disabled; its
-worker resolved a company-bound native secret and retrieved the dedicated
-seven-read-tool Linear catalog. The `0.1.1` source adds a default-off probe to
-observe actual output contracts. Source probes are not complete family reads.
+Version `0.1.2` is installed in recipe with intake disabled. Its worker resolved
+a company-bound native secret, retrieved the dedicated seven-read-tool Linear
+catalog and read two explicitly scoped Content Assistant samples. The source
+probe was disabled after qualification. Source probes are not complete family
+reads. The manifest is packaged as standalone data for reliable native upgrades.
 No webhook, import or Council admission is active. Lots 2 and 3 have not started.
 See the [current native qualification](docs/qualification/NATIVE-ACCESS.md) and
 [original criterion report](docs/qualification/LOT1.md).

@@ -1,0 +1,129 @@
+{
+  "schema": "linear-intake-native-source-summary.v1",
+  "layer": "installed-worker-native-gateway-managed-linear-connection",
+  "inputSha256": {
+    "catalog": "40a747e37b8b186d0f3e1edbb66a8f37802f6b3f30adfd950f15bbc854a3090e",
+    "probe": "0028ef2fade644b5f9943d23756b083cb8502c8e1d2970f4482d57b3b445ab73",
+    "samples": "007dc33edd90e8f48f112fe1c8f0db9c9592fec048beec2863a64237093ff0f6"
+  },
+  "catalogSha256": "e51b76295ba8ac5f60f71294807f2390a9036e685667cd5ab27e4555079ca522",
+  "catalogToolCount": 11,
+  "normalizedToolNames": [
+    "get-issue",
+    "get-issue-status",
+    "get-project",
+    "get-team",
+    "list-issue-statuses",
+    "list-issues",
+    "list-teams",
+    "paperclip_list_resources",
+    "paperclip_read_resource",
+    "paperclip_list_prompts",
+    "paperclip_get_prompt"
+  ],
+  "projectAndExactTeamMembershipMatched": true,
+  "projectFields": [
+    "id",
+    "uuid",
+    "icon",
+    "color",
+    "name",
+    "summary",
+    "description",
+    "url",
+    "resourceCount",
+    "createdAt",
+    "updatedAt",
+    "startedAt",
+    "completedAt",
+    "canceledAt",
+    "startDate",
+    "startDateResolution",
+    "targetDate",
+    "targetDateResolution",
+    "priority",
+    "labels",
+    "initiatives",
+    "lead",
+    "leadTeam",
+    "status",
+    "teams",
+    "slackChannelId"
+  ],
+  "teamFields": [
+    "id",
+    "key",
+    "parentId",
+    "displayName",
+    "name",
+    "visibility",
+    "createdAt",
+    "updatedAt"
+  ],
+  "workflowStateCount": 12,
+  "page": {
+    "count": 2,
+    "hasNextPage": true,
+    "cursorPresent": true,
+    "inventoryComplete": false
+  },
+  "samples": [
+    {
+      "idDiffersFromUuid": true,
+      "parentIdPresent": true,
+      "previewDescriptionCharacters": 500,
+      "detailDescriptionCharacters": 5452,
+      "commonDescriptionPrefix": true,
+      "updatedAtPresent": true,
+      "relationKinds": [
+        "blocks",
+        "blockedBy",
+        "relatedTo",
+        "duplicateOf"
+      ],
+      "relationCounts": {
+        "blocks": 0,
+        "blockedBy": 3,
+        "relatedTo": 1,
+        "duplicateOf": 0
+      },
+      "openStateHistoryCount": 1,
+      "openStateHistoryCarriesId": true,
+      "organizationIdPresent": false
+    },
+    {
+      "idDiffersFromUuid": true,
+      "parentIdPresent": true,
+      "previewDescriptionCharacters": 500,
+      "detailDescriptionCharacters": 5641,
+      "commonDescriptionPrefix": true,
+      "updatedAtPresent": true,
+      "relationKinds": [
+        "blocks",
+        "blockedBy",
+        "relatedTo",
+        "duplicateOf"
+      ],
+      "relationCounts": {
+        "blocks": 0,
+        "blockedBy": 3,
+        "relatedTo": 1,
+        "duplicateOf": 0
+      },
+      "openStateHistoryCount": 1,
+      "openStateHistoryCarriesId": true,
+      "organizationIdPresent": false
+    }
+  ],
+  "sourceCoverage": "unqualified",
+  "completeFamilyRead": false,
+  "qualificationsNotEstablished": [
+    "terminal-page semantics",
+    "complete descendants",
+    "relation completeness",
+    "external blocker resolution",
+    "source organization binding",
+    "revision stability",
+    "independent description completeness"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "linear-intake-native-catalog-readback.v1",
+  "observedAt": "2026-10-07T16:19:26.984Z",
+  "pluginVersion": "0.1.2",
+  "pluginStatus": "ready",
+  "intakeEnabled": false,
+  "sourceProbeConfigured": false,
+  "manifestHasSourceProbe": true,
+  "dedicatedReadProfileVerified": true,
+  "readToolCount": 7,
+  "totalCatalogCount": 11,
+  "catalogSha256": "e51b76295ba8ac5f60f71294807f2390a9036e685667cd5ab27e4555079ca522",
+  "sourceCoverage": "unqualified",
+  "installedWorkerSha256": "e4e856f2413df7289fc0b5dc9c768db63cce1ed3f3977d0a81efe37c194d97c8",
+  "installedManifestSha256": "c8da4dba756c0151d70b77343f8a92cb3ffbe676bcb3ab12c8a1b9f2ad708b10",
+  "installedRuntimeSha256": {
+    "dist/config.js": "7215ea9c05e2f3fd029ad79479d92ec0d03ec5b85baf4ebf751158789459b993",
+    "dist/gateway-transport.js": "84e60841f6affd40aa5d3c9e3990b8b595e01113dab7f38578879452892d5f16",
+    "dist/gateway.js": "65b8b8abca037e30735489839601f681a3afbd6f0d95c8745ca07ccc253c14ae",
+    "dist/manifest.js": "c8da4dba756c0151d70b77343f8a92cb3ffbe676bcb3ab12c8a1b9f2ad708b10",
+    "dist/source-probe.js": "741bb34170f964a74ca42d40886eacd178af1b1c3b0a242d0e2cb9dcd4c9810f",
+    "dist/worker.js": "e4e856f2413df7289fc0b5dc9c768db63cce1ed3f3977d0a81efe37c194d97c8"
+  }
+}
