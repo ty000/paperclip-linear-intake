@@ -2,7 +2,7 @@
 
 Lot 4 implementation is in progress; receiving qualification and operational
 activation are not yet claimed. The coordinated Council work starts from
-`ty000/paperclip-council@1afad9939f1c0a896c065ec9390c82c26a58de65`.
+`ty000/paperclip-council@045df5dfe9a7ce880463a16721e69f20f0e0a7f3`.
 
 The immutable `linear-native-readiness.v1` remains preparation evidence.
 Its `admissionAllowed:false` is unchanged. Council requires an explicitly enabled

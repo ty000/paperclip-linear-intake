@@ -159,7 +159,7 @@ Paperclip core changes are outside this first scope.
 - [Implementation sequence and acceptance checks](docs/IMPLEMENTATION-PLAN.md)
 - [Repository working instructions](AGENTS.md)
 
-The Council integration is a separate dependency. Its coordinated `0.7.16`
+The Council integration is a separate dependency. Its coordinated `0.7.17`
 receiver candidate accepts this exact imported origin only under an explicit
 project mandate with source scope, contributor assignments and write paths.
 Readiness, a fresh source observation and Council's existing accounting are
