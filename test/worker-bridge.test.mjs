@@ -32,6 +32,7 @@ test(`published SDK worker uses scoped native secrets and ${transport} transport
   const lines = createInterface({ input: child.stdout });
   const pending = new Map();
   const calls = [];
+  const subscriptions = [];
   const outbound = [];
   const unexpected = [];
   const logs = [];
@@ -42,6 +43,11 @@ test(`published SDK worker uses scoped native secrets and ${transport} transport
     const msg = JSON.parse(line);
     if (!msg.method) return pending.get(msg.id)?.(msg);
     if (msg.method === 'log') { logs.push(msg.params); return; }
+    if (msg.method === 'events.subscribe') {
+      subscriptions.push(msg.params);
+      send({ jsonrpc: '2.0', id: msg.id, result: null });
+      return;
+    }
     calls.push(msg.method);
     // Host services below are synthetic; SDK transport/worker code are real.
     let result;
@@ -80,6 +86,7 @@ test(`published SDK worker uses scoped native secrets and ${transport} transport
     });
   }
   assert.equal((await rpc('initialize', { manifest, config: {} })).result.ok, true);
+  assert.deepEqual(subscriptions, [{ eventPattern: 'plugin.private.paperclip-council.linear-intake-revalidation-request', filter: null }]);
   const denied = await rpc('performAction', { key: 'probe-source', companyId,
     actorContext: { type: 'agent', agentId: 'synthetic-agent', companyId },
     params: { actor: { type: 'user', userId: 'spoof' },

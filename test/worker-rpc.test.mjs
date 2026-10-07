@@ -15,7 +15,10 @@ test('built worker runs the actual SDK JSON-RPC host with no unsolicited effects
   child.stderr.on('data', data => { stderr += data; });
   lines.on('line', line => {
     const msg = JSON.parse(line);
-    if (msg.method) hostCalls.push(msg);
+    if (msg.method) {
+      hostCalls.push(msg);
+      child.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: null }) + '\n');
+    }
     else replies.get(msg.id)?.(msg);
   });
   let id = 0;
@@ -35,6 +38,7 @@ test('built worker runs the actual SDK JSON-RPC host with no unsolicited effects
   const exited = once(child, 'exit');
   await rpc('shutdown');
   assert.equal((await exited)[0], 0);
-  assert.deepEqual(hostCalls, []);
+  assert.deepEqual(hostCalls.map(({ method, params }) => ({ method, params })), [{ method: 'events.subscribe',
+    params: { eventPattern: 'plugin.private.paperclip-council.linear-intake-revalidation-request', filter: null } }]);
   assert.equal(stderr, '');
 });

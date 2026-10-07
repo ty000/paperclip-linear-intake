@@ -4,12 +4,13 @@ import { configSchema } from "./config.js";
 export default {
   id: "ty000.linear-intake",
   apiVersion: 1,
-  version: "0.3.0",
+  version: "0.4.0",
   displayName: "Linear Todo Intake",
-  description: "Explicitly enrolled Todo retention and optional native family preparation; Council admission remains unavailable.",
+  description: "Explicitly enrolled Todo retention, native family preparation and optional authenticated source revalidation for Council.",
   author: "ty000",
   categories: ["connector"],
   capabilities: ["http.outbound", "secrets.read-ref", "ui.action.register", "webhooks.receive", "jobs.schedule",
+    "events.subscribe", "events.emit",
     "database.namespace.read", "database.namespace.write", "database.namespace.migrate", "projects.read",
     "issues.read", "issues.create", "issue.documents.read", "issue.documents.write", "issue.relations.read", "issue.relations.write"],
   database: { namespaceSlug: "linear_intake", migrationsDir: "migrations", coreReadTables: [] },
@@ -27,6 +28,10 @@ export default {
       if: { required: ["nativeImportEnabled"], properties: { nativeImportEnabled: { const: true } } },
       then: { required: ["intake", "sourceReader", "gatewayDiscoveryEnabled", "gatewayUrl", "gatewayTokenRef"],
         properties: { gatewayDiscoveryEnabled: { const: true } } },
+    }, {
+      if: { required: ["councilHandoffEnabled"], properties: { councilHandoffEnabled: { const: true } } },
+      then: { required: ["nativeImportEnabled"],
+        properties: { nativeImportEnabled: { const: true } } },
     }],
   },
 } satisfies PaperclipPluginManifestV1;

@@ -19,8 +19,10 @@ independent review, Fallow gate and four CI checks pass. Real core services
 prepared native families, and readback/restart preserved original identities.
 See the [Lot 3 ledger](qualification/NATIVE-IMPORT.md) and
 [readiness v1 / separate Council work](NATIVE-READINESS-V1.md). No `0.3.0`
-installation or operational activation occurred. Lot 4 remains outside this
-lot's write authorization. Acceptance checks below remain unchanged.
+installation or operational activation occurred. Lot 4 is now authorized and
+in progress in isolated intake and Council worktrees. See the
+[current-source handoff contract](COUNCIL-HANDOFF-V1.md); acceptance checks below
+remain unchanged. No Lot 4 qualification or operational activation is claimed yet.
 
 Local transport continuation: the operator approved an opt-in direct loopback
 client while VPS deployment is deferred. Its scope is plugin-only code, tests

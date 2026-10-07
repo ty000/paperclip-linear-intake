@@ -9,7 +9,10 @@ type Store = ReturnType<typeof createIntakeStore>;
 
 export function fingerprint(config: Config) {
   // The suspension gate does not change the explicitly enrolled authority.
-  return contentDigest({ ...config, enabled: false });
+  // Preserve 0.3.0 enrollment when the new receiver is off. Opting in changes
+  // authority and requires explicit enrollment; no historical plan is adopted.
+  const { councilHandoffEnabled, ...legacy } = config;
+  return contentDigest({ ...legacy, enabled: false, ...(councilHandoffEnabled ? { councilHandoffEnabled } : {}) });
 }
 
 export async function currentConfig(ctx: PluginContext, binding: IntakeBinding) {

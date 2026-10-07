@@ -96,7 +96,8 @@ test('manifest defaults, setup and health register import facilities without rea
   assert.equal(parseConfig({}).nativeImportEnabled, false);
   assert.throws(() => parseConfig({ nativeImportEnabled: true }), /import_configuration_missing/);
   assert.equal(manifest.instanceConfigSchema.properties.nativeImportEnabled.default, false);
-  assert.ok(!manifest.capabilities.some(capability => /wakeup|agents|events|checkout/.test(capability)));
+  assert.ok(!manifest.capabilities.some(capability => /wakeup|agents|checkout/.test(capability)));
+  assert.deepEqual(manifest.capabilities.filter(capability => capability.startsWith('events.')).sort(), ['events.emit', 'events.subscribe']);
   await plugin.definition.onHealth();
   await plugin.definition.onValidateConfig({});
   assert.equal(database.calls.length, 0);

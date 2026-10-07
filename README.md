@@ -21,7 +21,10 @@ installed in recipe. **Lot 3 is complete** in source version `0.3.0`: 594 tests,
 the Fallow gate and four CI checks pass. Native families and uncertainty
 recovery are qualified with real core services and an isolated database.
 See the [import criterion ledger](docs/qualification/NATIVE-IMPORT.md).
-Council admission remains unavailable. Historical receipts remain unchanged.
+Source version `0.4.0` adds an opt-in authenticated current-source responder for
+the coordinated Council receiver. Its native qualification is in progress; it is
+not installed or activated in recipe. Historical receipts remain unchanged.
+See the [current-source handoff contract](docs/COUNCIL-HANDOFF-V1.md).
 
 Lot 2 uses a signed raw-body webhook, an append-only delivery journal and stable
 company/organization/issue identities. It acknowledges valid transitions after
@@ -74,8 +77,8 @@ The installed 0.1.4 bytes match the CI artifact for `6747347`. The authorized
 native REST campaign completed 28 source calls with no failed call. Historical
 0.1.2/0.1.3 receipts remain separate from this qualification.
 
-Configuration defaults to disabled retention, disabled native import and disabled
-gateway discovery. Enabling retention requires scoped source settings, a webhook
+Configuration defaults to disabled retention, disabled native import, disabled
+Council handoff and disabled gateway discovery. Enabling retention requires scoped source settings, a webhook
 secret reference and explicit operator enrollment. Native import additionally
 requires `nativeImportEnabled: true` in the enrolled configuration. An explicitly enabled `inspect-gateway`
 action can inspect a configured named gateway catalog using a native secret
@@ -156,8 +159,10 @@ Paperclip core changes are outside this first scope.
 - [Implementation sequence and acceptance checks](docs/IMPLEMENTATION-PLAN.md)
 - [Repository working instructions](AGENTS.md)
 
-The Council integration is a separate dependency. Its current source requires
-manual-origin roots; adding a connector does not by itself make imported tasks
-admissible. The hierarchy implementation also requires contributor assignments
-and explicit write scopes for executable leaves. Both gaps are recorded in the
-contract and must be qualified before enabling automatic launch.
+The Council integration is a separate dependency. Its coordinated `0.7.16`
+receiver candidate accepts this exact imported origin only under an explicit
+project mandate with source scope, contributor assignments and write paths.
+Readiness, a fresh source observation and Council's existing accounting are
+all required. Initial qualification covers a subtree with executable descendants;
+roots with no executable descendant and unresolved external blockers remain
+blocked for an explicit operator decision. Operational launch remains disabled.
