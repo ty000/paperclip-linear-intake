@@ -60,10 +60,10 @@ try {
   const result = await api(`/api/plugins/${receipt.pluginId}/bridge/action`, {
     companyId: receipt.companyId, key: 'inspect-gateway', params: {},
   });
-  // 0.2.0 names the action's no-import guarantee explicitly. The separate
-  // native configuration check above still requires retention to be disabled.
-  const inactiveField = Object.hasOwn(result.data ?? {}, 'importEnabled') ? 'importEnabled' : 'intakeEnabled';
-  if (result.data?.status !== 'catalog_observed' || result.data[inactiveField] !== false
+  // Compatibility with historical source-only receipts. 0.3.0 describes the
+  // read action itself; the configuration gate above still requires suspension.
+  const inactive = result.data?.importPerformed ?? result.data?.importEnabled ?? result.data?.intakeEnabled;
+  if (result.data?.status !== 'catalog_observed' || inactive !== false
       || result.data.tools.length !== allowed.length + 4) throw new Error();
   if (familyReader && (config.sourceProbe || config.sourceReader)) throw new Error();
   const expectedNames = [...allowed.map(n => n.replaceAll('_', '-')),

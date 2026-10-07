@@ -161,7 +161,7 @@ export async function readSourceFamily(ctx: PluginContext, companyId: string, ro
   same(await readMetadata(client), states, "source_states_changed");
   same(parseConfig(await ctx.config.get(companyId)).sourceReader, client.scope, "source_configuration_changed");
   return {
-    status: "source_family_observed" as const, importEnabled: false,
+    status: "source_family_observed" as const, importPerformed: false,
     family: snapshot(family, rootId), startedAt, completedAt: new Date().toISOString(),
     consistency: "repeated_details_and_child_inventories" as const, requests: client.requests(),
   };

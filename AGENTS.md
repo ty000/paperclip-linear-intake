@@ -7,8 +7,8 @@ unless a new lot explicitly authorizes another repository. Paperclip core and
 SDK sources are read-only references. Preserve every other chat's worktree,
 runtime, configuration, and historical evidence.
 
-The current repository is a design bootstrap, not an implemented plugin. Keep
-the README's current-state statement accurate as implementation progresses.
+The repository contains an implemented plugin. Keep the README's source,
+qualification, installed-version and activation statements distinct and accurate.
 
 ## Implementation rules
 

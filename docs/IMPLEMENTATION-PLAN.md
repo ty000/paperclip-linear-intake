@@ -11,8 +11,16 @@ See the [criterion ledger and native evidence](qualification/SOURCE-READER.md).
 `4d291cd`: 383 package/worker tests, 79 isolated PostgreSQL tests, independent
 review, Fallow and four exact-candidate CI checks pass. See the
 [Lot 2 ledger and limits](qualification/TODO-RETENTION.md). Recipe stays on
-disabled `0.1.4`; no real webhook is active. Lot 3 may now begin within the
-authorized isolated scope. The acceptance checks below remain unchanged.
+disabled `0.1.4`; no real webhook is active.
+
+**Lot 3 complete (L3-A through L3-E PASS)** in source version `0.3.0`, code
+candidate `0365009`: 425 package/worker tests, 169 isolated PostgreSQL tests,
+independent review, Fallow gate and four CI checks pass. Real core services
+prepared native families, and readback/restart preserved original identities.
+See the [Lot 3 ledger](qualification/NATIVE-IMPORT.md) and
+[readiness v1 / separate Council work](NATIVE-READINESS-V1.md). No `0.3.0`
+installation or operational activation occurred. Lot 4 remains outside this
+lot's write authorization. Acceptance checks below remain unchanged.
 
 Local transport continuation: the operator approved an opt-in direct loopback
 client while VPS deployment is deferred. Its scope is plugin-only code, tests

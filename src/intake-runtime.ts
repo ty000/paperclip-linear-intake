@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { PluginContext, PluginWebhookInput } from "@paperclipai/plugin-sdk";
 import { parseConfig } from "./config.js";
-import { contentDigest } from "./content-digest.js";
+import { fingerprint, currentConfig, sourceGuard } from "./intake-authority.js";
 import { createIntakeStore } from "./intake-store.js";
 import { IntakeStoreError, type IntakeBinding, type IntakeRequest } from "./intake-state.js";
 import { verifyLinearEvent } from "./webhook-event.js";
@@ -17,19 +17,6 @@ function authority(config: Config, activationAt: string) {
     todoStateId: scope.todoStateId, webhookId: intake.webhookId, allowedActors: intake.allowedActors, activationAt };
 }
 
-function fingerprint(config: Config) {
-  // The suspension gate does not change the explicitly enrolled authority.
-  return contentDigest({ ...config, enabled: false });
-}
-
-async function currentConfig(ctx: PluginContext, binding: IntakeBinding) {
-  if (!binding.active) throw new IntakeStoreError("intake_binding_inactive");
-  const config = parseConfig(await ctx.config.get(binding.companyId));
-  if (!config.enabled) throw new IntakeStoreError("intake_suspended");
-  if (fingerprint(config) !== binding.fingerprint) throw new IntakeStoreError("intake_configuration_changed");
-  return config;
-}
-
 function bindingSummary(binding: IntakeBinding | undefined) {
   if (!binding) return { enrolled: false as const };
   return { enrolled: true as const, active: binding.active, activationId: binding.activationId,
@@ -42,14 +29,14 @@ async function activate(ctx: PluginContext, store: Store, companyId: string) {
   const binding = await store.activateBinding({ companyId, activationId: randomUUID(), activatedAt,
     fingerprint: fingerprint(config), authority: authority(config, activatedAt) });
   await currentConfig(ctx, binding);
-  return { status: "intake_enrolled", ...bindingSummary(binding), importEnabled: false };
+  return { status: "intake_enrolled", ...bindingSummary(binding), importPerformed: false };
 }
 
 async function deactivate(store: Store, companyId: string) {
   const current = await store.getBinding(companyId);
-  if (!current) return { status: "intake_not_enrolled", importEnabled: false };
+  if (!current) return { status: "intake_not_enrolled", importPerformed: false };
   const binding = await store.deactivateBinding(companyId, current.activationId);
-  return { status: "intake_deactivated", ...bindingSummary(binding), importEnabled: false };
+  return { status: "intake_deactivated", ...bindingSummary(binding), importPerformed: false };
 }
 
 async function receive(ctx: PluginContext, store: Store, input: PluginWebhookInput) {
@@ -76,19 +63,6 @@ function webhookSecret(ctx: PluginContext, companyId: string, config: Config) {
 function completion(binding: IntakeBinding, request: IntakeRequest, owner: string) {
   return { companyId: binding.companyId, intakeId: request.intakeId, activationId: binding.activationId,
     fingerprint: binding.fingerprint, owner, revision: request.version, now: new Date().toISOString() };
-}
-
-function sourceGuard(ctx: PluginContext, store: Store, binding: IntakeBinding) {
-  return async (selected: Config) => {
-    if (!selected.enabled || fingerprint(selected) !== binding.fingerprint) throw new IntakeStoreError("intake_configuration_changed");
-    await activeEpoch(store, binding);
-    await currentConfig(ctx, binding);
-  };
-}
-
-async function activeEpoch(store: Store, binding: IntakeBinding) {
-  const latest = await store.getBinding(binding.companyId);
-  if (!latest?.active || latest.activationId !== binding.activationId) throw new IntakeStoreError("intake_binding_inactive");
 }
 
 async function fetchRequest(ctx: PluginContext, store: Store, binding: IntakeBinding, request: IntakeRequest) {
@@ -150,7 +124,7 @@ export function createIntakeRuntime(ctx: PluginContext) {
       const ledger = store();
       const binding = await ledger.getBinding(companyId);
       const requests = await ledger.listRequests(companyId, 20);
-      return { ...bindingSummary(binding), importEnabled: false,
+      return { ...bindingSummary(binding), importPerformed: false,
         requests: requests.map(row => ({ intakeId: row.intakeId, status: row.status, attempts: row.attempts })) };
     },
     receive: (input: PluginWebhookInput) => receive(ctx, store(), input),

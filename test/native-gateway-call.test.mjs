@@ -91,7 +91,7 @@ function redacted(f, out) {
   assert.equal(rendered.includes('private-upstream-diagnostic'), false);
 }
 function blocked(f, out) {
-  assert.deepEqual(out, { status: 'blocked', reason: 'source_probe_failed', importEnabled: false });
+  assert.deepEqual(out, { status: 'blocked', reason: 'source_probe_failed', importPerformed: false });
   redacted(f, out);
 }
 
@@ -99,7 +99,7 @@ test('native calls follow named MCP binding and complete pins with fixed origin,
   const f = await fixture(t);
   const out = await f.run();
   assert.equal(out.status, 'source_probe_observed');
-  assert.equal(out.importEnabled, false);
+  assert.equal(out.importPerformed, false);
   assert.equal(out.observations.length, 4);
   assert.deepEqual(f.requests.slice(0, 3).map(r => r.rpc.method), ['initialize', 'notifications/initialized', 'tools/list']);
   for (const request of f.requests.slice(0, 3)) {

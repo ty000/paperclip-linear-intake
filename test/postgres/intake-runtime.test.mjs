@@ -74,7 +74,7 @@ const sourceCorruptions = {
 
 test('setup defers native database access and enabled config alone never enrolls or fetches', async () => {
   const f = await intakeFixture(database);
-  assert.deepEqual(f.registeredJobs, ['drain-intake']);
+  assert.deepEqual(f.registeredJobs, ['drain-intake', 'prepare-import']);
   assert.equal(database.calls.length, 0);
   assert.equal((await f.inspect()).enrolled, false);
   await f.drain();

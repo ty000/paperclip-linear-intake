@@ -10,6 +10,7 @@ const toolPin = z.strictObject({
 // Configuration starts suspended; durable operator enrollment is separate.
 export const configSchema = z.strictObject({
   enabled: z.boolean().default(false),
+  nativeImportEnabled: z.boolean().default(false),
   intake: intakeConfigSchema.optional(),
   gatewayDiscoveryEnabled: z.boolean().default(false),
   gatewayTransport: z.enum(["host_http", "local_loopback"]).default("host_http"),
@@ -118,6 +119,10 @@ function validateToolCallMode(config: Config) {
   if (config.nativeToolTimeoutMs !== undefined) throw new Error("invalid_configuration");
 }
 
+function validateNativeImport(config: Config) {
+  if (config.nativeImportEnabled && (!config.intake || !config.sourceReader)) throw new Error("import_configuration_missing");
+}
+
 export function parseConfig(raw: unknown) {
   const result = configSchema.safeParse(raw);
   // Never forward validation errors: they can quote untrusted config values.
@@ -129,5 +134,6 @@ export function parseConfig(raw: unknown) {
   validateReaderEnrollment(config);
   validateGatewayDiscovery(config);
   validateIntakeSettings(config);
+  validateNativeImport(config);
   return config;
 }

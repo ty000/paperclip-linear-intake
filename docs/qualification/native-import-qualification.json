@@ -1,0 +1,364 @@
+{
+  "schema": "linear-intake-lot3-qualification.v1",
+  "candidate": "0365009646a5ad79f41eb98111c63e5ff554fcb6",
+  "base": "57481d46bc64e2282335c38730f3245a681387d1",
+  "version": "0.3.0",
+  "criteria": {
+    "L3-A": "PASS",
+    "L3-B": "PASS",
+    "L3-C": "PASS",
+    "L3-D": "PASS",
+    "L3-E": "PASS"
+  },
+  "ci": {
+    "url": "https://github.com/ty000/paperclip-linear-intake/actions/runs/37689862718",
+    "status": "success",
+    "checks": 4
+  },
+  "tests": {
+    "packageAndWorker": 425,
+    "isolatedPostgresql": 169,
+    "failed": 0,
+    "skipped": 0
+  },
+  "versions": {
+    "node": "v24.20.0",
+    "npm": "11.19.0",
+    "sdk": "2026.1005.0",
+    "postgres": "18.1",
+    "fallow": "3.23.0"
+  },
+  "staticGate": {
+    "wrapperStatus": "pass",
+    "nativeVerdict": "warn",
+    "nativeExitCode": 0,
+    "introducedDeadCode": 0,
+    "introducedComplexity": 0,
+    "inheritedComplexity": 3,
+    "nonBlockingDuplicationGroups": 1,
+    "duplicationFingerprint": "dup:36c41956",
+    "remediationPasses": 1
+  },
+  "buildMatchesLocalAndFinalNativeReplay": true,
+  "lockSha256": "bd36fa47417c356271daec58a8288a9da4f29119d226c3e3cda6d32ea4f0939b",
+  "migrationsSha256": {
+    "migrations/001_intake.sql": "690f7c31c8aa5b7dc3a539201ef346a58e55e8861aac6a0bbb9710bcda9befb0",
+    "migrations/002_native_import.sql": "ba290b292f0f091629905d81eaadf5bf34de753eea9fd74357d3b0efcb13fa4f"
+  },
+  "builtRuntimeSha256": {
+    "dist/config.js": "7844d2046e8f9951a398b3871009aff51f40db6481800bc767ebf7835109e434",
+    "dist/content-digest.js": "7c97d21056ee3ff8cc634ff3b72cab65b5f5b012e0be22b6aa4a442b40a9fa8f",
+    "dist/gateway-native-call.js": "a7fb24247c09d29ad4d8eb5752a54f115bdd0e41401f474d4f0647ac7347b594",
+    "dist/gateway-transport.js": "4d01aae274fde36c5f12da7b100d26fb8b69c234bb9b24af83f48b4b1a24c0eb",
+    "dist/gateway.js": "b945c111c32d9725b1d4e87d1552409622ddc888942dceef99f582fcb4dc72ba",
+    "dist/import-actions.js": "7a29a8aafe3b52ab2341a2f627776615ff8bdcb700be9d12ed8a63e8efee9559",
+    "dist/import-effects.js": "ce93e60c4fc0f398fa9ebfcfabd22e28214c972b1cfc7ddda1bc60e4fbf90c40",
+    "dist/import-engine.js": "e55c61ccd5d808bec426befd1c6fe57b85d0a562d31cfb54200a78d35143e443",
+    "dist/import-native.js": "d6868aa40b7c3f2cc7dd8b315a4db14a9ea00657d75c2dbecdd732e47793660b",
+    "dist/import-plan.js": "5b1ecceb37f603f2b4867e7b3e860e81a13cb2be47e64d7c67a440a17a058ecc",
+    "dist/import-runtime.js": "fd34880db50a8ca351e34f474c124f4ee2395110783f77d3114b5b5e267a0d81",
+    "dist/import-state.js": "8fe7d8a772ee0df0bf719a5e54eba224a383bcb3a200ec7cbec60983fb8e49c9",
+    "dist/import-store.js": "ec5d6aeda96b8193277c5f3761ee4cac31a0868362cd6de0be793de7957ab159",
+    "dist/intake-actions.js": "a17963934f9c627c625ca070a43fbf02d65a6f3abaa456e8ac67750244c5c4e5",
+    "dist/intake-authority.js": "06dc84a12b30e7274039a41b3fb60e4128773792c2d2fea60be2b1e39c70469b",
+    "dist/intake-config.js": "8b852fe3399bd8aa428efcd37f81d724e8817bf9bce54c80d1c3d92ab8061016",
+    "dist/intake-runtime.js": "2512f2328c2c27c564ce8f61a3ec46406d013ae993effcbfd744135fcabba2db",
+    "dist/intake-source.js": "aa14b4fa36bd02d3edf2542b899e392b482de644bc9b232bde3d629d1b67439e",
+    "dist/intake-state.js": "b927a15d9d3448e1156edd5dd841dda613108756f1474cf4a6e279395342f976",
+    "dist/intake-store.js": "91f0b796cc865b932a619acb27441a96af5d62d790f7c73cf90475b96b767c85",
+    "dist/manifest.js": "2a4592821332abe06d79724d04202f3d01f98d063c6ec7bc0cfddee30f3d299c",
+    "dist/source-client.js": "39ac24658a9cd5b5f599edc24aa8da7d81bea48ac328546e9d34925e5ac2537d",
+    "dist/source-family.js": "6be647e09966ae5a949d58cde70171183d7fdd95c68962fc255cf9779a26ca2b",
+    "dist/source-graph.js": "16fc444a62f24c8636f81bac7a6b83b54056684eef149a01816baef1ae6e84bf",
+    "dist/source-payload.js": "6fb802cce3682c86c6a11c3da4ac32f6fe3065e5a24a63307277466acedfb127",
+    "dist/source-probe.js": "834c3ee8a4bee48f35e74727223edfeeb3e6b57c201f8307769765a2a7ebd62e",
+    "dist/webhook-event.js": "28e7530c011f6c9a06fa9b5ded16ae5ed9f995bc7a55c0976e9b74dfaa88551e",
+    "dist/worker.js": "8c3bec8d7980f246e522fe36e563b0a1bc966fa9b892bd6baebd5b73ace30d5c"
+  },
+  "native": {
+    "layer": "synthetic-source-published-sdk-bridge-real-core-services-isolated-postgresql",
+    "hostSha": "61b3fd57a695614dc4a37e2303f426a34a9795cf",
+    "nominalExecution": {
+      "issueCount": 4,
+      "statuses": [
+        "blocked",
+        "blocked",
+        "done",
+        "cancelled"
+      ],
+      "descriptions": [
+        {
+          "length": 34000,
+          "sha256": "d5d569f4260785224b69343d7027fd8c4bd989d1578d994b460fea4655c98832",
+          "documentSha256": "b92321cb4de1fd0582d143f711aca237c1308037240ecbf8839d4cae921e3a17",
+          "revisionCount": 1
+        },
+        {
+          "length": 7600,
+          "sha256": "79fe9a399196e60d0376c5406d288e98ae8604c8c52bfde778491737caed1fa7",
+          "documentSha256": "dda762aec747d2f15123327a73f61016802d5fd661bc822d3e650acfb4b0bcbc",
+          "revisionCount": 1
+        },
+        {
+          "length": 7600,
+          "sha256": "67ce1d9c761735722ddad88da6bf53851342c86e9ab64d09bb6f1c4d4bff6c06",
+          "documentSha256": "f884b2dfed3abab4a722e0a0880cb9bcb779530f3f5baae60e471b227a98f9ed",
+          "revisionCount": 1
+        },
+        {
+          "length": 7600,
+          "sha256": "958809ebfd6c21750ef0584cb3253be974ea7f1e7e4ce6adf80499366bb0597c",
+          "documentSha256": "39cf708559c80a6ce491e0280f279a91253930efcc47bb773fc97202889d597a",
+          "revisionCount": 1
+        }
+      ],
+      "effectCount": 13,
+      "externalBlockerCount": 1,
+      "writes": {
+        "issues.create": 4,
+        "issues.documents.upsert": 5,
+        "issues.relations.addBlockers": 1
+      },
+      "sourceVerifications": 2,
+      "noExecution": {
+        "agents": 0,
+        "heartbeat_runs": 0,
+        "agent_wakeup_requests": 0
+      }
+    },
+    "uncertaintyExecutions": {
+      "lost": {
+        "schema": "linear-intake-native-host-uncertainty.v1",
+        "hostSha": "61b3fd57a695614dc4a37e2303f426a34a9795cf",
+        "scenario": "lost_response",
+        "initialStatus": "outcome_unknown",
+        "reconciled": {
+          "unresolved": 0,
+          "effectCount": 1
+        },
+        "resumed": true,
+        "finalStatus": "prepared",
+        "effectCount": 13,
+        "dispatchCounts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        "writes": {
+          "issues.create": 4,
+          "issues.documents.upsert": 5,
+          "issues.relations.addBlockers": 1
+        },
+        "noExecution": {
+          "agents": 0,
+          "heartbeat_runs": 0,
+          "agent_wakeup_requests": 0
+        },
+        "provenanceSha256": "5e503612887af070028d1e413ebce94cba2ff352ceea9b489b8f59f12542301d",
+        "sourceSha256AtRun": "13cb2ee4fdac31bb50df65d7b02427ac57194b76c9df80c0b762d8cb69449ddd",
+        "buildSha256AtRun": "6b2e66f8c4bc44b33183b75531062dae8620a2c6a033f8559daad6d47091b190"
+      },
+      "absent": {
+        "schema": "linear-intake-native-host-uncertainty.v1",
+        "hostSha": "61b3fd57a695614dc4a37e2303f426a34a9795cf",
+        "scenario": "absent_effect",
+        "initialStatus": "outcome_unknown",
+        "reconciled": {
+          "unresolved": 1,
+          "effectCount": 1
+        },
+        "resumed": false,
+        "finalStatus": "outcome_unknown",
+        "effectCount": 1,
+        "dispatchCounts": [
+          1
+        ],
+        "writes": {
+          "issues.create": 0,
+          "issues.documents.upsert": 0,
+          "issues.relations.addBlockers": 0
+        },
+        "noExecution": {
+          "agents": 0,
+          "heartbeat_runs": 0,
+          "agent_wakeup_requests": 0
+        },
+        "provenanceSha256": "5e503612887af070028d1e413ebce94cba2ff352ceea9b489b8f59f12542301d",
+        "sourceSha256AtRun": "13cb2ee4fdac31bb50df65d7b02427ac57194b76c9df80c0b762d8cb69449ddd",
+        "buildSha256AtRun": "6b2e66f8c4bc44b33183b75531062dae8620a2c6a033f8559daad6d47091b190"
+      }
+    },
+    "finalReadOnlyReplays": {
+      "nominal": {
+        "schema": "linear-intake-native-host-readonly-replay.v1",
+        "hostSha": "61b3fd57a695614dc4a37e2303f426a34a9795cf",
+        "scenario": "nominal",
+        "state": "prepared",
+        "planSha256": "8d8be9ac14b0611fa52b0ee468c759d03fc49d5245f87c90df4adc06ea1d6fb1",
+        "sourceSha256": "b4b8a0675820f7ceddc05989b9d395f270ea96d86fdfe085b512a8e72a588c1a",
+        "readinessSha256": "57a08b8506c67b35a692ed536642d8fe3661bf0303003725ea7ec35db216ada2",
+        "effectCount": 13,
+        "dispatchCounts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        "writes": {
+          "issues.create": 0,
+          "issues.documents.upsert": 0,
+          "issues.relations.addBlockers": 0
+        },
+        "ledgerWrites": 0,
+        "noExecution": {
+          "agents": 0,
+          "heartbeat_runs": 0,
+          "agent_wakeup_requests": 0
+        },
+        "admissionAllowed": false,
+        "implementationStarted": false,
+        "receivingContract": "unqualified",
+        "provenanceSha256": "5d48f5f54f53ff00a66919a06926e8a6d14e4002b7d2c87a51fecab143c5fbe9",
+        "sourceStableDuringRun": true,
+        "sourceSha256AtRun": "8c9aae8be80aaa2a89cf130100e5d16cb6f9a7caa054bfe844e664f5f1a18c25",
+        "buildSha256AtRun": "2f4c01e48a1c2837347af474a664ca073b40c7a22123396c1df2e33dac452268",
+        "migrationsSha256AtRun": "028d868ddb3730756f01c54422ac3cf7af95f8f71360dc8b5958e75e8a6ccfd2",
+        "hostMigrationsSha256AtRun": "9de2915bf40fb0e61b0e0a74861a92392ae524f7e18d5ea7a417bfe1b65a4e49"
+      },
+      "lost": {
+        "schema": "linear-intake-native-host-readonly-replay.v1",
+        "hostSha": "61b3fd57a695614dc4a37e2303f426a34a9795cf",
+        "scenario": "lost_response",
+        "state": "prepared",
+        "planSha256": "c33f09015dc3f0fbc8ec10641829d405b3f66122c28085494b6191de011d0d9c",
+        "sourceSha256": "fc44a210f0614aed203d198e4a5a67b7e9fbfdab30b7a13cf63490c61273c18d",
+        "readinessSha256": "b3e2c2069a2ba7660ead525064adb97e3993794e27049f84cad95500c94ea0f4",
+        "effectCount": 13,
+        "dispatchCounts": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        "writes": {
+          "issues.create": 0,
+          "issues.documents.upsert": 0,
+          "issues.relations.addBlockers": 0
+        },
+        "ledgerWrites": 0,
+        "noExecution": {
+          "agents": 0,
+          "heartbeat_runs": 0,
+          "agent_wakeup_requests": 0
+        },
+        "admissionAllowed": false,
+        "implementationStarted": false,
+        "receivingContract": "unqualified",
+        "provenanceSha256": "5d48f5f54f53ff00a66919a06926e8a6d14e4002b7d2c87a51fecab143c5fbe9",
+        "sourceStableDuringRun": true,
+        "sourceSha256AtRun": "8c9aae8be80aaa2a89cf130100e5d16cb6f9a7caa054bfe844e664f5f1a18c25",
+        "buildSha256AtRun": "2f4c01e48a1c2837347af474a664ca073b40c7a22123396c1df2e33dac452268",
+        "migrationsSha256AtRun": "028d868ddb3730756f01c54422ac3cf7af95f8f71360dc8b5958e75e8a6ccfd2",
+        "hostMigrationsSha256AtRun": "9de2915bf40fb0e61b0e0a74861a92392ae524f7e18d5ea7a417bfe1b65a4e49"
+      },
+      "absent": {
+        "schema": "linear-intake-native-host-readonly-replay.v1",
+        "hostSha": "61b3fd57a695614dc4a37e2303f426a34a9795cf",
+        "scenario": "absent_effect",
+        "state": "outcome_unknown",
+        "planSha256": "f4a71ceee94b4bbe34de35cb786519df717e27b4806367423ae634d3fb8e6060",
+        "sourceSha256": "31bd9953ee04088443d8948646d730197fb2f44125ae6ac8dae1081423744f53",
+        "readinessSha256": null,
+        "effectCount": 1,
+        "dispatchCounts": [
+          1
+        ],
+        "writes": {
+          "issues.create": 0,
+          "issues.documents.upsert": 0,
+          "issues.relations.addBlockers": 0
+        },
+        "ledgerWrites": 0,
+        "noExecution": {
+          "agents": 0,
+          "heartbeat_runs": 0,
+          "agent_wakeup_requests": 0
+        },
+        "admissionAllowed": false,
+        "implementationStarted": false,
+        "receivingContract": "unqualified",
+        "provenanceSha256": "5d48f5f54f53ff00a66919a06926e8a6d14e4002b7d2c87a51fecab143c5fbe9",
+        "sourceStableDuringRun": true,
+        "sourceSha256AtRun": "8c9aae8be80aaa2a89cf130100e5d16cb6f9a7caa054bfe844e664f5f1a18c25",
+        "buildSha256AtRun": "2f4c01e48a1c2837347af474a664ca073b40c7a22123396c1df2e33dac452268",
+        "migrationsSha256AtRun": "028d868ddb3730756f01c54422ac3cf7af95f8f71360dc8b5958e75e8a6ccfd2",
+        "hostMigrationsSha256AtRun": "9de2915bf40fb0e61b0e0a74861a92392ae524f7e18d5ea7a417bfe1b65a4e49"
+      }
+    },
+    "finalReplaySourceSha256": "8c9aae8be80aaa2a89cf130100e5d16cb6f9a7caa054bfe844e664f5f1a18c25",
+    "finalReplayBuildSha256": "2f4c01e48a1c2837347af474a664ca073b40c7a22123396c1df2e33dac452268",
+    "finalReplayIsFreshEffectExecution": false,
+    "sourceTransport": "synthetic",
+    "installedLoaderExercised": false,
+    "nativeSchedulerExercised": false
+  },
+  "review": {
+    "independent": true,
+    "remainingP1P2": 0,
+    "corrected": [
+      "durable_state_after_refused_completion",
+      "interrupted_plan_queue_starvation",
+      "observed_object_disappearance",
+      "native_execution_reservations",
+      "preplan_blocker_operator_visibility"
+    ]
+  },
+  "operationalEffects": {
+    "recipeUpdated": false,
+    "realWebhookActivated": false,
+    "realLinearImports": 0,
+    "linearWrites": 0,
+    "agentWakes": 0,
+    "councilAdmissions": 0
+  },
+  "cleanup": {
+    "isolatedClusterStopped": true,
+    "statusExitCode": 3,
+    "observedAt": "2026-10-07T21:32:50.021546+00:00"
+  },
+  "limitations": [
+    "Council receiving contract is unqualified; prepared is never admission.",
+    "Uncertain absent effects remain frozen under the original identity.",
+    "Foreign relation writers require coordination; cross-system readback is not atomic.",
+    "Final native replays read the preserved objects; earlier native effect executions retain their own code hashes.",
+    "No operational installation, real webhook or provider qualification for 0.3.0."
+  ]
+}

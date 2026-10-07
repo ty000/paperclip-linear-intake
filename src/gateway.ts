@@ -118,7 +118,7 @@ export async function openGateway(ctx: PluginContext, companyId: string, guard: 
 
   const initialized = await rpc("initialize", {
     protocolVersion: "2025-03-26", capabilities: {},
-    clientInfo: { name: "paperclip-linear-intake", version: "0.2.0" },
+    clientInfo: { name: "paperclip-linear-intake", version: "0.3.0" },
   });
   const init = z.object({
     protocolVersion: z.literal("2025-03-26"),
@@ -142,9 +142,9 @@ export async function openGateway(ctx: PluginContext, companyId: string, guard: 
 
 export async function inspectGateway(ctx: PluginContext, companyId: string) {
   const session = await openGateway(ctx, companyId);
-  if (!session) return { status: "disabled" as const, importEnabled: false };
+  if (!session) return { status: "disabled" as const, importPerformed: false };
   return {
-    status: "catalog_observed" as const, importEnabled: false,
+    status: "catalog_observed" as const, importPerformed: false,
     sourceCoverage: "unqualified" as const, protocolVersion: session.protocolVersion,
     catalogSha256: session.catalogSha256, tools: session.tools,
   };

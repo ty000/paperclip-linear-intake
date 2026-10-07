@@ -77,7 +77,7 @@ jobs:
       - name: Save build evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: lot2-build-evidence
+          name: lot3-build-evidence
           path: artifacts/build-evidence.json
           if-no-files-found: error
 
@@ -197,12 +197,12 @@ jobs:
         run: |
           mkdir -p artifacts/postgres-ci
           git rev-parse HEAD > artifacts/postgres-ci/candidate.txt
-          sha256sum migrations/001_intake.sql package-lock.json > artifacts/postgres-ci/inputs.sha256
+          sha256sum migrations/*.sql package-lock.json > artifacts/postgres-ci/inputs.sha256
           npm run test:postgres | tee artifacts/postgres-ci/tests.log
       - name: Save isolated PostgreSQL evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: lot2-postgres-evidence
+          name: lot3-postgres-evidence
           path: artifacts/postgres-ci/
           if-no-files-found: error

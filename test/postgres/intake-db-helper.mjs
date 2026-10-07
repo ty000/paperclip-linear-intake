@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { Pool } from "pg";
 import { INTAKE_DATABASE_NAMESPACE } from "../../dist/intake-state.js";
 
@@ -25,8 +25,10 @@ function isolatedConnectionString() {
 }
 
 async function applyMigration(pool) {
-  const migration = await readFile(new URL("../../migrations/001_intake.sql", import.meta.url), "utf8");
-  const statements = migration.split(";").map(part => part.trim()).filter(Boolean);
+  const directory = new URL("../../migrations/", import.meta.url);
+  const names = (await readdir(directory)).filter(name => name.endsWith('.sql')).sort();
+  const migrations = await Promise.all(names.map(name => readFile(new URL(name, directory), "utf8")));
+  const statements = migrations.join('\n').split(";").map(part => part.trim()).filter(Boolean);
   await pool.query(`DROP SCHEMA IF EXISTS ${INTAKE_DATABASE_NAMESPACE} CASCADE`);
   await pool.query(`CREATE SCHEMA ${INTAKE_DATABASE_NAMESPACE}`);
   for (const statement of statements) await pool.query(statement);
@@ -61,7 +63,9 @@ export async function isolatedDatabase() {
     async reset() {
       calls.length = 0;
       await pool.query(`TRUNCATE ${INTAKE_DATABASE_NAMESPACE}.intake_deliveries,
-        ${INTAKE_DATABASE_NAMESPACE}.intake_requests, ${INTAKE_DATABASE_NAMESPACE}.intake_binding`);
+        ${INTAKE_DATABASE_NAMESPACE}.intake_requests, ${INTAKE_DATABASE_NAMESPACE}.intake_binding,
+        ${INTAKE_DATABASE_NAMESPACE}.import_plans, ${INTAKE_DATABASE_NAMESPACE}.import_effects,
+        ${INTAKE_DATABASE_NAMESPACE}.import_plan_effects`);
     },
     close: () => pool.end(),
   };
