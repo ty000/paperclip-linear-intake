@@ -141,7 +141,7 @@ history. This comparison supplements the actual plugin-to-gateway execution;
 it does not substitute for that native path. See the
 [redacted leaf summary](native-reader-leaves-summary.json).
 
-The operator separately authorized parent **PEZ-647** and its Content Assistant
+The operator separately authorized the selected parent and its Content Assistant
 subtree, with at most 50 issues and pages of one child. The real managed
 connector returned three one-child pages (`true`, `true`, then `false` for
 `hasNextPage`) and terminal empty child inventories. A detail read failed during
@@ -203,7 +203,7 @@ that source review does not establish a successful native REST family read.
 ## Successful native REST campaign on 0.1.4
 
 The operator approved candidate `6747347b7b2b6e4d0854effc4d10481d73b5aa6d`,
-installation under the existing plugin identity, one bounded PEZ-647 subtree read
+installation under the existing plugin identity, one previously authorized parent subtree read
 and enrollment cleanup. Three exact-candidate CI jobs passed. All eleven frozen
 runtime files and the lockfile were compared with the downloaded CI artifact
 before staging the update; the previous active 0.1.3 package was preserved.
