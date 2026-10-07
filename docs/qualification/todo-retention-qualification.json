@@ -1,0 +1,81 @@
+{
+  "schema": "linear-intake-lot2-qualification.v1",
+  "candidate": "4d291cd44b4aa01f40858f6c51ad24ab96736d31",
+  "base": "80944560021c246aedc0e9b3ea09e235a926b23d",
+  "version": "0.2.0",
+  "layer": "published-sdk-worker-protocol-and-isolated-postgresql-with-synthetic-source",
+  "criteria": {
+    "L2-A": "PASS",
+    "L2-B": "PASS",
+    "L2-C": "PASS",
+    "L2-D": "PASS",
+    "L2-E": "PASS"
+  },
+  "ci": {
+    "url": "https://github.com/ty000/paperclip-linear-intake/actions/runs/37684028380",
+    "status": "success",
+    "checks": 4
+  },
+  "tests": {
+    "packageAndWorker": 383,
+    "isolatedPostgresql": 79,
+    "failed": 0
+  },
+  "versions": {
+    "node": "v24.20.0",
+    "npm": "11.19.0",
+    "sdk": "2026.1005.0",
+    "postgres": "18.1",
+    "fallow": "3.23.0"
+  },
+  "staticGate": {
+    "status": "pass",
+    "introducedFindings": 0,
+    "base": "80944560021c246aedc0e9b3ea09e235a926b23d"
+  },
+  "buildMatchesLocal": true,
+  "lockSha256": "d4156647d17ca01b7c86258bf8109846814adb8c3737dae1f71fad79a8746471",
+  "migrationSha256": "690f7c31c8aa5b7dc3a539201ef346a58e55e8861aac6a0bbb9710bcda9befb0",
+  "builtRuntimeSha256": {
+    "dist/config.js": "a97e3920385a3c452a42a8959edf6327a5316fdf921ae40d2d962e1030a43739",
+    "dist/content-digest.js": "7c97d21056ee3ff8cc634ff3b72cab65b5f5b012e0be22b6aa4a442b40a9fa8f",
+    "dist/gateway-native-call.js": "a7fb24247c09d29ad4d8eb5752a54f115bdd0e41401f474d4f0647ac7347b594",
+    "dist/gateway-transport.js": "4d01aae274fde36c5f12da7b100d26fb8b69c234bb9b24af83f48b4b1a24c0eb",
+    "dist/gateway.js": "c9ce55fb7098a48f975179101ae40cb249ffa691a0199b4379a2d50e0bcd5354",
+    "dist/intake-actions.js": "a17963934f9c627c625ca070a43fbf02d65a6f3abaa456e8ac67750244c5c4e5",
+    "dist/intake-config.js": "8b852fe3399bd8aa428efcd37f81d724e8817bf9bce54c80d1c3d92ab8061016",
+    "dist/intake-runtime.js": "9594d7f09a8862357d9bca4d19ef4f256f187c7f1b5ff2c7ef927938062abe16",
+    "dist/intake-source.js": "aa14b4fa36bd02d3edf2542b899e392b482de644bc9b232bde3d629d1b67439e",
+    "dist/intake-state.js": "b927a15d9d3448e1156edd5dd841dda613108756f1474cf4a6e279395342f976",
+    "dist/intake-store.js": "91f0b796cc865b932a619acb27441a96af5d62d790f7c73cf90475b96b767c85",
+    "dist/manifest.js": "7a8715b650808eb13e225ef2b0062e1bfa9215d3fa08fc3c9bfe6111ec95d6c4",
+    "dist/source-client.js": "39ac24658a9cd5b5f599edc24aa8da7d81bea48ac328546e9d34925e5ac2537d",
+    "dist/source-family.js": "2baa72f44a515cc0e7f9f33d83241465c9e07bb60842d223c78c299f1733a914",
+    "dist/source-graph.js": "16fc444a62f24c8636f81bac7a6b83b54056684eef149a01816baef1ae6e84bf",
+    "dist/source-payload.js": "6fb802cce3682c86c6a11c3da4ac32f6fe3065e5a24a63307277466acedfb127",
+    "dist/source-probe.js": "d6bc6019e925dec518a0add07388c8b60111818e221d6468bfb08e6b7df462d7",
+    "dist/webhook-event.js": "28e7530c011f6c9a06fa9b5ded16ae5ed9f995bc7a55c0976e9b74dfaa88551e",
+    "dist/worker.js": "38906105bdc7e3f6cdac1953c1793d83bd2ae8df14bb9bc88a2ec4c2a42e766e"
+  },
+  "review": {
+    "independent": true,
+    "remainingP1P2": 0,
+    "corrected": [
+      "accepted_request_reentry",
+      "source_configuration_race",
+      "missed_exit_and_reentry"
+    ]
+  },
+  "operationalEffects": {
+    "recipeUpdated": false,
+    "realWebhookActivated": false,
+    "linearWrites": 0,
+    "imports": 0,
+    "agentWakes": 0
+  },
+  "limitations": [
+    "Never-received Todo transitions are not reconstructed.",
+    "Synthetic webhook delivery and native SDK handlers are not operational webhook qualification.",
+    "source_observed is source evidence, not import readiness or admission."
+  ]
+}

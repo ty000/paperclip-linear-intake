@@ -7,10 +7,12 @@ match candidate `6747347` and its successful CI. The plugin remains disabled,
 all temporary enrollment is removed, and native connection health is `ok`.
 See the [criterion ledger and native evidence](qualification/SOURCE-READER.md).
 
-Lot 2 is implemented in source version `0.2.0`; its isolated verification and
-independent review are in progress. Lot 3 must wait for Lot 2's acceptance checks.
-See the [Lot 2 ledger](qualification/TODO-RETENTION.md). The acceptance checks
-below remain authoritative and unchanged.
+**Lot 2 complete (L2-A through L2-E PASS)** in source version `0.2.0`, candidate
+`4d291cd`: 383 package/worker tests, 79 isolated PostgreSQL tests, independent
+review, Fallow and four exact-candidate CI checks pass. See the
+[Lot 2 ledger and limits](qualification/TODO-RETENTION.md). Recipe stays on
+disabled `0.1.4`; no real webhook is active. Lot 3 may now begin within the
+authorized isolated scope. The acceptance checks below remain unchanged.
 
 Local transport continuation: the operator approved an opt-in direct loopback
 client while VPS deployment is deferred. Its scope is plugin-only code, tests

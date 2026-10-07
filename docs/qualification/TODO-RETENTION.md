@@ -1,7 +1,8 @@
 # Lot 2 — Todo request retention
 
-Status: implementation complete in source `0.2.0`; isolated verification and
-independent review in progress. Recipe remains on disabled `0.1.4`. No real
+Status: **L2-A through L2-E PASS** in source `0.2.0`, candidate `4d291cd`.
+Isolated verification, independent review and all four CI checks pass.
+Recipe remains on disabled `0.1.4`. No real
 webhook, import, admission, agent wake or Linear write is part of this proof.
 
 ## Acceptance ledger
@@ -11,11 +12,24 @@ These IDs map the unchanged Lot 2 acceptance checks in the
 
 | ID | Required result | Evidence | Status |
 | --- | --- | --- | --- |
-| L2-A | One retained request for an authorized Todo transition; other updates cannot start work | Raw-body webhook tests and SDK hook with isolated PostgreSQL | Pending final run |
-| L2-B | Invalid signatures, scope and withdrawn work cannot launch | Signature/actor/scope tests, durable withdrawal and source eligibility tests | Pending final run |
-| L2-C | Duplicate/out-of-order deliveries and restart preserve identity | Concurrent SQL tests, interruptions before/after every persistence write, new runtime over the same database | Pending final run |
-| L2-D | Persistence precedes ACK; source reads run outside the callback | Actual SDK hook/job handlers, durable database readback and synthetic managed-gateway transport | Pending final run |
-| L2-E | Enabling configuration does not adopt historical Todo tickets | Explicit activation boundary, disabled/unbound job tests, no source-wide scan | Pending final run |
+| L2-A | One retained request for an authorized Todo transition; other updates cannot start work | Raw-body webhook tests and SDK hook with isolated PostgreSQL | PASS |
+| L2-B | Invalid signatures, scope and withdrawn work cannot launch | Signature/actor/scope tests, durable withdrawal and source eligibility tests | PASS |
+| L2-C | Duplicate/out-of-order deliveries and restart preserve identity | Concurrent SQL tests, interruptions before/after every persistence write, new runtime over the same database | PASS |
+| L2-D | Persistence precedes ACK; source reads run outside the callback | Actual SDK hook/job handlers, durable database readback and synthetic managed-gateway transport | PASS |
+| L2-E | Enabling configuration does not adopt historical Todo tickets | Explicit activation boundary, disabled/unbound job tests, no source-wide scan | PASS |
+
+The [qualification receipt](todo-retention-qualification.json) identifies the
+candidate, inputs and built runtime hashes. The [exact-candidate CI](https://github.com/ty000/paperclip-linear-intake/actions/runs/37684028380)
+passed 383 package/worker tests and 79 PostgreSQL tests. Downloaded build and
+migration hashes match the locally reviewed candidate. Fallow 3.23.0 reports no
+introduced finding against `8094456`. Independent review found no remaining
+P1/P2 after corrections for re-entry, configuration races and missed withdrawal.
+
+A complementary read-only preflight against the actual host SQL validators at
+`61b3fd57` accepted five migration statements, eight SELECT variants and nine
+DML statements. This establishes validator compatibility only; CI's isolated
+PostgreSQL execution is the separate durability proof. No operational migration
+was applied. The local disposable database was stopped after testing.
 
 ## Activation and suspension
 

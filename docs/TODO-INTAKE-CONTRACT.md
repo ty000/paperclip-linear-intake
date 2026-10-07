@@ -1,8 +1,8 @@
 # Todo intake and handoff contract
 
 Status: Lot 1 source access is qualified natively. Lot 2 request retention and
-source retrieval are implemented in `0.2.0`, with isolated qualification in
-progress. Import and handoff remain proposed. See [source qualification](qualification/SOURCE-READER.md)
+source retrieval are implemented and qualified in isolation in `0.2.0`.
+Import and handoff remain proposed. See [source qualification](qualification/SOURCE-READER.md)
 and [retention semantics](qualification/TODO-RETENTION.md).
 Scope: one ticket entering an explicitly configured Todo state and its selected subtree.
 

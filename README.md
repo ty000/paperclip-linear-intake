@@ -14,8 +14,10 @@ Version `0.1.4` from candidate `6747347` is installed in recipe. Its eleven
 runtime files match the exact-candidate CI build. Temporary source probe/reader
 enrollment was removed, the original disabled configuration restored, and the
 managed connection verified healthy. No webhook, import or Council admission
-is active. Source version `0.2.0` adds Lot 2 request retention and a scheduled
-source reader; it is not installed in recipe. Lot 3 import and Council admission
+is active. **Lot 2 is complete** in source version `0.2.0`: 383 package/worker
+tests, 79 isolated PostgreSQL tests, independent review, Fallow and four CI checks
+pass. It adds request retention and a scheduled source reader, and is not
+installed in recipe. Lot 3 import and Council admission
 remain unavailable. Historical receipts remain unchanged.
 
 Lot 2 uses a signed raw-body webhook, an append-only delivery journal and stable
