@@ -79,7 +79,7 @@ async function observeSourceCall(session: GatewaySession, scope: ProbeScope, cal
 // No caller-supplied queries, pagination, tool names or issue IDs are accepted.
 export async function probeSource(ctx: PluginContext, companyId: string) {
   const probe = await openProbeSession(ctx, companyId);
-  if (!probe) return { status: "disabled" as const, intakeEnabled: false };
+  if (!probe) return { status: "disabled" as const, importEnabled: false };
   const { session, scope } = probe;
   validateProbeCatalog(session, scope);
   const observations = [];
@@ -88,6 +88,6 @@ export async function probeSource(ctx: PluginContext, companyId: string) {
   }
   return {
     status: "source_probe_observed" as const, sourceCoverage: "unqualified" as const,
-    intakeEnabled: false, catalogSha256: session.catalogSha256, observations,
+    importEnabled: false, catalogSha256: session.catalogSha256, observations,
   };
 }

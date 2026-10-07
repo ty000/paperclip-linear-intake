@@ -1,9 +1,9 @@
-import { createHash } from "node:crypto";
 import { z, type PluginContext } from "@paperclipai/plugin-sdk";
 import { parseConfig } from "./config.js";
 import { openSourceClient, SourceReadError, type SourceClient } from "./source-client.js";
 import { parseDetail, parsePage, parseProject, parseStatuses, parseTeam } from "./source-payload.js";
 import { familyBlockers } from "./source-graph.js";
+import { contentDigest as digest } from "./content-digest.js";
 
 const detailFields = ["id", "uuid", "title", "description", "parentId", "teamId", "projectId", "status", "statusType",
   "createdAt", "updatedAt", "completedAt", "canceledAt", "archivedAt", "relations", "stateHistory"];
@@ -15,18 +15,6 @@ type Family = {
   client: SourceClient; states: States; issues: Map<string, Detail>;
   children: Map<string, Child[]>; queue: Detail[];
 };
-
-function canonical(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonical);
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => [key, canonical(item)]));
-  }
-  return value;
-}
-
-function digest(value: unknown) {
-  return createHash("sha256").update(JSON.stringify(canonical(value))).digest("hex");
-}
 
 function same(actual: unknown, expected: unknown, code: string) {
   if (digest(actual) !== digest(expected)) throw new SourceReadError(code);
@@ -163,8 +151,9 @@ function snapshot(family: Family, rootId: string) {
 
 // No import, event, job, state write or agent wake. Qualification is operator
 // gated by the worker; future retained requests can use the same scoped reader.
-export async function readSourceFamily(ctx: PluginContext, companyId: string, rootId: string, qualificationOnly = true) {
-  const client = await openSourceClient(ctx, companyId, rootId, qualificationOnly);
+export async function readSourceFamily(ctx: PluginContext, companyId: string, rootId: string, qualificationOnly = true,
+  guard?: import("./gateway.js").GatewayReadGuard) {
+  const client = await openSourceClient(ctx, companyId, rootId, qualificationOnly, guard);
   const startedAt = new Date().toISOString();
   const states = await readMetadata(client);
   const family = await collectFamily(client, states, rootId);
@@ -172,7 +161,7 @@ export async function readSourceFamily(ctx: PluginContext, companyId: string, ro
   same(await readMetadata(client), states, "source_states_changed");
   same(parseConfig(await ctx.config.get(companyId)).sourceReader, client.scope, "source_configuration_changed");
   return {
-    status: "source_family_observed" as const, intakeEnabled: false,
+    status: "source_family_observed" as const, importEnabled: false,
     family: snapshot(family, rootId), startedAt, completedAt: new Date().toISOString(),
     consistency: "repeated_details_and_child_inventories" as const, requests: client.requests(),
   };

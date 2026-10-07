@@ -14,6 +14,7 @@ const catalogSchema = z.object({
   nextCursor: z.string().min(1).max(4096).optional(),
 });
 type GatewayConfig = ReturnType<typeof parseConfig>;
+export type GatewayReadGuard = (config: GatewayConfig) => Promise<void>;
 type GatewayTool = z.infer<typeof toolSchema>;
 type GatewayRpc = (method: "initialize" | "notifications/initialized" | "tools/list" | "tools/call",
   params: Record<string, unknown>, notification?: boolean) => Promise<unknown>;
@@ -79,10 +80,11 @@ function configuredRpc(mode: GatewayConfig["gatewayToolCallMode"], mcp: GatewayR
 // Native config/secrets and named gateway. Explicit loopback transport is opt-in.
 // Catalog discovery and bounded qualification share native authentication.
 // Only explicitly configured source readers call tools/call.
-export async function openGateway(ctx: PluginContext, companyId: string) {
+export async function openGateway(ctx: PluginContext, companyId: string, guard: GatewayReadGuard = async () => {}) {
   if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
   const config = await readGatewayConfig(ctx, companyId);
   if (!config.gatewayDiscoveryEnabled) return undefined;
+  await guard(config);
   const token = await resolveGatewaySecret(ctx, companyId, config.gatewayTokenRef!);
   validateGatewaySecret(token);
 
@@ -94,6 +96,7 @@ export async function openGateway(ctx: PluginContext, companyId: string) {
 
   let sequence = 0;
   async function rpc(method: "initialize" | "notifications/initialized" | "tools/list" | "tools/call", params: Record<string, unknown>, notification = false) {
+    await guard(config);
     const id = ++sequence;
     const response = await postGateway(ctx, config, token,
       JSON.stringify({ jsonrpc: "2.0", ...(notification ? {} : { id }), method, params }));
@@ -115,7 +118,7 @@ export async function openGateway(ctx: PluginContext, companyId: string) {
 
   const initialized = await rpc("initialize", {
     protocolVersion: "2025-03-26", capabilities: {},
-    clientInfo: { name: "paperclip-linear-intake", version: "0.1.4" },
+    clientInfo: { name: "paperclip-linear-intake", version: "0.2.0" },
   });
   const init = z.object({
     protocolVersion: z.literal("2025-03-26"),
@@ -127,7 +130,10 @@ export async function openGateway(ctx: PluginContext, companyId: string) {
   // Expose REST dispatch only after the named MCP gateway authenticated and
   // returned its complete catalog. Callers still validate all source role pins.
   const sessionRpc = configuredRpc(config.gatewayToolCallMode, rpc,
-    params => callNativeGateway(ctx, config, token, params, assertCredentialAbsent));
+    async params => {
+      await guard(config);
+      return callNativeGateway(ctx, config, token, params, assertCredentialAbsent);
+    });
   return {
     rpc: sessionRpc, assertCredentialAbsent, config, protocolVersion: init.data.protocolVersion,
     catalogSha256: createHash("sha256").update(JSON.stringify(tools)).digest("hex"), tools,
@@ -136,9 +142,9 @@ export async function openGateway(ctx: PluginContext, companyId: string) {
 
 export async function inspectGateway(ctx: PluginContext, companyId: string) {
   const session = await openGateway(ctx, companyId);
-  if (!session) return { status: "disabled" as const, intakeEnabled: false };
+  if (!session) return { status: "disabled" as const, importEnabled: false };
   return {
-    status: "catalog_observed" as const, intakeEnabled: false,
+    status: "catalog_observed" as const, importEnabled: false,
     sourceCoverage: "unqualified" as const, protocolVersion: session.protocolVersion,
     catalogSha256: session.catalogSha256, tools: session.tools,
   };

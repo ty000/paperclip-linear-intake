@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { z, type PluginContext } from "@paperclipai/plugin-sdk";
-import { openGateway } from "./gateway.js";
+import { openGateway, type GatewayReadGuard } from "./gateway.js";
 import { parseConfig } from "./config.js";
 import { unwrapManagedPayload } from "./source-payload.js";
 
@@ -75,9 +75,10 @@ function boundPayload(value: unknown) {
   return value;
 }
 
-export async function openSourceClient(ctx: PluginContext, companyId: string, rootIssueId: string, qualificationOnly: boolean) {
+export async function openSourceClient(ctx: PluginContext, companyId: string, rootIssueId: string,
+  qualificationOnly: boolean, guard?: GatewayReadGuard) {
   const expectedScope = await readScope(ctx, companyId, rootIssueId, qualificationOnly);
-  const { session, scope } = requireReader(await openGateway(ctx, companyId));
+  const { session, scope } = requireReader(await openGateway(ctx, companyId, guard));
   if (JSON.stringify(scope) !== JSON.stringify(expectedScope)) throw new SourceReadError("source_configuration_changed");
   verifyCatalog(session, scope);
   const budget = requestBudget(scope);

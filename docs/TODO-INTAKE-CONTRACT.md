@@ -1,8 +1,9 @@
 # Todo intake and handoff contract
 
-Status: intake/import/handoff contract proposed, not implemented. Lot 1 provides
-a disabled skeleton, source probe and complete-family reader qualified natively;
-see [current qualification](qualification/SOURCE-READER.md).
+Status: Lot 1 source access is qualified natively. Lot 2 request retention and
+source retrieval are implemented and qualified in isolation in `0.2.0`.
+Import and handoff remain proposed. See [source qualification](qualification/SOURCE-READER.md)
+and [retention semantics](qualification/TODO-RETENTION.md).
 Scope: one ticket entering an explicitly configured Todo state and its selected subtree.
 
 ## Configuration and authority
@@ -93,7 +94,9 @@ boundary; recovery must not sweep all historical Todo tickets.
 
 Expose distinct states for received, fetching, importing, prepared,
 admission-blocked, admitted, withdrawn and outcome-unknown, with source links and
-the next required action. These are design states, not an implemented schema.
+the next required action. The future import/admission states remain design
+states. Lot 2 implements `received`, `fetching`, `source_observed`, `withdrawn`
+and `blocked` only.
 
 No Slack integration, Linear status writeback, provider execution, merge or
 deployment is introduced by this first contract.

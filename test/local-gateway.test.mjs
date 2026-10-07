@@ -43,7 +43,7 @@ test('explicit loopback mode uses real HTTP, native scoped secrets and bounded m
   const out = await f.run();
   assert.equal(out.status, 'catalog_observed');
   assert.equal(out.sourceCoverage, 'unqualified');
-  assert.equal(out.intakeEnabled, false);
+  assert.equal(out.importEnabled, false);
   assert.equal(f.hostFetches(), 0);
   assert.deepEqual(f.refs, [{ ref: secretRef, scope: { companyId, configPath: 'gatewayTokenRef' } }]);
   assert.deepEqual(f.requests.map(x => x.rpc.method), ['initialize', 'notifications/initialized', 'tools/list']);
@@ -187,7 +187,7 @@ for (const [name, fail, reason] of failures) {
       return true;
     } });
     const out = await f.run();
-    assert.deepEqual(out, { status: 'blocked', reason, intakeEnabled: false });
+    assert.deepEqual(out, { status: 'blocked', reason, importEnabled: false });
     assert.equal(f.hostFetches(), 0);
     assertRedacted(f, out);
   });
