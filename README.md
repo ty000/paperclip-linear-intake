@@ -14,7 +14,14 @@ Version `0.1.4` from candidate `6747347` is installed in recipe. Its eleven
 runtime files match the exact-candidate CI build. Temporary source probe/reader
 enrollment was removed, the original disabled configuration restored, and the
 managed connection verified healthy. No webhook, import or Council admission
-is active. Lots 2 and 3 have not started. Historical receipts remain unchanged.
+is active. Source version `0.2.0` adds Lot 2 request retention and a scheduled
+source reader; it is not installed in recipe. Lot 3 import and Council admission
+remain unavailable. Historical receipts remain unchanged.
+
+Lot 2 uses a signed raw-body webhook, an append-only delivery journal and stable
+company/organization/issue identities. It acknowledges valid transitions after
+persistence. Only the scheduled native job reads the selected source family.
+See [retention semantics and qualification](docs/qualification/TODO-RETENTION.md).
 
 ## Local verification
 
@@ -29,6 +36,13 @@ npm pack --dry-run --json
 `npm run check` typechecks, builds and runs the SDK harness and actual worker
 RPC tests with synthetic host services. Dependencies come from the public npm
 registry and the committed lockfile; no adjacent checkout is needed.
+
+The separate `npm run test:postgres` check requires an isolated PostgreSQL 18.1
+database via `INTAKE_TEST_DATABASE_URL`, with database and user both `intake_test`.
+It recreates only the plugin schema in that disposable database. Never point
+this test at recipe. CI provisions its own PostgreSQL service and runs storage
+and worker integration tests, including concurrent deliveries and interrupted
+writes, in addition to the ordinary package tests.
 
 The independent **Fallow** CI job uses the locked `fallow@3.23.0` and its native
 exit status to gate introduced findings, including complexity. It compares a
@@ -88,7 +102,7 @@ calls; the existing 10,000 ms local MCP limit is unchanged. No new capability,
 credential or host modification is needed. The native parent-family campaign
 qualified this option at 30,000 ms; cleanup restored the original MCP configuration.
 
-## Intended flow (not yet implemented)
+## Flow and remaining work
 
 ```mermaid
 flowchart LR
@@ -102,6 +116,10 @@ flowchart LR
 The integration owns event verification, complete source retrieval, import
 identity, recovery, and the handoff. Council owns the project mandate, budget,
 execution order, review, and acceptance.
+
+The webhook, durable request and source-reading job are implemented in `0.2.0`.
+Native task import and Council handoff are later lots. A `source_observed` result
+is stored source evidence and does not make work eligible for admission.
 
 ## First scope
 

@@ -17,7 +17,9 @@ test('packaged manifest is self-contained and reloads new schema in a persistent
   await copyFile(new URL('../dist/manifest.js', import.meta.url), entry);
   const after = await import(`${pathToFileURL(entry).href}?mtime=current`);
   assert.equal(after.default.instanceConfigSchema.properties.sourceProbe.type, 'object');
-  assert.equal(after.default.instanceConfigSchema.properties.enabled.const, false);
+  assert.equal(after.default.instanceConfigSchema.properties.enabled.default, false);
+  assert.equal(after.default.instanceConfigSchema.properties.enabled.type, 'boolean');
+  assert.ok(after.default.instanceConfigSchema.allOf[0].then.required.includes('intake'));
   assert.equal(parseConfig({}).enabled, false);
   assert.doesNotMatch(await readFile(entry, 'utf8'), /^import\s/m);
 });

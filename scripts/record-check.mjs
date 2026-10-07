@@ -3,13 +3,14 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 const run = (...args) => execFileSync(...args, { encoding: 'utf8' }).trim();
 const result = {
-  schema: 'linear-intake-lot1-build-evidence.v1',
+  schema: 'linear-intake-lot2-build-evidence.v1',
   candidate: run('git', ['rev-parse', 'HEAD']),
-  base: 'f85ab5d19dcdbcf1146003ea9945dfb3a9c59925',
+  base: '80944560021c246aedc0e9b3ea09e235a926b23d',
   node: process.version,
   npm: run('npm', ['--version']),
   sdk: JSON.parse(readFileSync('node_modules/@paperclipai/plugin-sdk/package.json')).version,
   lockSha256: createHash('sha256').update(readFileSync('package-lock.json')).digest('hex'),
+  migrationSha256: createHash('sha256').update(readFileSync('migrations/001_intake.sql')).digest('hex'),
   builtRuntimeSha256: Object.fromEntries(readdirSync('dist').filter(name => name.endsWith('.js')).sort()
     .map(name => [`dist/${name}`, createHash('sha256').update(readFileSync(`dist/${name}`)).digest('hex')])),
   commands: ['npm ci --ignore-scripts --no-audit --no-fund', 'npm run check', 'npm pack --dry-run --json'],

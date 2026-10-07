@@ -7,8 +7,10 @@ match candidate `6747347` and its successful CI. The plugin remains disabled,
 all temporary enrollment is removed, and native connection health is `ok`.
 See the [criterion ledger and native evidence](qualification/SOURCE-READER.md).
 
-Lot 2 is now eligible to begin; it has not started. Lot 3 must wait for Lot 2's
-acceptance checks. The acceptance checks below remain authoritative and unchanged.
+Lot 2 is implemented in source version `0.2.0`; its isolated verification and
+independent review are in progress. Lot 3 must wait for Lot 2's acceptance checks.
+See the [Lot 2 ledger](qualification/TODO-RETENTION.md). The acceptance checks
+below remain authoritative and unchanged.
 
 Local transport continuation: the operator approved an opt-in direct loopback
 client while VPS deployment is deferred. Its scope is plugin-only code, tests

@@ -60,7 +60,10 @@ try {
   const result = await api(`/api/plugins/${receipt.pluginId}/bridge/action`, {
     companyId: receipt.companyId, key: 'inspect-gateway', params: {},
   });
-  if (result.data?.status !== 'catalog_observed' || result.data.intakeEnabled !== false
+  // 0.2.0 names the action's no-import guarantee explicitly. The separate
+  // native configuration check above still requires retention to be disabled.
+  const inactiveField = Object.hasOwn(result.data ?? {}, 'importEnabled') ? 'importEnabled' : 'intakeEnabled';
+  if (result.data?.status !== 'catalog_observed' || result.data[inactiveField] !== false
       || result.data.tools.length !== allowed.length + 4) throw new Error();
   if (familyReader && (config.sourceProbe || config.sourceReader)) throw new Error();
   const expectedNames = [...allowed.map(n => n.replaceAll('_', '-')),

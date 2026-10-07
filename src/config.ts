@@ -1,4 +1,5 @@
 import { isIP } from "node:net";
+import { intakeConfigSchema, validateIntakeSettings } from "./intake-config.js";
 import { z } from "@paperclipai/plugin-sdk";
 
 const toolPin = z.strictObject({
@@ -6,9 +7,10 @@ const toolPin = z.strictObject({
   inputSchemaSha256: z.string().regex(/^[a-f0-9]{64}$/),
 });
 
-// Intake activation is deliberately impossible until source access is qualified.
+// Configuration starts suspended; durable operator enrollment is separate.
 export const configSchema = z.strictObject({
-  enabled: z.literal(false).default(false),
+  enabled: z.boolean().default(false),
+  intake: intakeConfigSchema.optional(),
   gatewayDiscoveryEnabled: z.boolean().default(false),
   gatewayTransport: z.enum(["host_http", "local_loopback"]).default("host_http"),
   gatewayToolCallMode: z.enum(["mcp", "native_rest"]).default("mcp"),
@@ -126,5 +128,6 @@ export function parseConfig(raw: unknown) {
   validateProbeEnrollment(config);
   validateReaderEnrollment(config);
   validateGatewayDiscovery(config);
+  validateIntakeSettings(config);
   return config;
 }

@@ -4,13 +4,13 @@ import { sourceFixture, sourceIds as ids } from './helpers/source-fixture.mjs';
 
 const sourceCalls = (fixture, role) => fixture.sourceCalls.filter(call => call.role === role);
 const issueReads = fixture => sourceCalls(fixture, 'getIssue').map(call => call.args.id);
-const blocked = (result, reason) => assert.deepEqual(result, { status: 'blocked', reason, intakeEnabled: false });
+const blocked = (result, reason) => assert.deepEqual(result, { status: 'blocked', reason, importEnabled: false });
 
 test('SDK action reads and revalidates a paginated five-issue family without effects', async () => {
   const f = await sourceFixture();
   const out = await f.run({ issueId: ids.root, renderEnvironment: null });
   assert.equal(out.status, 'source_family_observed');
-  assert.equal(out.intakeEnabled, false);
+  assert.equal(out.importEnabled, false);
   assert.equal(out.consistency, 'repeated_details_and_child_inventories');
   assert.equal(out.family.issues.length, 5);
   assert.equal(out.family.childInventory.length, 5);
