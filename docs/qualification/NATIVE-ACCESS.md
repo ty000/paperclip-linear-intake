@@ -168,7 +168,9 @@ native evidence must be replayed separately against the authorized recipe and
 its finite-lived client. Current CI audit/build artifacts identify the exact
 source candidate, base, lockfile and runtime digests.
 
-Next: implement and test complete family reads from these observed contracts (pagination, long descriptions,
+Current continuation: complete family reads are implemented in 0.1.3; see the
+[reader qualification](SOURCE-READER.md). The native observations above remain
+historical, not proof of that new reader. Its coverage includes pagination, long descriptions,
 internal/external typed blockers, child-only selection, historical outcomes,
-cycles, revisions and incomplete responses). L1-A through L1-G must all pass
+cycles, revisions and incomplete responses. L1-A through L1-G must all pass
 before Lot 2 begins. No acceptance criterion is waived by this continuation.

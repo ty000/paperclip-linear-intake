@@ -6,7 +6,9 @@ prepared work to a governed implementation workflow such as Council.
 
 **Current state:** Lot 1 partial: disabled executable plugin, native gateway
 catalog access qualified in local recipe against SDK `2026.1005.0`, and a bounded
-operator-only source probe. The complete source-family reader remains unfinished.
+operator-only source probe. Version `0.1.3` adds the bounded complete-family
+reader; its native qualification remains pending. See the
+[reader contract and remaining gates](docs/qualification/SOURCE-READER.md).
 Version `0.1.2` is installed in recipe with intake disabled. Its worker resolved
 a company-bound native secret, retrieved the dedicated seven-read-tool Linear
 catalog and read two explicitly scoped Content Assistant samples. The source
@@ -62,6 +64,12 @@ reference. The separate `probe-source` action can make only its configured,
 bounded Linear reads for an authenticated operator; neither action imports
 issues or wakes agents. Startup,
 health and config validation perform no HTTP or secret reads.
+
+The `read-source-family` action reads only an enrolled root's subtree, preserves
+historical descendants and external blockers, checks all pagination, then repeats
+details and inventories to reject observed changes. It returns source evidence
+with eligibility flags; it does not grant admission. This action also starts
+disabled and uses the same native secret reference and managed gateway.
 
 `gatewayTransport` defaults to `host_http`, using the native `ctx.http` HTTPS
 path. Explicit `local_loopback` mode uses a direct Node HTTP connection to the

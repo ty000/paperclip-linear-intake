@@ -4,6 +4,7 @@ import { parseConfig } from "./config.js";
 import { openGateway } from "./gateway.js";
 
 const roles = {
+  getWorkspace: "get-workspace",
   getProject: "get-project", getTeam: "get-team", listStatuses: "list-issue-statuses",
   listIssues: "list-issues", getIssue: "get-issue",
 } as const;
@@ -26,7 +27,7 @@ async function openProbeSession(ctx: PluginContext, companyId: string) {
   return requireProbeSession(await openGateway(ctx, companyId));
 }
 
-function validateToolPin(session: GatewaySession, role: keyof typeof roles, pin: ProbeScope["tools"][keyof typeof roles]) {
+function validateToolPin(session: GatewaySession, role: keyof typeof roles, pin: NonNullable<ProbeScope["tools"][keyof typeof roles]>) {
   const tool = session.tools.find(t => t.name === pin.name);
   if (!tool || !pin.name.endsWith(`:${roles[role]}`)
       || createHash("sha256").update(JSON.stringify(tool.inputSchema)).digest("hex") !== pin.inputSchemaSha256) {
@@ -38,12 +39,14 @@ function validateProbeCatalog(session: GatewaySession, scope: ProbeScope) {
   // Bind the actual catalog inputs, including its connection-qualified names.
   // A provider/catalog change requires explicit review of new pins.
   for (const role of Object.keys(roles) as (keyof typeof roles)[]) {
-    validateToolPin(session, role, scope.tools[role]);
+    const pin = scope.tools[role];
+    if (pin) validateToolPin(session, role, pin);
   }
 }
 
 function probeCalls(scope: ProbeScope): ProbeCall[] {
   return [
+    ...(scope.tools.getWorkspace ? [{ role: "getWorkspace" as const, arguments: {} }] : []),
     { role: "getProject", arguments: { query: scope.projectId } },
     { role: "getTeam", arguments: { query: scope.teamId } },
     { role: "listStatuses", arguments: { team: scope.teamId } },
@@ -62,7 +65,7 @@ function hasToolContent(data: { content?: unknown[] | undefined; structuredConte
 }
 
 async function observeSourceCall(session: GatewaySession, scope: ProbeScope, call: ProbeCall) {
-  const result = await session.rpc("tools/call", { name: scope.tools[call.role].name, arguments: call.arguments });
+  const result = await session.rpc("tools/call", { name: scope.tools[call.role]!.name, arguments: call.arguments });
   const envelope = z.object({ isError: z.boolean().optional(), content: z.array(z.unknown()).optional(),
     structuredContent: z.unknown().optional() }).passthrough().safeParse(result);
   if (!envelope.success || envelope.data.isError === true || !hasToolContent(envelope.data)) {

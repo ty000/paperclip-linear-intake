@@ -68,13 +68,19 @@ async function readCatalog(rpc: GatewayRpc) {
 
 // Native config/secrets and named gateway. Explicit loopback transport is opt-in.
 // Catalog discovery and bounded qualification share native authentication.
-// The only caller of tools/call is the explicitly configured read probe.
+// Only explicitly configured source readers call tools/call.
 export async function openGateway(ctx: PluginContext, companyId: string) {
   if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
   const config = await readGatewayConfig(ctx, companyId);
   if (!config.gatewayDiscoveryEnabled) return undefined;
   const token = await resolveGatewaySecret(ctx, companyId, config.gatewayTokenRef!);
   validateGatewaySecret(token);
+
+  function assertCredentialAbsent(value: unknown) {
+    if (JSON.stringify(value).includes(JSON.stringify(token).slice(1, -1))) {
+      throw new Error("gateway_response_rejected");
+    }
+  }
 
   let sequence = 0;
   async function rpc(method: "initialize" | "notifications/initialized" | "tools/list" | "tools/call", params: Record<string, unknown>, notification = false) {
@@ -99,7 +105,7 @@ export async function openGateway(ctx: PluginContext, companyId: string) {
 
   const initialized = await rpc("initialize", {
     protocolVersion: "2025-03-26", capabilities: {},
-    clientInfo: { name: "paperclip-linear-intake", version: "0.1.2" },
+    clientInfo: { name: "paperclip-linear-intake", version: "0.1.3" },
   });
   const init = z.object({
     protocolVersion: z.literal("2025-03-26"),
@@ -109,7 +115,7 @@ export async function openGateway(ctx: PluginContext, companyId: string) {
   await rpc("notifications/initialized", {}, true);
   const tools = await readCatalog(rpc);
   return {
-    rpc, config, protocolVersion: init.data.protocolVersion,
+    rpc, assertCredentialAbsent, config, protocolVersion: init.data.protocolVersion,
     catalogSha256: createHash("sha256").update(JSON.stringify(tools)).digest("hex"), tools,
   };
 }

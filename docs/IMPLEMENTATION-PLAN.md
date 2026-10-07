@@ -1,7 +1,9 @@
 # Implementation sequence
 
 Status: Lot 1 partially implemented. Native recipe catalog access and secret
-binding are now observed; complete source-family retrieval remains unqualified.
+binding are now observed; complete source-family retrieval is implemented in
+0.1.3 and remains unqualified natively. See the
+[reader continuation](qualification/SOURCE-READER.md).
 The disabled package is installed for recipe qualification. See the
 [current native evidence](qualification/NATIVE-ACCESS.md).
 Lots 2 and 3 must not start until all L1-A through L1-G criteria are satisfied.
