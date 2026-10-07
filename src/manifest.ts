@@ -9,7 +9,6 @@ export default {
   description: "Disabled intake skeleton with explicit, read-only gateway catalog inspection.",
   author: "ty000",
   categories: ["connector"],
-  minimumHostVersion: "2026.1005.0",
   capabilities: ["http.outbound", "secrets.read-ref", "ui.action.register"],
   entrypoints: { worker: "./dist/worker.js" },
   instanceConfigSchema: z.toJSONSchema(configSchema, { target: "draft-7", io: "input" }),

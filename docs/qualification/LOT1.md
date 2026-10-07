@@ -67,8 +67,12 @@ independently installable package. The published stable package actually used:
   React is an optional peer and is not needed by this worker.
 - Published `zod` range resolves to `4.6.5` in the lockfile. No SDK source/types
   are copied, replaced, patched or linked from the neighboring monorepo.
-- `minimumHostVersion` records the published release floor, not proof that an
-  arbitrary host with that version has passed native qualification.
+- The SDK release is pinned independently of the host. The initial manifest
+  incorrectly reused that release as `minimumHostVersion`; contextual review
+  found that the native loader can receive host version `0.0.0` on the source
+  recipe and reject installation. The unsupported optional floor was removed.
+  API version and capabilities remain declared; host compatibility still needs
+  native qualification and is not inferred from the SDK package version.
 
 Replay from a clean checkout:
 

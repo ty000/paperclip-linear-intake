@@ -95,6 +95,26 @@ local Markdown links pass. Local code review covered destination validation,
 credential routing, socket cleanup and evidence boundaries. This is local
 review, not an independent review or installed-host qualification.
 
+Subsequent contextual subagent review found no transport defect, but identified
+one existing installation blocker: `minimumHostVersion` had been inferred from
+the SDK release. The source host bootstrap can pass `0.0.0` to the native loader,
+which rejects that floor before installation. The optional manifest field was
+removed; SDK version, API version and capabilities remain explicit. This fixes
+that preinstallation check, not the outstanding native integration evidence.
+The read-only [native loader preflight](../../scripts/qualification/host-loader-preflight.mjs)
+reproduces the old rejection and lets the corrected manifest reach a fake DB
+sentinel after validation, with no persistence or worker launch. To replay after
+building this package, run `node --import <host-tsx-loader> scripts/qualification/host-loader-preflight.mjs <host-repo>`
+using the existing host's TypeScript loader. This optional probe is not a CI
+dependency and never installs or starts the host.
+
+The transport reviewer also replayed 66 focused tests and synthetic socket
+probes for HTTP 101/204, duplicate Content-Length, protocol mismatch and early
+closure, with no confirmed defect. The SDK reviewer replayed the complete 68
+tests and package checks. Both reviews approve merging the bounded skeleton /
+transport scope after the manifest correction and candidate CI; neither closes
+native L1 qualification.
+
 | Evidence | Result / limit |
 | --- | --- |
 | Strict config + actual host-dialect AJV | Default HTTPS mode and opt-in enum/timeout shape; runtime validation checks the exact destination before secrets or network |
