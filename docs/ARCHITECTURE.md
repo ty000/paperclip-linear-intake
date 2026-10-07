@@ -1,20 +1,22 @@
 # Architecture and ownership
 
-Design baseline: 7 October 2026. The Lot 1 skeleton and gateway catalog probe
-are implemented; source retrieval and downstream intake remain proposed. See
-[qualification](qualification/LOT1.md) for the source/fixture/runtime distinction.
+Updated 7 October 2026. Lot 1 source reads are qualified natively; Lot 2 durable
+retention is qualified in isolation. Lot 3 native import is being qualified in
+version `0.3.0`. Recipe remains disabled on `0.1.4`; Council admission is separate.
+See the [implementation ledger](IMPLEMENTATION-PLAN.md) and
+[versioned readiness contract](NATIVE-READINESS-V1.md).
 
 ## Existing capabilities to consume
 
-| Responsibility | Native capability | Qualification still needed |
+| Responsibility | Native capability | Observed boundary |
 | --- | --- | --- |
-| Detect a status change | Linear `Issue` data-change webhook | Exact team Todo state ID, actor policy and event payload |
-| Receive the notification | Paperclip plugin `webhooks.receive` and `handleWebhook` | Raw-body signature verification and installed-host route |
-| Read the source | Managed Linear MCP connection through a named Paperclip gateway | Actual tool schemas, read-only rights, full descriptions, descendants, relations and pagination |
-| Continue after receipt | Paperclip plugin jobs and durable plugin state/database | Recovery, concurrent attempts and retained uncertainty |
-| Represent the work | Paperclip SDK issues, documents and relations | Idempotent identities, full native readback and no early wakeup |
-| Notify the receiver | Native plugin events plus durable task/document readiness | Allowlisted source and reconciliation after a lost event |
-| Execute the work | Council project mandates, admission and hierarchy | Imported-origin admission and preparation of leaf assignments/scopes |
+| Receive a status transition | Plugin raw-body webhook | Signature/scope/actor checks and durable acknowledgement qualified synthetically; no operational webhook |
+| Read the source | Managed Linear connection and scoped named gateway | Complete native source family qualified in Lot 1 |
+| Continue after receipt | Native jobs and plugin database | Durable retention, CAS concurrency and restart qualified in isolated PostgreSQL |
+| Represent the work | SDK issues, documents and relations | Lot 3 isolated core-service qualification; all active tasks blocked and unassigned |
+| Prepare the receiver | Immutable native readiness document and effect journal | Readiness v1; no admission event or agent wake |
+| Execute the work | Council mandates, admission and hierarchy | Separate Lot 4: imported origin, contributor scopes and terminal history |
+
 
 Linear webhook notifications and its MCP connection serve different purposes.
 The webhook triggers retrieval; the managed connection supplies source data.
@@ -25,7 +27,7 @@ body and headers to its worker. Use that route and a native plugin job for the
 deterministic intake.
 
 The SDK's `ctx.tools` surface registers agent tools; it does not expose an
-arbitrary managed-connector invocation method. The proposed reuse therefore
+arbitrary managed-connector invocation method. The implementation therefore
 uses the existing public named MCP gateway with a dedicated client credential
 and a profile limited to the required Linear reads. Do not extract or duplicate
 the connector's OAuth tokens. Verify transport access and gateway policy during
@@ -72,14 +74,15 @@ an alternative execution scheduler.
 - Council hierarchy source rechecked at `1c96890f6147cbf517d2b3f54209f6abc2b8b880`,
   branch `codex/council-variable-hierarchy`. Issue 51 now reports qualification
   and recipe installation of 0.7.13; that report does not qualify this importer
-  or its receiving contract. Issues 50 and 51 are still open.
+  or its receiving contract. Issues 50 and 51 are now closed; their manual-origin qualification does not
+  qualify imported origins, contributor preparation or terminal-history adoption.
 
 The source baselines above remain read-only references. Native recipe discovery
-now succeeds from the installed disabled plugin through a dedicated seven-tool
+now succeeds from the installed disabled plugin through a dedicated eight-tool
 read profile, gateway client and company-bound encrypted secret. See
-[native qualification](qualification/NATIVE-ACCESS.md). The source probe observes
-provider outputs under the configured project; it does not create an admissible
-source snapshot. Complete retrieval and authority checks remain outstanding.
+[native qualification](qualification/NATIVE-ACCESS.md). The source reader has qualified a complete parent family, including full
+descriptions, pagination and blockers. These observations do not grant Council
+admission. See the [source ledger](qualification/SOURCE-READER.md).
 No GraphQL fallback or host/SDK modification is introduced.
 
 ## Official references

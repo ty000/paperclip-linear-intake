@@ -49,12 +49,15 @@ async function fixture(options = {}) {
 
 test('manifest passes native validation; retention needs scoped configuration and explicit enrollment', async () => {
   assert.equal(pluginManifestV1Schema.safeParse(manifest).success, true);
-  assert.deepEqual(parseConfig({}), { enabled: false, gatewayDiscoveryEnabled: false, gatewayTransport: 'host_http', gatewayToolCallMode: 'mcp' });
+  assert.deepEqual(parseConfig({}), { enabled: false, nativeImportEnabled: false, gatewayDiscoveryEnabled: false, gatewayTransport: 'host_http', gatewayToolCallMode: 'mcp' });
   assert.equal((await plugin.definition.onValidateConfig({ enabled: true })).ok, false);
   assert.deepEqual(manifest.webhooks.map(hook => hook.endpointKey), ['linear-todo']);
-  assert.deepEqual(manifest.jobs.map(job => job.jobKey), ['drain-intake']);
+  assert.deepEqual(manifest.jobs.map(job => job.jobKey), ['drain-intake', 'prepare-import']);
   assert.equal(manifest.tools, undefined);
-  assert.ok(!manifest.capabilities.some(x => /agents|issues|events/.test(x)));
+  assert.ok(!manifest.capabilities.some(x => /agents|wakeup|events|checkout/.test(x)));
+  assert.ok(manifest.capabilities.includes('issues.create'));
+  assert.ok(!manifest.capabilities.includes('issues.update'));
+  assert.equal(manifest.instanceConfigSchema.properties.nativeImportEnabled.default, false);
   assert.equal(manifest.database.namespaceSlug, 'linear_intake');
 });
 
@@ -62,7 +65,7 @@ test('setup, health, validation and disabled discovery make no secret/network ca
   const f = await fixture({ config: {} });
   assert.equal((await plugin.definition.onHealth()).status, 'degraded');
   assert.equal((await plugin.definition.onValidateConfig({})).ok, true);
-  assert.deepEqual(await f.run(), { status: 'disabled', importEnabled: false });
+  assert.deepEqual(await f.run(), { status: 'disabled', importPerformed: false });
   assert.deepEqual(f.refs, []);
   assert.deepEqual(f.requests, []);
   assert.deepEqual(f.harness.dbExecutes, []);
@@ -80,7 +83,7 @@ test('native secret reference receives exact company and config binding path', a
   const out = await f.run();
   assert.equal(out.status, 'catalog_observed');
   assert.equal(out.sourceCoverage, 'unqualified');
-  assert.equal(out.importEnabled, false);
+  assert.equal(out.importPerformed, false);
   assert.deepEqual(out.tools, [tool]);
   assert.match(out.catalogSha256, /^[a-f0-9]{64}$/);
   assert.deepEqual(f.refs, [{ ref: config.gatewayTokenRef, scope: { companyId, configPath: 'gatewayTokenRef' } }]);
@@ -158,7 +161,7 @@ test('catalog rejects the 1001st tool without publishing a partial catalog', asy
   const f = await fixture({ catalog: req => response(req, req.params.cursor
     ? { tools: [{ ...tool, name: 'fixture_overflow' }] }
     : { tools: first, nextCursor: 'overflow' }) });
-  assert.deepEqual(await f.run(), { status: 'blocked', reason: 'gateway_catalog_bound_exceeded', importEnabled: false });
+  assert.deepEqual(await f.run(), { status: 'blocked', reason: 'gateway_catalog_bound_exceeded', importPerformed: false });
   assert.deepEqual(f.harness.logs, []);
 });
 
@@ -192,7 +195,7 @@ const failures = [
 for (const [name, catalog, reason] of failures) {
   test(`${name} blocks; no partial catalog escapes`, async () => {
     const f = await fixture({ catalog });
-    assert.deepEqual(await f.run(), { status: 'blocked', reason, importEnabled: false });
+    assert.deepEqual(await f.run(), { status: 'blocked', reason, importPerformed: false });
     assert.deepEqual(f.harness.logs, []);
   });
 }

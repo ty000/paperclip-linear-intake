@@ -17,8 +17,9 @@ managed connection verified healthy. No webhook, import or Council admission
 is active. **Lot 2 is complete** in source version `0.2.0`: 383 package/worker
 tests, 79 isolated PostgreSQL tests, independent review, Fallow and four CI checks
 pass. It adds request retention and a scheduled source reader, and is not
-installed in recipe. Lot 3 import and Council admission
-remain unavailable. Historical receipts remain unchanged.
+installed in recipe. Lot 3 native family preparation is being qualified in
+source version `0.3.0`, using an isolated database and synthetic source data.
+Council admission remains unavailable. Historical receipts remain unchanged.
 
 Lot 2 uses a signed raw-body webhook, an append-only delivery journal and stable
 company/organization/issue identities. It acknowledges valid transitions after
@@ -71,8 +72,10 @@ The installed 0.1.4 bytes match the CI artifact for `6747347`. The authorized
 native REST campaign completed 28 source calls with no failed call. Historical
 0.1.2/0.1.3 receipts remain separate from this qualification.
 
-Default configuration is `{ "enabled": false, "gatewayDiscoveryEnabled": false }`.
-This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
+Configuration defaults to disabled retention, disabled native import and disabled
+gateway discovery. Enabling retention requires scoped source settings, a webhook
+secret reference and explicit operator enrollment. Native import additionally
+requires `nativeImportEnabled: true` in the enrolled configuration. An explicitly enabled `inspect-gateway`
 action can inspect a configured named gateway catalog using a native secret
 reference. The separate `probe-source` action can make only its configured,
 bounded Linear reads for an authenticated operator; neither action imports
@@ -120,8 +123,10 @@ identity, recovery, and the handoff. Council owns the project mandate, budget,
 execution order, review, and acceptance.
 
 The webhook, durable request and source-reading job are implemented in `0.2.0`.
-Native task import and Council handoff are later lots. A `source_observed` result
-is stored source evidence and does not make work eligible for admission.
+The `0.3.0` importer prepares blocked, unassigned native families with immutable
+source and readiness documents; its isolated qualification is in progress.
+A `source_observed` result is stored source evidence, and even `prepared` does not
+grant Council admission. See the [versioned readiness contract](docs/NATIVE-READINESS-V1.md).
 
 ## First scope
 

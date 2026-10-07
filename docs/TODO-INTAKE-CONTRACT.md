@@ -2,14 +2,17 @@
 
 Status: Lot 1 source access is qualified natively. Lot 2 request retention and
 source retrieval are implemented and qualified in isolation in `0.2.0`.
-Import and handoff remain proposed. See [source qualification](qualification/SOURCE-READER.md)
+Lot 3 native preparation is implemented and undergoing isolated qualification
+in `0.3.0`; Council admission remains separate. See
+[readiness v1](NATIVE-READINESS-V1.md), [source qualification](qualification/SOURCE-READER.md)
 and [retention semantics](qualification/TODO-RETENTION.md).
 Scope: one ticket entering an explicitly configured Todo state and its selected subtree.
 
 ## Configuration and authority
 
 Activation binds exact Linear organization, team, project and Todo-state IDs to
-one Paperclip company/project and a currently enabled Council mandate. It also
+one Paperclip company/project. Council admission additionally requires a
+currently enabled mandate; Lots 2 and 3 do not bind or validate that mandate. It also
 declares eligible initiating actors, read credentials, webhook-secret reference,
 source-size bounds, and the activation boundary.
 
@@ -72,7 +75,7 @@ children, dependency mapping, project/mandate identity, and readiness revision.
 Council revalidates the configured source and current mandate before admission.
 Its existing budget and run identity remain authoritative.
 
-Two receiving gaps must be resolved separately:
+Three receiving gaps must be resolved separately:
 
 1. Council's current intake requires `originKind === "manual"`. Imported plugin
    origins need explicit, allowlisted acceptance rather than falsified manual
@@ -81,6 +84,9 @@ Two receiving gaps must be resolved separately:
    `council-work` document with explicit `ownedPaths` for every executable leaf.
    The import cannot invent those scopes. Obtain them from authorized project
    rules or a governed preparation step by the lead before contributor launch.
+
+3. Terminal descendants need historical treatment; the current hierarchy
+   adoption path rejects done/cancelled descendants instead of preserving them.
 
 The integration must not report “implementation started” until native Council
 admission and its actual run binding are observed. Until a compatible receiving
@@ -94,9 +100,12 @@ boundary; recovery must not sweep all historical Todo tickets.
 
 Expose distinct states for received, fetching, importing, prepared,
 admission-blocked, admitted, withdrawn and outcome-unknown, with source links and
-the next required action. The future import/admission states remain design
-states. Lot 2 implements `received`, `fetching`, `source_observed`, `withdrawn`
-and `blocked` only.
+the next required action. Lot 2 implements `received`, `fetching`, `source_observed`, `withdrawn`
+and `blocked`. Lot 3 separately journals `preparing`, `prepared`, `blocked` and
+`outcome_unknown` plans and intended/dispatched/observed/uncertain effects.
+Admission states remain unimplemented. A withdrawn request can retain a
+partially prepared historical plan; it cannot dispatch new effects or become
+prepared under the former request revision.
 
 No Slack integration, Linear status writeback, provider execution, merge or
 deployment is introduced by this first contract.

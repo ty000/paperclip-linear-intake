@@ -6,6 +6,8 @@ import { readSourceFamily } from "./source-family.js";
 import { SourceReadError } from "./source-client.js";
 import { createIntakeRuntime, type IntakeRuntime } from "./intake-runtime.js";
 import { registerIntakeActions } from "./intake-actions.js";
+import { createImportRuntime } from "./import-runtime.js";
+import { registerImportActions } from "./import-actions.js";
 
 let intakeRuntime: IntakeRuntime | undefined;
 
@@ -21,14 +23,20 @@ const plugin = definePlugin({
   async setup(ctx) {
     intakeRuntime = createIntakeRuntime(ctx);
     registerIntakeActions(ctx, intakeRuntime);
+    const imports = createImportRuntime(ctx);
+    registerImportActions(ctx, imports);
     const runtime = intakeRuntime;
     ctx.jobs.register("drain-intake", async () => {
       try { await runtime.drain(); }
       catch { throw new Error("intake_job_failed"); }
     });
+    ctx.jobs.register("prepare-import", async () => {
+      try { await imports.drain(); }
+      catch { throw new Error("import_job_failed"); }
+    });
     ctx.actions.register("read-source-family", async (params, actionContext) => {
       if (!isAuthenticatedOperator(actionContext) || !hasMatchingCompany(actionContext)) {
-        return { status: "blocked", reason: "source_reader_operator_required", importEnabled: false };
+        return { status: "blocked", reason: "source_reader_operator_required", importPerformed: false };
       }
       try {
         // The native bridge adds companyId/renderEnvironment. Only issueId is
@@ -44,12 +52,12 @@ const plugin = definePlugin({
       // The bridge permits company agents too. Only an authenticated operator
       // may inspect raw source observations; params cannot supply this actor.
       if (!isAuthenticatedOperator(actionContext) || !hasMatchingCompany(actionContext)) {
-        return { status: "blocked", reason: "source_probe_operator_required", importEnabled: false };
+        return { status: "blocked", reason: "source_probe_operator_required", importPerformed: false };
       }
       try {
         return await probeSource(ctx, actionContext.companyId);
       } catch {
-        return { status: "blocked", reason: "source_probe_failed", importEnabled: false };
+        return { status: "blocked", reason: "source_probe_failed", importPerformed: false };
       }
     });
     ctx.actions.register("inspect-gateway", async (params) => {
@@ -57,20 +65,20 @@ const plugin = definePlugin({
         return await inspectGateway(ctx, typeof params.companyId === "string" ? params.companyId : "");
       } catch (error) {
         // inspectGateway returns only fixed error codes, never upstream messages.
-        return { status: "blocked", reason: (error as Error).message, importEnabled: false };
+        return { status: "blocked", reason: (error as Error).message, importPerformed: false };
       }
     });
   },
   async onValidateConfig(config) {
     try {
       parseConfig(config);
-      return { ok: true, warnings: ["Request retention requires explicit operator enrollment. Import and admission are unavailable."] };
+      return { ok: true, warnings: ["Retention and optional import require explicit operator enrollment. Council admission remains unavailable."] };
     } catch {
       return { ok: false, errors: ["Invalid configuration; enabled request retention needs scoped source settings and a webhook secret reference."] };
     }
   },
   async onHealth() {
-    return { status: "degraded", message: "Request retention requires explicit enrollment; import and admission are unavailable." };
+    return { status: "degraded", message: "Explicit enrollment is required; native import defaults off and Council admission remains unavailable." };
   },
   async onWebhook(input) {
     if (!intakeRuntime) throw new Error("intake_not_initialized");
@@ -80,8 +88,8 @@ const plugin = definePlugin({
 });
 
 function familyReadFailure(error: unknown) {
-  if (error instanceof SourceReadError) return { status: "blocked", reason: error.code, importEnabled: false };
-  return { status: "blocked", reason: "source_read_failed", importEnabled: false };
+  if (error instanceof SourceReadError) return { status: "blocked", reason: error.code, importPerformed: false };
+  return { status: "blocked", reason: "source_read_failed", importPerformed: false };
 }
 export default plugin;
 runWorker(plugin, import.meta.url);

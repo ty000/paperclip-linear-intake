@@ -46,7 +46,7 @@ async function fixture(options = {}) {
 }
 test('probe absent by default makes no secret, network or effect calls', async () => {
   const f = await fixture({ config: {} });
-  assert.deepEqual(await f.run(), { status: 'disabled', importEnabled: false });
+  assert.deepEqual(await f.run(), { status: 'disabled', importPerformed: false });
   assert.deepEqual(f.requests, []); assert.deepEqual(f.refs, []);
   assert.deepEqual(f.harness.dbExecutes, []); assert.deepEqual(f.harness.activity, []);
 });
@@ -56,7 +56,7 @@ for (const current of [{}, { ...config, sourceProbe: undefined }]) {
     const f = await fixture();
     let reads = 0;
     f.harness.ctx.config.get = async () => ++reads === 1 ? config : current;
-    assert.deepEqual(await f.run(), { status: 'blocked', reason: 'source_probe_failed', importEnabled: false });
+    assert.deepEqual(await f.run(), { status: 'blocked', reason: 'source_probe_failed', importPerformed: false });
     assert.equal(reads, 2);
     assert.equal(f.requests.some(r => r.method === 'tools/call'), false);
   });
@@ -73,7 +73,7 @@ for (const scopedCompany of [null, '10000000-0000-4000-8000-000000000099']) {
     const out = await handlers.get('probe-source')({}, {
       companyId: scopedCompany, actor: { type: 'user', userId: 'synthetic-operator', companyId },
     });
-    assert.deepEqual(out, { status: 'blocked', reason: 'source_probe_operator_required', importEnabled: false });
+    assert.deepEqual(out, { status: 'blocked', reason: 'source_probe_operator_required', importPerformed: false });
     assert.equal(reads, 0);
   });
 }
@@ -81,7 +81,7 @@ test('probe fixes read arguments from config and ignores caller widening', async
   const f = await fixture();
   const out = await f.run({ projectId: 'different', teamId: 'different', tool: 'write', limit: 250, issueId: 'outside' });
   assert.equal(out.status, 'source_probe_observed'); assert.equal(out.sourceCoverage, 'unqualified');
-  assert.equal(out.importEnabled, false); assert.equal(out.observations.length, 5);
+  assert.equal(out.importPerformed, false); assert.equal(out.observations.length, 5);
   const calls = f.requests.filter(x => x.method === 'tools/call');
   assert.deepEqual(calls.map(c => c.params.name), ['get-project','get-team','list-issue-statuses','list-issues','get-issue'].map(n => `synthetic:${n}`));
   assert.deepEqual(calls[0].params.arguments, { query: projectId });
@@ -118,7 +118,7 @@ for (const result of [{ isError: true, content: [{ type: 'text', text: token }] 
   {}, { content: [{ type: 'text', text: token }] }]) {
   test('failed, empty or credential-echo response stops immediately without leaking details', async () => {
     const f = await fixture({ result }); const out = await f.run();
-    assert.deepEqual(out, { status: 'blocked', reason: 'source_probe_failed', importEnabled: false });
+    assert.deepEqual(out, { status: 'blocked', reason: 'source_probe_failed', importPerformed: false });
     assert.equal(f.requests.filter(r => r.method === 'tools/call').length, 1);
     assert.equal(JSON.stringify({ out, logs: f.harness.logs }).includes(token), false);
   });
