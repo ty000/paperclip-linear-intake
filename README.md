@@ -4,15 +4,16 @@ A separate Paperclip plugin that will turn an authorized Linear transition to
 **Todo** into a durable import of the ticket and its sub-issues, then hand the
 prepared work to a governed implementation workflow such as Council.
 
-**Current state:** Lot 1 partial: executable package/manifest/worker, disabled
-intake and explicit gateway catalog inspection, checked against published SDK
-`2026.1005.0`. An opt-in loopback transport now supports local recipe development
-without a public HTTPS endpoint. Native Linear access and the complete source
-reader remain unqualified.
-The package has not been installed or activated in recipe. Checks use synthetic
-credentials and gateways; real-ticket processing and Council admission are
-unqualified. Lots 2 and 3 have not started. See the
-[criterion-by-criterion qualification](docs/qualification/LOT1.md).
+**Current state:** Lot 1 partial: disabled executable plugin, native gateway
+catalog access qualified in local recipe against SDK `2026.1005.0`, and a bounded
+operator-only source probe. The complete source-family reader remains unfinished.
+The merged `0.1.0` package was installed in recipe with intake disabled; its
+worker resolved a company-bound native secret and retrieved the dedicated
+seven-read-tool Linear catalog. The `0.1.1` source adds a default-off probe to
+observe actual output contracts. Source probes are not complete family reads.
+No webhook, import or Council admission is active. Lots 2 and 3 have not started.
+See the [current native qualification](docs/qualification/NATIVE-ACCESS.md) and
+[original criterion report](docs/qualification/LOT1.md).
 
 ## Local verification
 
@@ -31,7 +32,9 @@ registry and the committed lockfile; no adjacent checkout is needed.
 Default configuration is `{ "enabled": false, "gatewayDiscoveryEnabled": false }`.
 This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
 action can inspect a configured named gateway catalog using a native secret
-reference; it cannot call Linear tools, import issues or wake agents. Startup,
+reference. The separate `probe-source` action can make only its configured,
+bounded Linear reads for an authenticated operator; neither action imports
+issues or wakes agents. Startup,
 health and config validation perform no HTTP or secret reads.
 
 `gatewayTransport` defaults to `host_http`, using the native `ctx.http` HTTPS

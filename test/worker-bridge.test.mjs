@@ -80,6 +80,12 @@ test(`published SDK worker uses scoped native secrets and ${transport} transport
     });
   }
   assert.equal((await rpc('initialize', { manifest, config: {} })).result.ok, true);
+  const denied = await rpc('performAction', { key: 'probe-source', companyId,
+    actorContext: { type: 'agent', agentId: 'synthetic-agent', companyId },
+    params: { actor: { type: 'user', userId: 'spoof' },
+      actorContext: { type: 'user', userId: 'spoof', companyId } } });
+  assert.equal(denied.result.reason, 'source_probe_operator_required');
+  assert.deepEqual(calls, [], 'SDK actor context blocks before host config/secret reads');
   const out = await rpc('performAction', { key: 'inspect-gateway', companyId, params: {} });
   assert.equal(out.result.status, 'catalog_observed');
   assert.equal(out.result.sourceCoverage, 'unqualified');

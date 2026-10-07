@@ -13,14 +13,14 @@ const catalogSchema = z.object({
   nextCursor: z.string().min(1).max(4096).optional(),
 });
 // Native config/secrets and named gateway. Explicit loopback transport is opt-in.
-// This is catalog discovery, not a Linear adapter.
-// No tools/call implementation exists until actual Linear schemas are verified.
-export async function inspectGateway(ctx: PluginContext, companyId: string) {
+// Catalog discovery and bounded qualification share native authentication.
+// The only caller of tools/call is the explicitly configured read probe.
+export async function openGateway(ctx: PluginContext, companyId: string) {
   if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
   let config: ReturnType<typeof parseConfig>;
   try { config = parseConfig(await ctx.config.get(companyId)); }
   catch { throw new Error("configuration_unavailable_or_invalid"); }
-  if (!config.gatewayDiscoveryEnabled) return { status: "disabled" as const, intakeEnabled: false };
+  if (!config.gatewayDiscoveryEnabled) return undefined;
   const secretRef = config.gatewayTokenRef!;
   let token: string;
   try {
@@ -32,7 +32,7 @@ export async function inspectGateway(ctx: PluginContext, companyId: string) {
   if (!token || /[\r\n]/.test(token)) throw new Error("gateway_secret_unavailable");
 
   let sequence = 0;
-  async function rpc(method: string, params: Record<string, unknown>, notification = false) {
+  async function rpc(method: "initialize" | "notifications/initialized" | "tools/list" | "tools/call", params: Record<string, unknown>, notification = false) {
     const id = ++sequence;
     const response = await postGateway(ctx, config, token,
       JSON.stringify({ jsonrpc: "2.0", ...(notification ? {} : { id }), method, params }));
@@ -54,7 +54,7 @@ export async function inspectGateway(ctx: PluginContext, companyId: string) {
 
   const initialized = await rpc("initialize", {
     protocolVersion: "2025-03-26", capabilities: {},
-    clientInfo: { name: "paperclip-linear-intake", version: "0.1.0" },
+    clientInfo: { name: "paperclip-linear-intake", version: "0.1.1" },
   });
   const init = z.object({
     protocolVersion: z.literal("2025-03-26"),
@@ -78,9 +78,8 @@ export async function inspectGateway(ctx: PluginContext, companyId: string) {
     cursor = result.data.nextCursor;
     if (!cursor) {
       return {
-        status: "catalog_observed" as const,
-        intakeEnabled: false,
-        sourceCoverage: "unqualified" as const,
+        rpc,
+        config,
         protocolVersion: init.data.protocolVersion,
         catalogSha256: createHash("sha256").update(JSON.stringify(tools)).digest("hex"),
         tools,
@@ -90,4 +89,14 @@ export async function inspectGateway(ctx: PluginContext, companyId: string) {
     cursors.add(cursor);
   }
   throw new Error("gateway_catalog_page_bound_exceeded");
+}
+
+export async function inspectGateway(ctx: PluginContext, companyId: string) {
+  const session = await openGateway(ctx, companyId);
+  if (!session) return { status: "disabled" as const, intakeEnabled: false };
+  return {
+    status: "catalog_observed" as const, intakeEnabled: false,
+    sourceCoverage: "unqualified" as const, protocolVersion: session.protocolVersion,
+    catalogSha256: session.catalogSha256, tools: session.tools,
+  };
 }

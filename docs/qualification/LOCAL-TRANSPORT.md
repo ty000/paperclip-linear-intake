@@ -1,5 +1,10 @@
 # Local recipe transport — 7 October 2026
 
+**Historical report.** The later [native qualification](NATIVE-ACCESS.md)
+supersedes native gateway/installation blockers below. Complete source-family
+coverage remains unqualified; the original receipts remain unchanged.
+
+
 **Result: implemented and locally tested; native recipe access still unqualified.**
 This is a bounded continuation of Lot 1. It does not implement a Linear reader,
 install the plugin, configure a live gateway/client, activate intake or start

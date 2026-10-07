@@ -1,11 +1,26 @@
 import { isIP } from "node:net";
 import { z } from "@paperclipai/plugin-sdk";
 
+const toolPin = z.strictObject({
+  name: z.string().min(1).max(256),
+  inputSchemaSha256: z.string().regex(/^[a-f0-9]{64}$/),
+});
+
 // Intake activation is deliberately impossible until source access is qualified.
 export const configSchema = z.strictObject({
   enabled: z.literal(false).default(false),
   gatewayDiscoveryEnabled: z.boolean().default(false),
   gatewayTransport: z.enum(["host_http", "local_loopback"]).default("host_http"),
+  sourceProbe: z.strictObject({
+    teamId: z.uuid(),
+    projectId: z.uuid(),
+    // Optional issue reads must be enrolled explicitly after scoped discovery.
+    sampleIssueIds: z.array(z.uuid()).max(2).default([]),
+    tools: z.strictObject({
+      getProject: toolPin, getTeam: toolPin, listStatuses: toolPin,
+      listIssues: toolPin, getIssue: toolPin,
+    }),
+  }).optional(),
   gatewayUrl: z.string().max(2048).optional(),
   localGatewayTimeoutMs: z.number().int().min(100).max(10_000).optional(),
   gatewayTokenRef: z.strictObject({
@@ -46,6 +61,10 @@ export function parseConfig(raw: unknown) {
         || !/^\/mcp\/gateways\/[a-zA-Z0-9_-]+$/.test(url.pathname)) {
       throw new Error("invalid_gateway_url");
     }
+  }
+  if (config.sourceProbe && !config.gatewayDiscoveryEnabled) throw new Error("gateway_configuration_missing");
+  if (config.sourceProbe && new Set(config.sourceProbe.sampleIssueIds).size !== config.sourceProbe.sampleIssueIds.length) {
+    throw new Error("invalid_configuration");
   }
   if (config.gatewayDiscoveryEnabled && (!config.gatewayUrl || !config.gatewayTokenRef)) {
     throw new Error("gateway_configuration_missing");

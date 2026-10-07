@@ -1,6 +1,6 @@
 {
   "name": "@ty000/paperclip-linear-intake",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Disabled-by-default Linear Todo intake qualification skeleton for Paperclip",
   "type": "module",

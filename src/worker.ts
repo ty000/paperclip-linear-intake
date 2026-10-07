@@ -1,10 +1,24 @@
 import { definePlugin, runWorker } from "@paperclipai/plugin-sdk";
 import { parseConfig } from "./config.js";
+import { probeSource } from "./source-probe.js";
 import { inspectGateway } from "./gateway.js";
 
 const plugin = definePlugin({
   async setup(ctx) {
     // Explicit invocation only. Setup and health perform no network/secret reads.
+    ctx.actions.register("probe-source", async (_params, actionContext) => {
+      // The bridge permits company agents too. Only an authenticated operator
+      // may inspect raw source observations; params cannot supply this actor.
+      if (actionContext?.actor.type !== "user" || !actionContext.actor.userId
+          || !actionContext.companyId || actionContext.actor.companyId !== actionContext.companyId) {
+        return { status: "blocked", reason: "source_probe_operator_required", intakeEnabled: false };
+      }
+      try {
+        return await probeSource(ctx, actionContext.companyId);
+      } catch {
+        return { status: "blocked", reason: "source_probe_failed", intakeEnabled: false };
+      }
+    });
     ctx.actions.register("inspect-gateway", async (params) => {
       try {
         return await inspectGateway(ctx, typeof params.companyId === "string" ? params.companyId : "");
