@@ -11,6 +11,8 @@ const toolPin = z.strictObject({
 export const configSchema = z.strictObject({
   enabled: z.boolean().default(false),
   nativeImportEnabled: z.boolean().default(false),
+  // Changing this opt-in changes the enrollment fingerprint; an old binding is never silently upgraded.
+  councilHandoffEnabled: z.boolean().default(false),
   intake: intakeConfigSchema.optional(),
   gatewayDiscoveryEnabled: z.boolean().default(false),
   gatewayTransport: z.enum(["host_http", "local_loopback"]).default("host_http"),
@@ -123,6 +125,11 @@ function validateNativeImport(config: Config) {
   if (config.nativeImportEnabled && (!config.intake || !config.sourceReader)) throw new Error("import_configuration_missing");
 }
 
+function validateCouncilHandoff(config: Config) {
+  if (!config.councilHandoffEnabled) return;
+  if (!config.nativeImportEnabled) throw new Error("handoff_configuration_missing");
+}
+
 export function parseConfig(raw: unknown) {
   const result = configSchema.safeParse(raw);
   // Never forward validation errors: they can quote untrusted config values.
@@ -135,5 +142,6 @@ export function parseConfig(raw: unknown) {
   validateGatewayDiscovery(config);
   validateIntakeSettings(config);
   validateNativeImport(config);
+  validateCouncilHandoff(config);
   return config;
 }

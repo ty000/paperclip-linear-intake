@@ -1,10 +1,12 @@
 # Architecture and ownership
 
-Updated 7 October 2026. Lot 1 source reads are qualified natively; Lot 2 durable
+Updated 8 October 2026. Lot 1 source reads are qualified natively; Lot 2 durable
 retention is qualified in isolation. Lot 3 native import is qualified in isolation in
-version `0.3.0`. Recipe remains disabled on `0.1.4`; Council admission is separate.
+version `0.3.0`. Lot 4's intake `0.4.0`/Council `0.7.18` receiving path is
+qualified in an isolated native instance through N1 with deterministic Linear
+and CLI model transports. Recipe remains disabled on `0.1.4`; Council owns admission.
 See the [implementation ledger](IMPLEMENTATION-PLAN.md) and
-[versioned readiness contract](NATIVE-READINESS-V1.md).
+[Lot 4 proof and limits](qualification/COUNCIL-RECEIVER.md).
 
 ## Existing capabilities to consume
 
@@ -13,9 +15,9 @@ See the [implementation ledger](IMPLEMENTATION-PLAN.md) and
 | Receive a status transition | Plugin raw-body webhook | Signature/scope/actor checks and durable acknowledgement qualified synthetically; no operational webhook |
 | Read the source | Managed Linear connection and scoped named gateway | Complete native source family qualified in Lot 1 |
 | Continue after receipt | Native jobs and plugin database | Durable retention, CAS concurrency and restart qualified in isolated PostgreSQL |
-| Represent the work | SDK issues, documents and relations | Lot 3 isolated core-service qualification; all active tasks blocked and unassigned |
-| Prepare the receiver | Immutable native readiness document and effect journal | Readiness v1; no admission event or agent wake |
-| Execute the work | Council mandates, admission and hierarchy | Separate Lot 4: imported origin, contributor scopes and terminal history |
+| Represent the work | SDK issues, documents and relations | Import prepares active tasks blocked and unassigned; Council later journals its authorized preparation delta |
+| Prepare the receiver | Immutable readiness, private effect journal and authenticated events | Current-source challenge/response; immutable readiness alone grants no admission |
+| Execute the work | Council mandates, admission and hierarchy | Lot 4 isolated N1 qualified: exact imported origin, explicit contributor paths and preserved terminal history |
 
 
 Linear webhook notifications and its MCP connection serve different purposes.
@@ -49,18 +51,18 @@ secret reference. Do not replace a supported connector without evidence.
 
 ## Repository boundaries
 
-| Surface | Owner | Permitted first-lot effects |
+| Surface | Owner | Current authorized boundary |
 | --- | --- | --- |
-| `ty000/paperclip-linear-intake` | Event intake and native import | Source, tests and design documents in this repository |
-| Paperclip host/SDK | Plugin runtime and native objects | Read-only contract inspection; isolated qualification later |
-| Council | Mandates, admission, execution, review and acceptance | Read-only inspection; any adapter change requires its own isolated lot |
-| Linear | Source tickets, hierarchy and workflow states | Read-only qualification first; webhook activation later |
+| `ty000/paperclip-linear-intake` | Event intake, native import and current-source responder | Implemented and qualified through Lot 4 in isolation; operational configuration remains disabled |
+| Paperclip host/SDK | Plugin runtime and native objects | Read-only source; unchanged native services used in disposable qualification |
+| Council | Mandates, preparation, admission, execution, review and acceptance | Separate authorized Lot 4 receiver; its own journals, native effects and accounting |
+| Linear | Source tickets, hierarchy and workflow states | Lot 1 real read qualification retained; Lot 4 uses deterministic source fixtures, with no real webhook or writeback |
 
 The importer must not modify Council database tables, impersonate its owner,
 grant publication rights, reserve a second implementation budget, or implement
 an alternative execution scheduler.
 
-## Consulted source baselines
+## Historical consulted source baselines
 
 - Paperclip: `/home/davy-lp/workspace/paperclip`, branch
   `codex/council-feasibility`, HEAD
@@ -84,6 +86,22 @@ read profile, gateway client and company-bound encrypted secret. See
 descriptions, pagination and blockers. These observations do not grant Council
 admission. See the [source ledger](qualification/SOURCE-READER.md).
 No GraphQL fallback or host/SDK modification is introduced.
+
+## Qualified Lot 4 candidates
+
+The later receiving qualification uses intake `00c3141` (0.4.0, SDK
+`2026.1005.0`) and Council `1b5269c` (0.7.18, SDK `2026.916.1`), based on Council
+`751a82b`. It runs against a clean prepared host checkout at `61b3fd57`, whose
+tracked sources remain unchanged. The historical baselines above are preserved;
+they are not substituted for the tested candidates. Exact SHAs, build/migration
+hashes and limits are in the [public receipt](qualification/council-receiver-qualification.json).
+
+Council requires fresh source evidence before preparation and initial admission,
+including direct Board activation. It requires an executable descendant and
+blocks external source references. Later remote Linear changes do not
+automatically revoke an admitted mission; existing native-source, mandate and
+budget gates remain authoritative. No extra interplugin credential or direct
+cross-plugin database access is introduced.
 
 ## Official references
 

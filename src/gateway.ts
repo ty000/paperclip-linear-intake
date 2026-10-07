@@ -118,7 +118,7 @@ export async function openGateway(ctx: PluginContext, companyId: string, guard: 
 
   const initialized = await rpc("initialize", {
     protocolVersion: "2025-03-26", capabilities: {},
-    clientInfo: { name: "paperclip-linear-intake", version: "0.3.0" },
+    clientInfo: { name: "paperclip-linear-intake", version: "0.4.0" },
   });
   const init = z.object({
     protocolVersion: z.literal("2025-03-26"),

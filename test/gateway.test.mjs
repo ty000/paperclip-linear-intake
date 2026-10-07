@@ -49,15 +49,18 @@ async function fixture(options = {}) {
 
 test('manifest passes native validation; retention needs scoped configuration and explicit enrollment', async () => {
   assert.equal(pluginManifestV1Schema.safeParse(manifest).success, true);
-  assert.deepEqual(parseConfig({}), { enabled: false, nativeImportEnabled: false, gatewayDiscoveryEnabled: false, gatewayTransport: 'host_http', gatewayToolCallMode: 'mcp' });
+  assert.deepEqual(parseConfig({}), { enabled: false, nativeImportEnabled: false, councilHandoffEnabled: false,
+    gatewayDiscoveryEnabled: false, gatewayTransport: 'host_http', gatewayToolCallMode: 'mcp' });
   assert.equal((await plugin.definition.onValidateConfig({ enabled: true })).ok, false);
   assert.deepEqual(manifest.webhooks.map(hook => hook.endpointKey), ['linear-todo']);
   assert.deepEqual(manifest.jobs.map(job => job.jobKey), ['drain-intake', 'prepare-import']);
   assert.equal(manifest.tools, undefined);
-  assert.ok(!manifest.capabilities.some(x => /agents|wakeup|events|checkout/.test(x)));
+  assert.ok(!manifest.capabilities.some(x => /agents|wakeup|checkout/.test(x)));
+  assert.deepEqual(manifest.capabilities.filter(x => x.startsWith('events.')), ['events.subscribe', 'events.emit']);
   assert.ok(manifest.capabilities.includes('issues.create'));
   assert.ok(!manifest.capabilities.includes('issues.update'));
   assert.equal(manifest.instanceConfigSchema.properties.nativeImportEnabled.default, false);
+  assert.equal(manifest.instanceConfigSchema.properties.councilHandoffEnabled.default, false);
   assert.equal(manifest.database.namespaceSlug, 'linear_intake');
 });
 

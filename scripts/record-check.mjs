@@ -2,10 +2,19 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 const run = (...args) => execFileSync(...args, { encoding: 'utf8' }).trim();
+const requestedBase = process.env.BUILD_EVIDENCE_BASE;
+const explicitBase = requestedBase && requestedBase !== '0'.repeat(40);
+if (explicitBase && !/^[0-9a-f]{40}$/.test(requestedBase)) {
+  throw new Error('BUILD_EVIDENCE_BASE must identify a full commit SHA');
+}
+const base = explicitBase ? requestedBase : run('git', ['merge-base', 'HEAD',
+  `refs/remotes/origin/${process.env.BUILD_EVIDENCE_DEFAULT_BRANCH || 'main'}`]);
+run('git', ['cat-file', '-e', `${base}^{commit}`]);
 const result = {
-  schema: 'linear-intake-lot3-build-evidence.v1',
+  schema: 'linear-intake-build-evidence.v1',
   candidate: run('git', ['rev-parse', 'HEAD']),
-  base: '57481d46bc64e2282335c38730f3245a681387d1',
+  base,
+  baseSource: explicitBase ? 'explicit-ci-event-or-local-override' : 'merge-base-with-default-branch',
   node: process.version,
   npm: run('npm', ['--version']),
   sdk: JSON.parse(readFileSync('node_modules/@paperclipai/plugin-sdk/package.json')).version,

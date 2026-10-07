@@ -8,6 +8,7 @@ import { createIntakeRuntime, type IntakeRuntime } from "./intake-runtime.js";
 import { registerIntakeActions } from "./intake-actions.js";
 import { createImportRuntime } from "./import-runtime.js";
 import { registerImportActions } from "./import-actions.js";
+import { registerCouncilHandoff } from "./council-handoff.js";
 
 let intakeRuntime: IntakeRuntime | undefined;
 
@@ -25,6 +26,7 @@ const plugin = definePlugin({
     registerIntakeActions(ctx, intakeRuntime);
     const imports = createImportRuntime(ctx);
     registerImportActions(ctx, imports);
+    registerCouncilHandoff(ctx);
     const runtime = intakeRuntime;
     ctx.jobs.register("drain-intake", async () => {
       try { await runtime.drain(); }
@@ -72,13 +74,13 @@ const plugin = definePlugin({
   async onValidateConfig(config) {
     try {
       parseConfig(config);
-      return { ok: true, warnings: ["Retention and optional import require explicit operator enrollment. Council admission remains unavailable."] };
+      return { ok: true, warnings: ["Retention, import and optional Council source revalidation require explicit enrollment. Council owns admission under its project mandate."] };
     } catch {
       return { ok: false, errors: ["Invalid configuration; enabled request retention needs scoped source settings and a webhook secret reference."] };
     }
   },
   async onHealth() {
-    return { status: "degraded", message: "Explicit enrollment is required; native import defaults off and Council admission remains unavailable." };
+    return { status: "degraded", message: "Explicit enrollment is required; native import and Council source revalidation default off. Admission requires the separate Council receiver." };
   },
   async onWebhook(input) {
     if (!intakeRuntime) throw new Error("intake_not_initialized");

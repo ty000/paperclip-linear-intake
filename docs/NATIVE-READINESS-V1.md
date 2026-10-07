@@ -8,8 +8,10 @@ sets `admissionAllowed: false`, `implementationStarted: false`,
 
 ## Bound identities and evidence
 
-No Council mandate identity is claimed at this stage. Lot 4 must bind its
-current mandate and admission receipt to this readiness revision.
+No Council mandate identity is claimed by this preparation document. The Lot 4
+receiver binds its current mandate and admission receipt to this revision in
+its own challenge and journals. That evidence does not rewrite immutable
+readiness flags, hashes or historical receipts.
 
 The body binds `companyId`, stable `intakeId`, `activationId`,
 `configurationFingerprint`, `requestVersion`, `planSha256`, `sourceSha256`,
@@ -71,30 +73,31 @@ form a transaction. Readiness is an observation requiring receiver revalidation.
 The native relation helper reads/unions/replaces a blocker set without an atomic
 merge. Importer concurrency is serialized per effect; concurrent foreign
 relation writers require coordination. Readback rejects observed foreign
-blockers instead of deliberately removing them. The isolated qualification has
+blockers instead of deliberately removing them. The Lot 3 isolated qualification has
 no event subscribers; it proves the importer's lack of wakes and native default
 behavior, not the behavior of arbitrary third-party listeners.
 
-## Separate Council lot
+## Separate Council receiver
 
-No Council adapter is implemented or activated by Lot 3. A separately authorized
-Lot 4 must:
+Lot 3 still records preparation only. The separately qualified Council `0.7.18`
+receiver accepts `plugin:ty000.linear-intake` under exact source/company/project
+bindings and an enabled mandate. It validates native readiness, source documents,
+hierarchy and blockers, then obtains a fresh source observation from intake
+`0.4.0` over the authenticated native bus. It prepares contributor assignments
+and `council-work.ownedPaths` from explicit project rules, preserves terminal
+history and admits through its own budget, mission and attempt identities.
+See the [handoff contract](COUNCIL-HANDOFF-V1.md),
+[Lot 4 ledger](qualification/COUNCIL-RECEIVER.md) and
+[public receipt](qualification/council-receiver-qualification.json).
 
-1. Accept only the explicit plugin origin `plugin:ty000.linear-intake`, with
-   exact company/project/source bindings and a current enabled mandate. Never
-   impersonate a manual issue or operator.
-2. Read and validate the complete readiness document and native revision,
-   immutable source documents, hierarchy, blockers and current source authority.
-   An external blocker remains a gate until authoritatively resolved.
-3. Prepare real contributor assignments and `council-work.ownedPaths` for each
-   executable leaf using authorized project rules or the governed lead path.
-   The importer invents neither assignees nor write scopes.
-4. Preserve terminal descendants as history instead of feeding them through an
-   adoption path that assumes every descendant is executable.
-5. Admit through Council's existing budget, mission and attempt identity. Keep
-   duplicate signals and restart within that identity, and record actual native
-   admission/run binding before claiming implementation has started.
+At least one executable descendant is required; standalone roots, terminal-only
+families and external source blocker references remain blocked. Intake never
+wakes an implementation agent or writes Council's private database. The Lot 4
+installed qualification exercises the intended intake/Council subscribers, not
+the behavior of arbitrary third-party subscribers. Readiness retains
+`receivingContract: "unqualified"` and both admission/execution flags remain
+false: Council's separate admission and run evidence establish the later state.
 
 Council's closed issues 50 and 51 qualify its own manual-origin mandate and
-hierarchy work; they do not qualify this receiving contract. A connector's
+hierarchy work; those historical proofs alone do not qualify this receiving contract. A connector's
 presence, a prepared family or a green importer CI is not Council admission.

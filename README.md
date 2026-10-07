@@ -1,8 +1,9 @@
 # Paperclip Linear Intake
 
-A separate Paperclip plugin that will turn an authorized Linear transition to
-**Todo** into a durable import of the ticket and its sub-issues, then hand the
-prepared work to a governed implementation workflow such as Council.
+A separate Paperclip plugin that retains an authorized Linear transition to
+**Todo**, reads and imports its selected source family, and supplies current
+source attestations to an explicitly enabled Council receiver. Council owns
+admission, accounting and implementation dispatch.
 
 **Current state:** Lot 1 is qualified against SDK `2026.1005.0`. The disabled
 plugin has read two enrolled leaves and one complete native Content Assistant
@@ -21,11 +22,22 @@ installed in recipe. **Lot 3 is complete** in source version `0.3.0`: 594 tests,
 the Fallow gate and four CI checks pass. Native families and uncertainty
 recovery are qualified with real core services and an isolated database.
 See the [import criterion ledger](docs/qualification/NATIVE-IMPORT.md).
-Council admission remains unavailable. Historical receipts remain unchanged.
+**Lot 4 is complete within isolated qualification:** intake `0.4.0` (`00c3141`)
+and Council `0.7.18` (`1b5269c`) demonstrate the installed handoff through settled
+N1 `ready_for_review`, before N2, on unchanged host `61b3fd57`. Native workers,
+jobs, events, admission and accounting are real; Linear HTTP and CLI model
+content/usage are deterministic fixtures. Neither release is installed or
+activated in recipe by this lot. Historical receipts remain unchanged. See the
+[Lot 4 ledger and limits](docs/qualification/COUNCIL-RECEIVER.md),
+[public receipt](docs/qualification/council-receiver-qualification.json) and
+[handoff contract](docs/COUNCIL-HANDOFF-V1.md).
 
 Lot 2 uses a signed raw-body webhook, an append-only delivery journal and stable
 company/organization/issue identities. It acknowledges valid transitions after
-persistence. Only the scheduled native job reads the selected source family.
+persistence. The scheduled native job performs the initial source retrieval
+after the webhook; Lot 4 separately revalidates current source in response to
+Council challenges. Explicitly enabled operator actions retain their own bounded
+read scope.
 See [retention semantics and qualification](docs/qualification/TODO-RETENTION.md).
 
 ## Local verification
@@ -74,8 +86,8 @@ The installed 0.1.4 bytes match the CI artifact for `6747347`. The authorized
 native REST campaign completed 28 source calls with no failed call. Historical
 0.1.2/0.1.3 receipts remain separate from this qualification.
 
-Configuration defaults to disabled retention, disabled native import and disabled
-gateway discovery. Enabling retention requires scoped source settings, a webhook
+Configuration defaults to disabled retention, disabled native import, disabled
+Council handoff and disabled gateway discovery. Enabling retention requires scoped source settings, a webhook
 secret reference and explicit operator enrollment. Native import additionally
 requires `nativeImportEnabled: true` in the enrolled configuration. An explicitly enabled `inspect-gateway`
 action can inspect a configured named gateway catalog using a native secret
@@ -130,6 +142,13 @@ source and readiness documents; its isolated qualification is complete.
 A `source_observed` result is stored source evidence, and even `prepared` does not
 grant Council admission. See the [versioned readiness contract](docs/NATIVE-READINESS-V1.md).
 
+The opt-in Council receiver validates an enabled revisioned project mandate,
+prepares explicit contributor assignments and `council-work.ownedPaths`, and
+preserves done/cancelled history. Fresh source attestations are required before
+preparation and initial admission. Later remote Linear changes do not
+automatically revoke an admitted mission; Council retains its pinned native
+source, mandate and budget gates.
+
 ## First scope
 
 - One explicitly configured Linear workspace/team/project and its exact Todo
@@ -154,10 +173,13 @@ Paperclip core changes are outside this first scope.
 - [Architecture and ownership](docs/ARCHITECTURE.md)
 - [Todo import and handoff contract](docs/TODO-INTAKE-CONTRACT.md)
 - [Implementation sequence and acceptance checks](docs/IMPLEMENTATION-PLAN.md)
+- [Council receiver qualification and limits](docs/qualification/COUNCIL-RECEIVER.md)
 - [Repository working instructions](AGENTS.md)
 
-The Council integration is a separate dependency. Its current source requires
-manual-origin roots; adding a connector does not by itself make imported tasks
-admissible. The hierarchy implementation also requires contributor assignments
-and explicit write scopes for executable leaves. Both gaps are recorded in the
-contract and must be qualified before enabling automatic launch.
+The Council integration is a separate dependency. Its qualified `0.7.18`
+receiver accepts this exact imported origin only under an explicit
+project mandate with source scope, contributor assignments and write paths.
+Readiness, a fresh source observation and Council's existing accounting are
+all required. Initial qualification covers a subtree with executable descendants;
+roots with no executable descendant and external source blocker references remain
+blocked for an explicit operator decision. Operational launch remains disabled.
