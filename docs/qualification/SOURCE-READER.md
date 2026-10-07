@@ -2,9 +2,10 @@
 
 Base: `f85ab5d19dcdbcf1146003ea9945dfb3a9c59925` (merged PR 2).
 Source package: **0.1.4**, SDK/shared **2026.1005.0**. This is still Lot 1.
-Recipe runs **0.1.3** with intake disabled. Native leaf reads passed; a stable
-parent family remains unqualified after two native transport failures near the deadline. The 0.1.4
-call-mode continuation is not yet installed. Lots 2 and 3 have not started.
+**L1-A through L1-G PASS.** Recipe runs **0.1.4**, candidate `6747347`, with intake
+disabled and no source enrollment. Native leaf reads passed on 0.1.3; the
+authorized 0.1.4 REST campaign returned a stable parent plus three children.
+The historical failures below remain separate evidence. Lots 2 and 3 have not started.
 
 ## Executable behavior
 
@@ -90,13 +91,13 @@ case must remain unqualified; synthetic cases cannot be relabeled native.
 
 | ID | Evidence and current verdict |
 | --- | --- |
-| L1-A | Pinned SDK package and disabled manifest/worker; portable checks recorded by CI. |
-| L1-B | Six native input contracts, workspace/detail outputs and real continuation/terminal pages observed. Stable complete-parent result still pending. PARTIAL. |
-| L1-C | Synthetic complete families and native leaf reads PASS. Two parent attempts failed closed on native transport errors. PARTIAL. |
-| L1-D | PASS for actual 0.1.3 native reader calls, without an implementation model or operator credential in the plugin. REST continuation still needs qualification. |
-| L1-E | PASS: native company/plugin secret resolution during 0.1.3 reader execution; encoded echo rejection covered by synthetic tests. |
-| L1-F | Existing transport limits retained; repeated-read consistency limits explicit. No GraphQL fallback or new authentication added. |
-| L1-G | `npm run check`, native Fallow against the base, package inspection and exact-candidate CI are required for publication. |
+| L1-A | PASS: published SDK/shared 2026.1005.0, standalone manifest, worker and disabled default; [exact-candidate CI](https://github.com/ty000/paperclip-linear-intake/actions/runs/37677160128). |
+| L1-B | PASS: observed native input contracts, workspace/detail outputs, continuation and terminal pages; [REST campaign](native-rest-qualification.json). |
+| L1-C | PASS: two native leaves and one complete parent family; four descriptions, three children, two internal blocking edges, eight unresolved external references; [family summary](native-rest-family-summary.json). |
+| L1-D | PASS: 28 native source calls via the plugin and dedicated named gateway, without an implementation-model run or operator credential in the plugin. |
+| L1-E | PASS: native company/plugin secret-reference resolution, unchanged dedicated client; actual reader execution plus synthetic decoded-echo rejection. |
+| L1-F | PASS: explicit request/family/size limits, optimistic repeated-read consistency and connector description representation documented. No GraphQL fallback or new authentication. |
+| L1-G | PASS: typecheck, build, 309 tests, pack, native Fallow 3.23.0 and wrapper; all three CI jobs passed on `6747347`. [Installed runtime readback](native-rest-readback.json) matches that build. |
 
 The published CI build artifact binds source SHA, base, lockfile, SDK and built
 runtime digests. It never asserts native qualification. Migration prewrite is
@@ -156,7 +157,7 @@ was read back exactly, and native connection health was restored. The
 [final readback](native-reader-readback.json) verifies ready 0.1.3, default-deny
 eight-read profile, twelve-tool catalog, no probe/reader enrollment and runtime
 digests. The two-leaf campaign flag in the private driver is not a global L1
-verdict. **L1 remains partial and Lot 2 remains closed.**
+verdict. **At the end of that 0.1.3 campaign, L1 remained partial and Lot 2 stayed closed.**
 
 Replay portable redaction without any network access:
 
@@ -190,7 +191,7 @@ The 0.1.4 implementation adds this explicit plugin-only call mode through the ex
 identity, with MCP initialization/catalog checks first and the REST endpoint
 fixed to the same origin. It introduces no GraphQL fallback, new authentication,
 operator token in the plugin or Paperclip core change. Its native qualification
-must succeed on a reviewed candidate before the parent gate can close.
+was then performed on the separately approved candidate below.
 
 The synthetic REST checks exercise a real local HTTP server: exact path/header,
 all redirect statuses, declared and streamed response-size limits, absolute
@@ -198,3 +199,48 @@ deadline, proxy-environment isolation, response/tool identity and nested error
 envelopes. Host HTTP uses the published SDK harness. Independent review checked
 the native route's authentication and policy contract against the host source;
 that source review does not establish a successful native REST family read.
+
+## Successful native REST campaign on 0.1.4
+
+The operator approved candidate `6747347b7b2b6e4d0854effc4d10481d73b5aa6d`,
+installation under the existing plugin identity, one bounded PEZ-647 subtree read
+and enrollment cleanup. Three exact-candidate CI jobs passed. All eleven frozen
+runtime files and the lockfile were compared with the downloaded CI artifact
+before staging the update; the previous active 0.1.3 package was preserved.
+No gateway profile, credential or host source changed.
+
+The reader used native REST with a 30-second per-call timeout, 120-second reader
+budget, at most 50 issues and pages of one child. It returned **four issues in
+28 completed source calls**, with no failed native call. Native activity records
+show the parent's `hasNextPage` sequence **true, true, false**, repeated on the
+second inventory pass, and empty terminal child inventories in both passes.
+The family contains two internal blocking edges and eight unresolved external
+blocker references. Description lengths are 7,631, 5,641, 5,200 and 5,452
+characters. The [campaign receipt](native-rest-qualification.json) and
+[portable family summary](native-rest-family-summary.json) retain hashes/counts
+without ticket bodies or credentials.
+
+A separate [connector comparison](native-rest-parent-comparison.json) matched
+16 observed fields per issue and the parent's complete three-child inventory.
+The parent reference was refreshed because its revision changed between the
+earlier and current campaigns. The three child descriptions match byte for byte.
+The parent description differs only in three issue mentions: the Codex connector
+returns `<issue>` tags, while the managed native path returns Markdown links.
+Converting precisely those tags to links makes the descriptions identical; the
+reader preserves the native source as received. This supplementary comparison
+does not replace the actual plugin execution.
+
+Afterward, the exact original disabled configuration was restored, with no probe
+or reader enrollment. The final [native readback](native-rest-readback.json)
+confirms ready 0.1.4, the same default-deny eight-read profile and twelve-tool
+catalog, and all runtime digests matching the qualified CI build. Native
+connection health is `ok`; every journaled effect has a known response/readback.
+An independent contextual review checks the final criterion-to-proof mapping.
+
+The selected root was outside Todo and the returned flag correctly records it.
+This qualification proves source access and completeness, not request acceptance,
+import or Council admission. No webhook, ticket modification, implementation
+agent or provider-model run occurred. The successful REST campaign does not
+establish the cause of the earlier generic MCP failures. Read consistency remains
+optimistic and credentials retain their recorded expiry. Lot 2 may now begin;
+Lot 3 still depends on Lot 2's own qualification.

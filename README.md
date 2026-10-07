@@ -4,20 +4,17 @@ A separate Paperclip plugin that will turn an authorized Linear transition to
 **Todo** into a durable import of the ticket and its sub-issues, then hand the
 prepared work to a governed implementation workflow such as Council.
 
-**Current state:** Lot 1 partial: disabled executable plugin, native gateway
-catalog access qualified in local recipe against SDK `2026.1005.0`, and a bounded
-operator-only source probe. The bounded complete-family reader has passed native
-reads of two enrolled leaves; complete parent reads failed near the native
-MCP route's ten-second deadline. See the
-[reader contract and remaining gates](docs/qualification/SOURCE-READER.md).
-Version `0.1.3` is installed in recipe with intake disabled. Its worker resolved
-a company-bound native secret, retrieved the dedicated eight-read-tool Linear
-catalog and read two explicitly scoped Content Assistant samples. The source
-probe was disabled after qualification. Source probes are not complete family
-reads. The manifest is packaged as standalone data for reliable native upgrades.
-No webhook, import or Council admission is active. Lots 2 and 3 have not started.
-See the [current native qualification](docs/qualification/NATIVE-ACCESS.md) and
-[original criterion report](docs/qualification/LOT1.md).
+**Current state:** Lot 1 is qualified against SDK `2026.1005.0`. The disabled
+plugin has read two enrolled leaves and one complete native Content Assistant
+family: parent plus three children, full descriptions, two internal blocking
+edges, eight unresolved external blocker references, and repeated paginated
+inventories. See the [criterion ledger and proof](docs/qualification/SOURCE-READER.md).
+
+Version `0.1.4` from candidate `6747347` is installed in recipe. Its eleven
+runtime files match the exact-candidate CI build. Temporary source probe/reader
+enrollment was removed, the original disabled configuration restored, and the
+managed connection verified healthy. No webhook, import or Council admission
+is active. Lots 2 and 3 have not started. Historical receipts remain unchanged.
 
 ## Local verification
 
@@ -54,9 +51,9 @@ the Paperclip runtime and manual qualification entry points and excludes local
 use estimated coverage unless an actual coverage report is supplied. They are
 static evidence, separate from the synthetic tests and native qualification.
 
-The installed 0.1.3 bytes match the CI artifact for `140e9ed`. Historical 0.1.2
-receipts remain unchanged. The new opt-in native REST call mode needs its own
-candidate and native qualification before it can close the remaining gate.
+The installed 0.1.4 bytes match the CI artifact for `6747347`. The authorized
+native REST campaign completed 28 source calls with no failed call. Historical
+0.1.2/0.1.3 receipts remain separate from this qualification.
 
 Default configuration is `{ "enabled": false, "gatewayDiscoveryEnabled": false }`.
 This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
@@ -88,8 +85,8 @@ default call mode remains `mcp`; failures never switch modes automatically.
 `nativeToolTimeoutMs` defaults to 20,000 in REST mode and is bounded to
 1,000–30,000 ms. The local client adds a 2,000 ms response allowance for those
 calls; the existing 10,000 ms local MCP limit is unchanged. No new capability,
-credential or host modification is needed. Recipe qualification of this option
-is still pending.
+credential or host modification is needed. The native parent-family campaign
+qualified this option at 30,000 ms; cleanup restored the original MCP configuration.
 
 ## Intended flow (not yet implemented)
 

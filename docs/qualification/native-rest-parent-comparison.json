@@ -1,0 +1,51 @@
+{
+  "schema": "linear-intake-native-parent-comparison.v1",
+  "nativeObservationSha256": "180e8b23c9b3878107ab27c16b85f5ec7d4d0c6da1779ed05cef5ce57aa1a56f",
+  "secondaryObservationSha256": [
+    "f286e6be9f32eb80f561a1612530a8682d062cabc08e4831ebfabf9d9ff668d7",
+    "867d7eef63be333b95c9726689aa4d0032f8f28143d767d1aee6cf9aef02591a",
+    "5db838b9b0c9ac28b62f66c72adbbf766db02524804f97ee9ff549d63e3756a0",
+    "0dbf94ef3b1907c6137a32b8851035b70ef21e306a15ff65b9af2b334202b749"
+  ],
+  "secondaryInventorySha256": "0bbf9e9a53c15611450c68bd0b98b676f413bd56acfeb63829e088d5c28e67d5",
+  "issueCount": 4,
+  "comparisons": [
+    {
+      "comparedFieldCount": 16,
+      "allNonDescriptionFieldsMatch": true,
+      "rawDescriptionMatches": false,
+      "descriptionMatchesAfterIssueLinkNormalization": true,
+      "normalizedIssueLinkCount": 3,
+      "currentStateMatchesOpenHistory": true
+    },
+    {
+      "comparedFieldCount": 16,
+      "allNonDescriptionFieldsMatch": true,
+      "rawDescriptionMatches": true,
+      "descriptionMatchesAfterIssueLinkNormalization": true,
+      "normalizedIssueLinkCount": 0,
+      "currentStateMatchesOpenHistory": true
+    },
+    {
+      "comparedFieldCount": 16,
+      "allNonDescriptionFieldsMatch": true,
+      "rawDescriptionMatches": true,
+      "descriptionMatchesAfterIssueLinkNormalization": true,
+      "normalizedIssueLinkCount": 0,
+      "currentStateMatchesOpenHistory": true
+    },
+    {
+      "comparedFieldCount": 16,
+      "allNonDescriptionFieldsMatch": true,
+      "rawDescriptionMatches": true,
+      "descriptionMatchesAfterIssueLinkNormalization": true,
+      "normalizedIssueLinkCount": 0,
+      "currentStateMatchesOpenHistory": true
+    }
+  ],
+  "directChildCount": 3,
+  "parentComparedWithRefreshedSecondaryObservation": true,
+  "parentInventoryMatchesSecondary": true,
+  "leafInventoriesTerminalEmpty": true,
+  "layer": "secondary-connector-comparison-supplementing-native-plugin-result"
+}

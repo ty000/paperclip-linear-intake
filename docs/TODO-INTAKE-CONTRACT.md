@@ -1,8 +1,8 @@
 # Todo intake and handoff contract
 
 Status: intake/import/handoff contract proposed, not implemented. Lot 1 provides
-a disabled skeleton, source probe and complete-family reader pending native
-qualification; see [current qualification](qualification/SOURCE-READER.md).
+a disabled skeleton, source probe and complete-family reader qualified natively;
+see [current qualification](qualification/SOURCE-READER.md).
 Scope: one ticket entering an explicitly configured Todo state and its selected subtree.
 
 ## Configuration and authority
