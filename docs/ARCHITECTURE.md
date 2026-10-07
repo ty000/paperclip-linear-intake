@@ -1,7 +1,8 @@
 # Architecture and ownership
 
-Design baseline: 7 October 2026. This is a proposed implementation, not runtime
-qualification.
+Design baseline: 7 October 2026. The Lot 1 skeleton and gateway catalog probe
+are implemented; source retrieval and downstream intake remain proposed. See
+[qualification](qualification/LOT1.md) for the source/fixture/runtime distinction.
 
 ## Existing capabilities to consume
 
@@ -58,13 +59,17 @@ an alternative execution scheduler.
   `packages/shared/src/validators/tool-access.ts`, and `docs/api/routines.md`.
 - Council project-mandate baseline: branch `codex/council-project-mandates`,
   HEAD `0224d5f2442e69cf7f5c82a2c9206b71fe61781f`, version 0.7.12.
-- Council hierarchy work: another chat's in-progress
-  `codex/council-variable-hierarchy` worktree. It is not a released or qualified
-  dependency for this plugin. Recheck its final candidate before integration.
+- Council hierarchy source rechecked at `1c96890f6147cbf517d2b3f54209f6abc2b8b880`,
+  branch `codex/council-variable-hierarchy`. Issue 51 now reports qualification
+  and recipe installation of 0.7.13; that report does not qualify this importer
+  or its receiving contract. Issues 50 and 51 are still open.
 
-These observations identify source contracts only. No currently usable Linear
-connection, named gateway, public URL, plugin installation, or launch authority
-has been verified in this repository.
+These observations identify source contracts only. No usable Linear connection, named gateway credential, public URL, plugin
+installation, or launch authority has been verified for this importer. The
+operator selected recipe as the first target; a read-only health check confirms
+`council-local` is running in authenticated/private mode. Its configured loopback
+URL cannot be reached via the consulted host's `ctx.http` private-address policy.
+The implementation does not bypass that policy or introduce GraphQL as a workaround.
 
 ## Official references
 

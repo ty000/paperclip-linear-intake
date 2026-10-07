@@ -4,11 +4,34 @@ A separate Paperclip plugin that will turn an authorized Linear transition to
 **Todo** into a durable import of the ticket and its sub-issues, then hand the
 prepared work to a governed implementation workflow such as Council.
 
-**Current state:** repository bootstrap and design contract only. No plugin
-worker, package, installation, webhook, credentials, or ticket processing has
-been implemented or activated.
+**Current state:** Lot 1 partial: executable package/manifest/worker, disabled
+intake and explicit gateway catalog inspection, checked against published SDK
+`2026.1005.0`. Native Linear access and the complete source reader remain blocked.
+No installation, webhook, credentials, real-ticket processing or Council admission
+has been performed. Lots 2 and 3 have not started. See the
+[criterion-by-criterion qualification](docs/qualification/LOT1.md).
 
-## Intended flow
+## Local verification
+
+Requires Node 24.20.0 and npm 11.19.0 (CI pins both).
+
+```bash
+npm ci --ignore-scripts --no-audit --no-fund
+npm run check
+npm pack --dry-run --json
+```
+
+`npm run check` typechecks, builds and runs the SDK harness and actual worker
+RPC tests with synthetic host services. Dependencies come from the public npm
+registry and the committed lockfile; no adjacent checkout is needed.
+
+Default configuration is `{ "enabled": false, "gatewayDiscoveryEnabled": false }`.
+This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
+action can inspect a configured named gateway catalog using a native secret
+reference; it cannot call Linear tools, import issues or wake agents. Startup,
+health and config validation perform no HTTP or secret reads.
+
+## Intended flow (not yet implemented)
 
 ```mermaid
 flowchart LR
@@ -54,4 +77,3 @@ manual-origin roots; adding a connector does not by itself make imported tasks
 admissible. The hierarchy implementation also requires contributor assignments
 and explicit write scopes for executable leaves. Both gaps are recorded in the
 contract and must be qualified before enabling automatic launch.
-Paperclip plugin for importing Linear Todo tickets and their sub-issues into governed implementation workflows
