@@ -1,12 +1,16 @@
 # Implementation sequence
 
-Status: planning only. Repository bootstrap is complete when these documents
-are committed and read back from the public GitHub repository. Plugin behavior
-has not yet been implemented, installed or activated.
+Status: Lot 1 partially implemented; native source qualification blocked. The
+package, manifest, worker, SDK tests and build CI are present. There is no
+operational installation or activation. See [Lot 1 evidence](qualification/LOT1.md).
+Lots 2 and 3 must not start until all L1-A through L1-G criteria are satisfied.
+The acceptance checks below remain authoritative and unchanged.
 
-The initial GitHub Actions workflow checks repository whitespace and local
-Markdown links only. It does not qualify a plugin build or runtime behavior;
-Lot 1 must extend CI with the actual package's typecheck, tests and build.
+Local transport continuation: the operator approved an opt-in direct loopback
+client while VPS deployment is deferred. Its scope is plugin-only code, tests
+and documentation; see [local transport qualification](qualification/LOCAL-TRANSPORT.md).
+It removes the public-HTTPS prerequisite for local testing, not the native
+gateway, secret-binding or complete source-read qualification requirements.
 
 ## Lot 1 — Qualify native source access
 

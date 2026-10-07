@@ -1,0 +1,17 @@
+{
+  "schema": "linear-intake-lot1-build-evidence.v1",
+  "candidate": "58ae4c5a2bdfd11d6fb6bd8ee0074c53b98e2430",
+  "base": "7b5983db12132427f5d1666d3f85147792acd39d",
+  "node": "v24.20.0",
+  "npm": "11.19.0",
+  "sdk": "2026.1005.0",
+  "lockSha256": "a5f19d0be1b760cd0ee6b07c811eccaa3e6adb5a4f39aaec9ff92a53573197b7",
+  "commands": [
+    "npm ci --ignore-scripts --no-audit --no-fund",
+    "npm run check",
+    "npm pack --dry-run --json"
+  ],
+  "layer": "published-sdk-build-harness-and-synthetic-rpc-transport",
+  "nativeGatewayQualified": false,
+  "linearSourceCoverageQualified": false
+}

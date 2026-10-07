@@ -1,0 +1,23 @@
+{
+  "schema": "linear-intake-recipe-metadata.v1",
+  "observed_at": "2026-10-07T16:27:44.61924+02:00",
+  "transaction_read_only": "on",
+  "connection_found": true,
+  "transport": "mcp_remote",
+  "auth_kind": "oauth",
+  "status": "draft",
+  "enabled": false,
+  "health_status": "unchecked",
+  "catalog_count": 0,
+  "last_catalog_refresh_at": null,
+  "official_linear_mcp_url": true,
+  "browser_authorization_configured": true,
+  "oauth_read_requested": true,
+  "oauth_write_requested": true,
+  "oauth_client_id_present": true,
+  "client_secret_reference_present": true,
+  "grant_count": 1,
+  "grant_provider_tenant_count": 0,
+  "explicit_profile_reference_count": 0,
+  "native_source_qualified": false
+}

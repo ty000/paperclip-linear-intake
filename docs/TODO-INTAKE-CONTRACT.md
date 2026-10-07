@@ -1,7 +1,8 @@
 # Todo intake and handoff contract
 
-Status: proposed, not implemented. Scope: one ticket entering an explicitly
-configured Todo state and its selected subtree.
+Status: intake/import/handoff contract proposed, not implemented. Lot 1 provides
+a disabled skeleton and gateway discovery only; see [qualification](qualification/LOT1.md).
+Scope: one ticket entering an explicitly configured Todo state and its selected subtree.
 
 ## Configuration and authority
 

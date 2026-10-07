@@ -49,3 +49,34 @@ jobs:
               raise SystemExit('\n'.join(missing))
           print('Local Markdown links resolve.')
           PY
+
+  package:
+    name: Package checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          cache: npm
+      - name: Pin npm
+        run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - name: Install from lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck, build, SDK harness and worker RPC tests
+        run: npm run check
+      - name: Inspect package contents and record exact candidate
+        run: |
+          npm pack --dry-run --json
+          node scripts/record-check.mjs
+      - name: Save build evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lot1-build-evidence
+          path: artifacts/build-evidence.json
+          if-no-files-found: error
