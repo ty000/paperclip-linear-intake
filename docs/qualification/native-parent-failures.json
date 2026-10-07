@@ -1,0 +1,100 @@
+{
+  "schema": "linear-intake-native-parent-failures.v1",
+  "candidate": "140e9ed70787be1377f34de42a9eb21efe746c3d",
+  "pageSize": 1,
+  "familyResultReturned": false,
+  "attempts": [
+    {
+      "activitySha256": "7915e0025f2ebc815ad700b2b659655d44d2f479cfb324200605fe3a8103fa7f",
+      "completedCalls": 18,
+      "observedListPages": [
+        {
+          "issues": 1,
+          "hasNextPage": false,
+          "cursorPresent": false
+        },
+        {
+          "issues": 1,
+          "hasNextPage": true,
+          "cursorPresent": true
+        },
+        {
+          "issues": 1,
+          "hasNextPage": true,
+          "cursorPresent": true
+        },
+        {
+          "issues": 0,
+          "hasNextPage": false,
+          "cursorPresent": false
+        },
+        {
+          "issues": 0,
+          "hasNextPage": false,
+          "cursorPresent": false
+        },
+        {
+          "issues": 0,
+          "hasNextPage": false,
+          "cursorPresent": false
+        },
+        {
+          "issues": 1,
+          "hasNextPage": false,
+          "cursorPresent": false
+        },
+        {
+          "issues": 1,
+          "hasNextPage": true,
+          "cursorPresent": true
+        },
+        {
+          "issues": 1,
+          "hasNextPage": true,
+          "cursorPresent": true
+        }
+      ],
+      "failures": [
+        {
+          "eventType": "call_failed",
+          "outcome": "failure",
+          "reasonCode": "mcp_remote_fetch_failed",
+          "createdAt": "2026-10-07T19:15:48.653Z",
+          "role": "get-issue"
+        }
+      ]
+    },
+    {
+      "activitySha256": "56c6caf4ee0a2d096958ddc2440a8ee965d983b4827bd3141aaac2fab69375b1",
+      "completedCalls": 11,
+      "observedListPages": [
+        {
+          "issues": 1,
+          "hasNextPage": false,
+          "cursorPresent": false
+        },
+        {
+          "issues": 1,
+          "hasNextPage": true,
+          "cursorPresent": true
+        },
+        {
+          "issues": 1,
+          "hasNextPage": true,
+          "cursorPresent": true
+        }
+      ],
+      "failures": [
+        {
+          "eventType": "call_failed",
+          "outcome": "failure",
+          "reasonCode": "mcp_remote_fetch_failed",
+          "createdAt": "2026-10-07T19:17:52.884Z",
+          "role": "list-issues"
+        }
+      ]
+    }
+  ],
+  "eventOrder": "newest_first",
+  "failureCause": "transport_failure; timeout causation unconfirmed"
+}

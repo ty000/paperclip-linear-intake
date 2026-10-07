@@ -1,5 +1,9 @@
 # Native recipe access — 7 October 2026
 
+**Historical 0.1.0–0.1.2 campaign.** The [reader continuation](SOURCE-READER.md)
+records the current 0.1.3 native observations, eight-read profile, cleanup and
+remaining parent-family gate. Original observations below remain unchanged.
+
 **L1 remains PARTIAL.** Native catalog discovery and secret delivery now pass.
 The complete source reader (L1-C), full output coverage (part of L1-B), and
 therefore Lots 2/3 remain unqualified. A catalog is not a source-family snapshot.

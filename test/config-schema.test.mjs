@@ -20,4 +20,8 @@ test('config JSON Schema compiles with the host Ajv dialect and accepts omitted 
   assert.equal(validate({ gatewayTransport: 'automatic' }), false);
   assert.equal(validate({ localGatewayTimeoutMs: 0 }), false);
   assert.equal(validate({ localGatewayTimeoutMs: 10001 }), false);
+  assert.equal(validate({ gatewayToolCallMode: 'native_rest', nativeToolTimeoutMs: 20000 }), true);
+  assert.equal(validate({ gatewayToolCallMode: 'automatic' }), false);
+  assert.equal(validate({ nativeToolTimeoutMs: 999 }), false);
+  assert.equal(validate({ nativeToolTimeoutMs: 30001 }), false);
 });

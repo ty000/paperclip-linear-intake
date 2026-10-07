@@ -6,11 +6,12 @@ prepared work to a governed implementation workflow such as Council.
 
 **Current state:** Lot 1 partial: disabled executable plugin, native gateway
 catalog access qualified in local recipe against SDK `2026.1005.0`, and a bounded
-operator-only source probe. Version `0.1.3` adds the bounded complete-family
-reader; its native qualification remains pending. See the
+operator-only source probe. The bounded complete-family reader has passed native
+reads of two enrolled leaves; complete parent reads failed near the native
+MCP route's ten-second deadline. See the
 [reader contract and remaining gates](docs/qualification/SOURCE-READER.md).
-Version `0.1.2` is installed in recipe with intake disabled. Its worker resolved
-a company-bound native secret, retrieved the dedicated seven-read-tool Linear
+Version `0.1.3` is installed in recipe with intake disabled. Its worker resolved
+a company-bound native secret, retrieved the dedicated eight-read-tool Linear
 catalog and read two explicitly scoped Content Assistant samples. The source
 probe was disabled after qualification. Source probes are not complete family
 reads. The manifest is packaged as standalone data for reliable native upgrades.
@@ -53,9 +54,9 @@ the Paperclip runtime and manual qualification entry points and excludes local
 use estimated coverage unless an actual coverage report is supplied. They are
 static evidence, separate from the synthetic tests and native qualification.
 
-The subsequent static-audit refactoring has source/build and synthetic-test
-coverage only. It has not been installed in recipe; the native receipts still
-identify the pre-refactoring candidate `448f21840d73010a4b3097046edcef01415e7c88`.
+The installed 0.1.3 bytes match the CI artifact for `140e9ed`. Historical 0.1.2
+receipts remain unchanged. The new opt-in native REST call mode needs its own
+candidate and native qualification before it can close the remaining gate.
 
 Default configuration is `{ "enabled": false, "gatewayDiscoveryEnabled": false }`.
 This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
@@ -78,6 +79,17 @@ the managed Linear connection and native secret resolution. No redirects,
 proxy environment variables, remote hosts or automatic transport fallback are
 allowed. See [local transport setup and qualification](docs/qualification/LOCAL-TRANSPORT.md)
 for configuration, limits and the remaining native qualification steps.
+
+Version `0.1.4` adds an explicit `gatewayToolCallMode: "native_rest"` option.
+Initialization and catalog discovery still authenticate the configured named MCP
+gateway. Tool calls then use only `/api/tool-gateway/tools/call` on that same
+origin, with the same dedicated credential in the native gateway header. The
+default call mode remains `mcp`; failures never switch modes automatically.
+`nativeToolTimeoutMs` defaults to 20,000 in REST mode and is bounded to
+1,000–30,000 ms. The local client adds a 2,000 ms response allowance for those
+calls; the existing 10,000 ms local MCP limit is unchanged. No new capability,
+credential or host modification is needed. Recipe qualification of this option
+is still pending.
 
 ## Intended flow (not yet implemented)
 

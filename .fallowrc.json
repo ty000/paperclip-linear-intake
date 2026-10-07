@@ -4,7 +4,8 @@
     "src/worker.ts",
     "scripts/qualification/host-loader-preflight.mjs",
     "scripts/qualification/native-catalog-readback.mjs",
-    "scripts/qualification/summarize-native-source.mjs"
+    "scripts/qualification/summarize-native-source.mjs",
+    "scripts/qualification/summarize-native-family.mjs"
   ],
   "ignorePatterns": ["artifacts/**"]
 }

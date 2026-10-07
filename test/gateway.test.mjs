@@ -49,7 +49,7 @@ async function fixture(options = {}) {
 
 test('manifest passes the published native validator; intake cannot be activated', async () => {
   assert.equal(pluginManifestV1Schema.safeParse(manifest).success, true);
-  assert.deepEqual(parseConfig({}), { enabled: false, gatewayDiscoveryEnabled: false, gatewayTransport: 'host_http' });
+  assert.deepEqual(parseConfig({}), { enabled: false, gatewayDiscoveryEnabled: false, gatewayTransport: 'host_http', gatewayToolCallMode: 'mcp' });
   assert.equal((await plugin.definition.onValidateConfig({ enabled: true })).ok, false);
   assert.equal(manifest.webhooks, undefined);
   assert.equal(manifest.jobs, undefined);

@@ -11,6 +11,8 @@ export const configSchema = z.strictObject({
   enabled: z.literal(false).default(false),
   gatewayDiscoveryEnabled: z.boolean().default(false),
   gatewayTransport: z.enum(["host_http", "local_loopback"]).default("host_http"),
+  gatewayToolCallMode: z.enum(["mcp", "native_rest"]).default("mcp"),
+  nativeToolTimeoutMs: z.number().int().min(1000).max(30_000).optional(),
   sourceProbe: z.strictObject({
     teamId: z.uuid(),
     projectId: z.uuid(),
@@ -109,12 +111,18 @@ function validateReaderEnrollment(config: Config) {
   if (new Set(ids).size !== ids.length) throw new Error("invalid_configuration");
 }
 
+function validateToolCallMode(config: Config) {
+  if (config.gatewayToolCallMode === "native_rest") return;
+  if (config.nativeToolTimeoutMs !== undefined) throw new Error("invalid_configuration");
+}
+
 export function parseConfig(raw: unknown) {
   const result = configSchema.safeParse(raw);
   // Never forward validation errors: they can quote untrusted config values.
   if (!result.success) throw new Error("invalid_configuration");
   const config = result.data;
   validateGatewayTransport(config);
+  validateToolCallMode(config);
   validateProbeEnrollment(config);
   validateReaderEnrollment(config);
   validateGatewayDiscovery(config);

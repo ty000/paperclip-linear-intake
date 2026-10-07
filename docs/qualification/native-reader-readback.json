@@ -1,0 +1,30 @@
+{
+  "schema": "linear-intake-native-catalog-readback.v1",
+  "observedAt": "2026-10-07T19:20:16.689Z",
+  "pluginVersion": "0.1.3",
+  "pluginStatus": "ready",
+  "intakeEnabled": false,
+  "sourceProbeConfigured": false,
+  "manifestHasSourceProbe": true,
+  "sourceReaderConfigured": false,
+  "manifestHasSourceReader": true,
+  "dedicatedReadProfileVerified": true,
+  "readToolCount": 8,
+  "totalCatalogCount": 12,
+  "catalogSha256": "618ba65cb6ea7402703c5b19ad1b04c5adbce0c41bbcbc509eaad882d9f4fc8f",
+  "sourceCoverage": "unqualified",
+  "installedWorkerSha256": "9d255e5f4d659dae7abc793b262183e2ad57acd4a0ec79927c8369f95dc65bca",
+  "installedManifestSha256": "c41d378a387cdd37feb99d8b8ab355a7e064cabf5cf6348d41b91929f2d373dd",
+  "installedRuntimeSha256": {
+    "dist/config.js": "ce00bd91bf67a7ecf5e0e1df2dc560eeda1c67887129dc5dc9dd3bd8f2413e4c",
+    "dist/gateway-transport.js": "84e60841f6affd40aa5d3c9e3990b8b595e01113dab7f38578879452892d5f16",
+    "dist/gateway.js": "01d5d1081b417afbc6cc7c0858ef8e7b92d62ab553177ad52b919360f96864c7",
+    "dist/manifest.js": "c41d378a387cdd37feb99d8b8ab355a7e064cabf5cf6348d41b91929f2d373dd",
+    "dist/source-client.js": "ddb577dbbf71a5179c5e23272c105b54cc357a9e256e0076340b13bc5da09180",
+    "dist/source-family.js": "20800841c89f268d59d8711c41fdf1bbea921f17de5ffa072113073ac8208718",
+    "dist/source-graph.js": "16fc444a62f24c8636f81bac7a6b83b54056684eef149a01816baef1ae6e84bf",
+    "dist/source-payload.js": "6fb802cce3682c86c6a11c3da4ac32f6fe3065e5a24a63307277466acedfb127",
+    "dist/source-probe.js": "9590fc4349e4be3780fd2322757f1a3622ff6056e5c60d2fa1be712e29cae761",
+    "dist/worker.js": "9d255e5f4d659dae7abc793b262183e2ad57acd4a0ec79927c8369f95dc65bca"
+  }
+}
