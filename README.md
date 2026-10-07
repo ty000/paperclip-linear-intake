@@ -51,6 +51,10 @@ the Paperclip runtime and manual qualification entry points and excludes local
 use estimated coverage unless an actual coverage report is supplied. They are
 static evidence, separate from the synthetic tests and native qualification.
 
+The subsequent static-audit refactoring has source/build and synthetic-test
+coverage only. It has not been installed in recipe; the native receipts still
+identify the pre-refactoring candidate `448f21840d73010a4b3097046edcef01415e7c88`.
+
 Default configuration is `{ "enabled": false, "gatewayDiscoveryEnabled": false }`.
 This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
 action can inspect a configured named gateway catalog using a native secret

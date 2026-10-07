@@ -27,17 +27,19 @@ async function fixture(options = {}) {
   const harness = createTestHarness({ manifest, config: options.config ?? config });
   const requests = [], refs = [];
   harness.ctx.secrets.resolve = async (ref, scope) => { refs.push({ ref, scope }); return token; };
+  const responses = new Map([
+    ['initialize', () => ({ protocolVersion: '2025-03-26', capabilities: { tools: {} } })],
+    ['tools/list', () => ({ tools: options.tools ?? tools })],
+    ['tools/call', () => options.result ?? {
+      isError: false, content: [{ type: 'text', text: '{"synthetic":true}' }], structuredContent: null,
+    }],
+  ]);
   harness.ctx.http.fetch = async (_url, init) => {
     const request = JSON.parse(init.body); requests.push(request);
     if (request.method === 'notifications/initialized') return new Response(null, { status: 202 });
-    let result;
-    if (request.method === 'initialize') result = { protocolVersion: '2025-03-26', capabilities: { tools: {} } };
-    else if (request.method === 'tools/list') result = { tools: options.tools ?? tools };
-    else if (request.method === 'tools/call') result = options.result ?? {
-      isError: false, content: [{ type: 'text', text: '{"synthetic":true}' }], structuredContent: null,
-    };
-    else assert.fail('unexpected method');
-    return Response.json({ jsonrpc: '2.0', id: request.id, result });
+    const respond = responses.get(request.method);
+    assert.ok(respond, 'unexpected method');
+    return Response.json({ jsonrpc: '2.0', id: request.id, result: respond() });
   };
   await plugin.definition.setup(harness.ctx);
   return { harness, requests, refs, run: params => harness.performAction('probe-source', params ?? {}, { companyId, actor: { type: 'user', userId: 'synthetic-operator' } }) };
@@ -48,6 +50,33 @@ test('probe absent by default makes no secret, network or effect calls', async (
   assert.deepEqual(f.requests, []); assert.deepEqual(f.refs, []);
   assert.deepEqual(f.harness.dbExecutes, []); assert.deepEqual(f.harness.activity, []);
 });
+
+for (const current of [{}, { ...config, sourceProbe: undefined }]) {
+  test('disabling discovery or removing enrollment between config reads prevents source calls', async () => {
+    const f = await fixture();
+    let reads = 0;
+    f.harness.ctx.config.get = async () => ++reads === 1 ? config : current;
+    assert.deepEqual(await f.run(), { status: 'blocked', reason: 'source_probe_failed', intakeEnabled: false });
+    assert.equal(reads, 2);
+    assert.equal(f.requests.some(r => r.method === 'tools/call'), false);
+  });
+}
+
+for (const scopedCompany of [null, '10000000-0000-4000-8000-000000000099']) {
+  test('operator company must be present and match the immutable actor company', async () => {
+    const harness = createTestHarness({ manifest, config });
+    const handlers = new Map();
+    harness.ctx.actions.register = (key, handler) => handlers.set(key, handler);
+    let reads = 0;
+    harness.ctx.config.get = async () => { reads++; return config; };
+    await plugin.definition.setup(harness.ctx);
+    const out = await handlers.get('probe-source')({}, {
+      companyId: scopedCompany, actor: { type: 'user', userId: 'synthetic-operator', companyId },
+    });
+    assert.deepEqual(out, { status: 'blocked', reason: 'source_probe_operator_required', intakeEnabled: false });
+    assert.equal(reads, 0);
+  });
+}
 test('probe fixes read arguments from config and ignores caller widening', async () => {
   const f = await fixture();
   const out = await f.run({ projectId: 'different', teamId: 'different', tool: 'write', limit: 250, issueId: 'outside' });

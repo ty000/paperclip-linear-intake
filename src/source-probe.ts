@@ -9,27 +9,41 @@ const roles = {
 } as const;
 const fields = ["id", "uuid", "description", "parentId", "teamId", "projectId", "status",
   "statusType", "createdAt", "updatedAt", "completedAt", "canceledAt", "archivedAt"];
+type ProbeScope = NonNullable<ReturnType<typeof parseConfig>["sourceProbe"]>;
+type GatewaySession = NonNullable<Awaited<ReturnType<typeof openGateway>>>;
+type ProbeCall = { role: keyof typeof roles; arguments: Record<string, unknown> };
 
-// A bounded observation, never a family snapshot or an eligibility verdict.
-// No caller-supplied queries, pagination, tool names or issue IDs are accepted.
-export async function probeSource(ctx: PluginContext, companyId: string) {
-  if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
-  const initial = parseConfig(await ctx.config.get(companyId));
-  if (!initial.sourceProbe) return { status: "disabled" as const, intakeEnabled: false };
-  const session = await openGateway(ctx, companyId);
+function requireProbeSession(session: Awaited<ReturnType<typeof openGateway>>) {
   const scope = session?.config.sourceProbe;
   if (!session || !scope) throw new Error("source_probe_disabled");
+  return { session, scope };
+}
+
+async function openProbeSession(ctx: PluginContext, companyId: string) {
+  if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
+  const initial = parseConfig(await ctx.config.get(companyId));
+  if (!initial.sourceProbe) return undefined;
+  return requireProbeSession(await openGateway(ctx, companyId));
+}
+
+function validateToolPin(session: GatewaySession, role: keyof typeof roles, pin: ProbeScope["tools"][keyof typeof roles]) {
+  const tool = session.tools.find(t => t.name === pin.name);
+  if (!tool || !pin.name.endsWith(`:${roles[role]}`)
+      || createHash("sha256").update(JSON.stringify(tool.inputSchema)).digest("hex") !== pin.inputSchemaSha256) {
+    throw new Error("source_probe_catalog_changed");
+  }
+}
+
+function validateProbeCatalog(session: GatewaySession, scope: ProbeScope) {
   // Bind the actual catalog inputs, including its connection-qualified names.
   // A provider/catalog change requires explicit review of new pins.
   for (const role of Object.keys(roles) as (keyof typeof roles)[]) {
-    const pin = scope.tools[role];
-    const tool = session.tools.find(t => t.name === pin.name);
-    if (!tool || !pin.name.endsWith(`:${roles[role]}`)
-        || createHash("sha256").update(JSON.stringify(tool.inputSchema)).digest("hex") !== pin.inputSchemaSha256) {
-      throw new Error("source_probe_catalog_changed");
-    }
+    validateToolPin(session, role, scope.tools[role]);
   }
-  const calls: { role: keyof typeof roles; arguments: Record<string, unknown> }[] = [
+}
+
+function probeCalls(scope: ProbeScope): ProbeCall[] {
+  return [
     { role: "getProject", arguments: { query: scope.projectId } },
     { role: "getTeam", arguments: { query: scope.teamId } },
     { role: "listStatuses", arguments: { team: scope.teamId } },
@@ -41,18 +55,33 @@ export async function probeSource(ctx: PluginContext, companyId: string) {
       id, fields: [...fields, "relations", "stateHistory"],
     } })),
   ];
-  const observations: { role: keyof typeof roles; result: unknown }[] = [];
-  for (const call of calls) {
-    const result = await session.rpc("tools/call", { name: scope.tools[call.role].name, arguments: call.arguments });
-    const envelope = z.object({ isError: z.boolean().optional(), content: z.array(z.unknown()).optional(),
-      structuredContent: z.unknown().optional() }).passthrough().safeParse(result);
-    if (!envelope.success || envelope.data.isError === true
-        || (!Array.isArray(envelope.data.content) && envelope.data.structuredContent === undefined)) {
-      throw new Error("source_probe_call_failed");
-    }
-    // These are raw provider observations for the authorized operator. They are
-    // deliberately not normalized into a claimed complete source contract.
-    observations.push({ role: call.role, result });
+}
+
+function hasToolContent(data: { content?: unknown[] | undefined; structuredContent?: unknown }) {
+  return Array.isArray(data.content) || data.structuredContent !== undefined;
+}
+
+async function observeSourceCall(session: GatewaySession, scope: ProbeScope, call: ProbeCall) {
+  const result = await session.rpc("tools/call", { name: scope.tools[call.role].name, arguments: call.arguments });
+  const envelope = z.object({ isError: z.boolean().optional(), content: z.array(z.unknown()).optional(),
+    structuredContent: z.unknown().optional() }).passthrough().safeParse(result);
+  if (!envelope.success || envelope.data.isError === true || !hasToolContent(envelope.data)) {
+    throw new Error("source_probe_call_failed");
+  }
+  // Raw operator observations, not a claimed complete source contract.
+  return { role: call.role, result };
+}
+
+// A bounded observation, never a family snapshot or an eligibility verdict.
+// No caller-supplied queries, pagination, tool names or issue IDs are accepted.
+export async function probeSource(ctx: PluginContext, companyId: string) {
+  const probe = await openProbeSession(ctx, companyId);
+  if (!probe) return { status: "disabled" as const, intakeEnabled: false };
+  const { session, scope } = probe;
+  validateProbeCatalog(session, scope);
+  const observations = [];
+  for (const call of probeCalls(scope)) {
+    observations.push(await observeSourceCall(session, scope, call));
   }
   return {
     status: "source_probe_observed" as const, sourceCoverage: "unqualified" as const,

@@ -141,7 +141,7 @@ recipe plus an unexpired dedicated gateway client.
 | L1-D | PASS for native catalog and bounded managed Linear reads, without a model/agent run or operator token inside the plugin |
 | L1-E | Native company/plugin-bound secret resolution PASS during installed discovery; value never returned or logged by the plugin |
 | L1-F | PASS for documented transport/catalog limitations; no demonstrated provider gap and no GraphQL fallback |
-| L1-G | Local typecheck/build and 84 tests PASS; final CI must pass on the published PR candidate, whose build artifact records its SHA and runtime digests |
+| L1-G | Local typecheck/build and 102 tests PASS after static-audit corrections; final CI must pass on the published PR candidate, whose build artifact records its SHA and runtime digests |
 
 The first contextual probe review found missing operator authorization on the
 native action bridge, which also permits company agents. The guard was corrected
@@ -151,9 +151,22 @@ catalog-only action. The real SDK bridge test also rejects actor spoofing before
 any config or secret request.
 
 Replay local checks with `npm ci --ignore-scripts --no-audit --no-fund`,
-`npm run check`, `npm pack --dry-run --json`. The [static gate](native-static-audit.json) reports Fallow unavailable:
-controlled skip, not a passed static audit. Native evidence must be replayed
-separately against the authorized recipe and its finite-lived client.
+`npm run check`, `npm pack --dry-run --json`. The original
+[static gate](native-static-audit.json) recorded Fallow unavailable at the time:
+controlled skip, not a passed static audit. A subsequent pinned Fallow 3.23.0
+CI job exposed eight introduced complexity findings in PR 2. Targeted extraction
+of config validation, catalog pagination, probe validation, operator guards and
+qualification-script validation removed those findings without changing audit
+thresholds or exclusions. Local validation now passes 102 tests, including
+catalog limits, enrollment revocation, actor/company binding and summary
+redaction. Two contextual reviews found no actionable regression; a synthetic
+before/after comparison covered 204 configurations and 13 gateway/probe paths.
+
+These corrections have not been installed in recipe. The receipts above remain
+historical evidence for candidate `448f21840d73010a4b3097046edcef01415e7c88`;
+native evidence must be replayed separately against the authorized recipe and
+its finite-lived client. Current CI audit/build artifacts identify the exact
+source candidate, base, lockfile and runtime digests.
 
 Next: implement and test complete family reads from these observed contracts (pagination, long descriptions,
 internal/external typed blockers, child-only selection, historical outcomes,

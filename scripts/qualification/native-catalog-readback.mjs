@@ -5,6 +5,17 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
+
+function validateProfileEntry(entry, connectionId) {
+  if (entry.selectorType !== 'catalog_entry' || entry.effect !== 'include' || entry.connectionId !== connectionId) {
+    throw new Error();
+  }
+}
+
+function validateReadOnlyTool(tool) {
+  if (!tool.isReadOnly || tool.isWrite || tool.isDestructive) throw new Error();
+}
+
 try {
   if (process.argv.length !== 4) throw new Error();
   const receipt = JSON.parse(readFileSync(process.argv[3]));
@@ -36,9 +47,10 @@ try {
       || gateway?.profileId !== profile.id || gateway.defaultProfileMode !== 'gateway_only') throw new Error();
   const allowed = ['get_issue', 'list_issues', 'get_project', 'get_team', 'get_issue_status', 'list_issue_statuses', 'list_teams'];
   const names = profile.entries.map(entry => {
+    validateProfileEntry(entry, receipt.connectionId);
     const tool = catalog.find(t => t.id === entry.catalogEntryId);
-    if (entry.selectorType !== 'catalog_entry' || entry.effect !== 'include' || entry.connectionId !== receipt.connectionId
-        || !tool?.isReadOnly || tool.isWrite || tool.isDestructive || tool.status !== 'active') throw new Error();
+    if (!tool || tool.status !== 'active') throw new Error();
+    validateReadOnlyTool(tool);
     return tool.toolName;
   });
   if (new Set(names).size !== 7 || names.some(n => !allowed.includes(n))) throw new Error();

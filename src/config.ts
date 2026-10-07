@@ -38,36 +38,63 @@ export function parseLocalGatewayUrl(raw: string | undefined) {
   return { port: Number(match[1]), path: match[2]! };
 }
 
+type Config = z.infer<typeof configSchema>;
+
+function isLocalHostname(hostname: string) {
+  return hostname.includes(":") || hostname.endsWith(".localhost") || hostname.endsWith(".local");
+}
+
+function validateGatewayHostname(hostname: string) {
+  if (isIP(hostname) || !hostname.includes(".") || isLocalHostname(hostname)) {
+    throw new Error("invalid_gateway_url");
+  }
+}
+
+function validateHostGatewayUrl(raw: string) {
+  let url: URL;
+  try { url = new URL(raw); }
+  catch { throw new Error("invalid_gateway_url"); }
+  // None of these optional URL components belongs in a gateway address.
+  if ([url.username, url.password, url.search, url.hash].some(Boolean)) throw new Error("invalid_gateway_url");
+  validateGatewayHostname(url.hostname);
+  validateGatewayEndpoint(url);
+}
+
+function validateGatewayEndpoint(url: URL) {
+  if (url.protocol !== "https:" || !/^\/mcp\/gateways\/[a-zA-Z0-9_-]+$/.test(url.pathname)) {
+    throw new Error("invalid_gateway_url");
+  }
+}
+
+function validateGatewayTransport(config: Config) {
+  if (config.gatewayTransport === "local_loopback") {
+    // Match the raw spelling before WHATWG URL normalization.
+    parseLocalGatewayUrl(config.gatewayUrl);
+    return;
+  }
+  if (config.localGatewayTimeoutMs !== undefined) throw new Error("invalid_configuration");
+  if (config.gatewayUrl !== undefined) validateHostGatewayUrl(config.gatewayUrl);
+}
+
+function validateProbeEnrollment(config: Config) {
+  if (!config.sourceProbe) return;
+  if (!config.gatewayDiscoveryEnabled) throw new Error("gateway_configuration_missing");
+  const ids = config.sourceProbe.sampleIssueIds;
+  if (new Set(ids).size !== ids.length) throw new Error("invalid_configuration");
+}
+
+function validateGatewayDiscovery(config: Config) {
+  if (!config.gatewayDiscoveryEnabled) return;
+  if (!config.gatewayUrl || !config.gatewayTokenRef) throw new Error("gateway_configuration_missing");
+}
+
 export function parseConfig(raw: unknown) {
   const result = configSchema.safeParse(raw);
   // Never forward validation errors: they can quote untrusted config values.
   if (!result.success) throw new Error("invalid_configuration");
   const config = result.data;
-  if (config.gatewayTransport === "local_loopback") {
-    // Match the raw spelling, before WHATWG URL normalization. No aliases,
-    // DNS, credentials, query, fragments, traversal or alternative endpoints.
-    parseLocalGatewayUrl(config.gatewayUrl);
-  } else if (config.localGatewayTimeoutMs !== undefined) {
-    throw new Error("invalid_configuration");
-  }
-  if (config.gatewayTransport === "host_http" && config.gatewayUrl !== undefined) {
-    let url: URL;
-    try { url = new URL(config.gatewayUrl); }
-    catch { throw new Error("invalid_gateway_url"); }
-    if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash
-        || isIP(url.hostname) || url.hostname.includes(":")
-        || !url.hostname.includes(".") || url.hostname.endsWith(".localhost")
-        || url.hostname.endsWith(".local")
-        || !/^\/mcp\/gateways\/[a-zA-Z0-9_-]+$/.test(url.pathname)) {
-      throw new Error("invalid_gateway_url");
-    }
-  }
-  if (config.sourceProbe && !config.gatewayDiscoveryEnabled) throw new Error("gateway_configuration_missing");
-  if (config.sourceProbe && new Set(config.sourceProbe.sampleIssueIds).size !== config.sourceProbe.sampleIssueIds.length) {
-    throw new Error("invalid_configuration");
-  }
-  if (config.gatewayDiscoveryEnabled && (!config.gatewayUrl || !config.gatewayTokenRef)) {
-    throw new Error("gateway_configuration_missing");
-  }
+  validateGatewayTransport(config);
+  validateProbeEnrollment(config);
+  validateGatewayDiscovery(config);
   return config;
 }
