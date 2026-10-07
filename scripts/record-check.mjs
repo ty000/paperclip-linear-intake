@@ -11,7 +11,8 @@ const result = {
   sdk: JSON.parse(readFileSync('node_modules/@paperclipai/plugin-sdk/package.json')).version,
   lockSha256: createHash('sha256').update(readFileSync('package-lock.json')).digest('hex'),
   commands: ['npm ci --ignore-scripts --no-audit --no-fund', 'npm run check', 'npm pack --dry-run --json'],
-  layer: 'published-sdk-build-harness-and-synthetic-rpc-transport',
+  layer: 'published-sdk-build-harness-rpc-and-synthetic-loopback-http',
+  gatewayTransports: ['host_http', 'local_loopback'],
   nativeGatewayQualified: false,
   linearSourceCoverageQualified: false,
 };

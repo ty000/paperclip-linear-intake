@@ -16,4 +16,8 @@ test('config JSON Schema compiles with the host Ajv dialect and accepts omitted 
   assert.equal(validate({ enabled: true }), false);
   assert.equal(validate({ gatewayTokenRef: { type: 'plain', value: 'synthetic' } }), false);
   assert.equal(validate({ gatewayTokenRef: { type: 'secret_ref', secretId: 'invalid' } }), false);
+  assert.equal(validate({ gatewayTransport: 'local_loopback', localGatewayTimeoutMs: 100 }), true);
+  assert.equal(validate({ gatewayTransport: 'automatic' }), false);
+  assert.equal(validate({ localGatewayTimeoutMs: 0 }), false);
+  assert.equal(validate({ localGatewayTimeoutMs: 10001 }), false);
 });

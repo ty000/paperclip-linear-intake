@@ -6,9 +6,12 @@ prepared work to a governed implementation workflow such as Council.
 
 **Current state:** Lot 1 partial: executable package/manifest/worker, disabled
 intake and explicit gateway catalog inspection, checked against published SDK
-`2026.1005.0`. Native Linear access and the complete source reader remain blocked.
-No installation, webhook, credentials, real-ticket processing or Council admission
-has been performed. Lots 2 and 3 have not started. See the
+`2026.1005.0`. An opt-in loopback transport now supports local recipe development
+without a public HTTPS endpoint. Native Linear access and the complete source
+reader remain unqualified.
+The package has not been installed or activated in recipe. Checks use synthetic
+credentials and gateways; real-ticket processing and Council admission are
+unqualified. Lots 2 and 3 have not started. See the
 [criterion-by-criterion qualification](docs/qualification/LOT1.md).
 
 ## Local verification
@@ -30,6 +33,14 @@ This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
 action can inspect a configured named gateway catalog using a native secret
 reference; it cannot call Linear tools, import issues or wake agents. Startup,
 health and config validation perform no HTTP or secret reads.
+
+`gatewayTransport` defaults to `host_http`, using the native `ctx.http` HTTPS
+path. Explicit `local_loopback` mode uses a direct Node HTTP connection to the
+exact configured `http://127.0.0.1:<port>/mcp/gateways/<id>` endpoint. It preserves
+the managed Linear connection and native secret resolution. No redirects,
+proxy environment variables, remote hosts or automatic transport fallback are
+allowed. See [local transport setup and qualification](docs/qualification/LOCAL-TRANSPORT.md)
+for configuration, limits and the remaining native qualification steps.
 
 ## Intended flow (not yet implemented)
 

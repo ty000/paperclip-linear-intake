@@ -31,6 +31,16 @@ and a profile limited to the required Linear reads. Do not extract or duplicate
 the connector's OAuth tokens. Verify transport access and gateway policy during
 the first lot; `ctx.http` rejects private-IP targets in the consulted host.
 
+The SDK also explicitly supports direct Node HTTP clients. Following the
+operator's local-recipe decision, an opt-in `local_loopback` transport connects
+only to the exact configured IPv4 loopback gateway using `node:http`. Config
+and secret resolution still use the SDK; the named gateway still owns client
+authentication, profiles and the managed Linear OAuth connection. This changes
+only the plugin's HTTP transport. It does not relax the host's network policy.
+The default `host_http` path remains available for a reachable HTTPS gateway on
+the future VPS. Local calls have bounded bodies/deadlines and redacted plugin
+logs, but do not receive `ctx.http` tracing. See [transport qualification](qualification/LOCAL-TRANSPORT.md).
+
 If the managed tool catalog lacks a required source read, document that exact
 gap before adding a bounded GraphQL reader using an explicitly configured
 secret reference. Do not replace a supported connector without evidence.
@@ -64,12 +74,14 @@ an alternative execution scheduler.
   and recipe installation of 0.7.13; that report does not qualify this importer
   or its receiving contract. Issues 50 and 51 are still open.
 
-These observations identify source contracts only. No usable Linear connection, named gateway credential, public URL, plugin
-installation, or launch authority has been verified for this importer. The
-operator selected recipe as the first target; a read-only health check confirms
-`council-local` is running in authenticated/private mode. Its configured loopback
-URL cannot be reached via the consulted host's `ctx.http` private-address policy.
-The implementation does not bypass that policy or introduce GraphQL as a workaround.
+These observations identify source contracts only. Operator OAuth setup has
+since produced an active, healthy recipe connection and 68 catalog entries;
+those host metadata observations do not qualify source reads by this plugin.
+A dedicated gateway/client credential, plugin installation and source-reader
+coverage remain unqualified. The recipe loopback URL cannot be reached through
+`ctx.http`; the opt-in direct transport has been tested with synthetic gateways
+on real local sockets, not with the operational gateway or Linear. No GraphQL
+fallback or host/SDK modification is introduced.
 
 ## Official references
 

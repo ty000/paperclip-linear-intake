@@ -6,6 +6,12 @@ operational installation or activation. See [Lot 1 evidence](qualification/LOT1.
 Lots 2 and 3 must not start until all L1-A through L1-G criteria are satisfied.
 The acceptance checks below remain authoritative and unchanged.
 
+Local transport continuation: the operator approved an opt-in direct loopback
+client while VPS deployment is deferred. Its scope is plugin-only code, tests
+and documentation; see [local transport qualification](qualification/LOCAL-TRANSPORT.md).
+It removes the public-HTTPS prerequisite for local testing, not the native
+gateway, secret-binding or complete source-read qualification requirements.
+
 ## Lot 1 — Qualify native source access
 
 Establish the plugin's package/worker skeleton against the identified Paperclip

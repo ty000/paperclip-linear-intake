@@ -1,5 +1,11 @@
 # Lot 1 qualification — 7 October 2026
 
+**Continuation:** [Local transport qualification](LOCAL-TRANSPORT.md) records the
+subsequent opt-in loopback implementation and its tests. It supersedes this
+report's HTTPS-only next-step requirement and initial test count. The original
+candidate/CI receipts below remain historical evidence. Lot 1 is still partial;
+native gateway credentials and complete Linear reads remain unqualified.
+
 **Verdict: PARTIAL / BLOCKED. Lots 2 and 3 NOT STARTED.** The executable
 skeleton is reviewable; complete Linear source retrieval is not implemented or
 qualified. Target confirmed by the operator: recipe first, with council-local
@@ -169,11 +175,12 @@ blocking prerequisites. No Lot 1 verdict changed.
 
 ## Next bounded step
 
-Establish an authorized recipe gateway reachable through the existing native
-network policy, with a dedicated client profile and native secret reference,
-plus exact Linear read scope. Provisioning/exposure/install is a separate lot:
-none was performed here. Do not work around the private-address restriction.
-Then inspect the actual tools/list schemas through the SDK path, verify output
+Establish an authorized recipe gateway using either the default host HTTP
+transport or the explicitly configured [local transport](LOCAL-TRANSPORT.md),
+with a dedicated read-only client profile and native secret reference,
+plus exact Linear read scope. Provisioning/install remains a separate step;
+the local transport does not require public exposure. Then inspect the actual
+tools/list schemas through the plugin, verify output
 coverage with scoped source reads, and implement/qualify the corresponding
 reader. Add GraphQL only if those schemas demonstrate a precise missing read.
 Re-run all L1 checks on that candidate before considering Lot 2. Lot 4 and the

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { z, type PluginContext } from "@paperclipai/plugin-sdk";
 import { parseConfig } from "./config.js";
+import { postGateway } from "./gateway-transport.js";
 
 const toolSchema = z.object({
   name: z.string().min(1).max(256),
@@ -11,17 +12,15 @@ const catalogSchema = z.object({
   tools: z.array(toolSchema).max(1000),
   nextCursor: z.string().min(1).max(4096).optional(),
 });
-const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
-
-// Only native SDK surfaces. This is catalog discovery, not a Linear adapter.
+// Native config/secrets and named gateway. Explicit loopback transport is opt-in.
+// This is catalog discovery, not a Linear adapter.
 // No tools/call implementation exists until actual Linear schemas are verified.
 export async function inspectGateway(ctx: PluginContext, companyId: string) {
   if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
-  let config;
+  let config: ReturnType<typeof parseConfig>;
   try { config = parseConfig(await ctx.config.get(companyId)); }
   catch { throw new Error("configuration_unavailable_or_invalid"); }
   if (!config.gatewayDiscoveryEnabled) return { status: "disabled" as const, intakeEnabled: false };
-  const gatewayUrl = config.gatewayUrl!;
   const secretRef = config.gatewayTokenRef!;
   let token: string;
   try {
@@ -35,29 +34,13 @@ export async function inspectGateway(ctx: PluginContext, companyId: string) {
   let sequence = 0;
   async function rpc(method: string, params: Record<string, unknown>, notification = false) {
     const id = ++sequence;
-    let response: Response;
-    try {
-      response = await ctx.http.fetch(gatewayUrl, {
-        method: "POST",
-        redirect: "error",
-        headers: {
-          authorization: `Bearer ${token}`,
-          "content-type": "application/json",
-          accept: "application/json",
-          "MCP-Protocol-Version": "2025-03-26",
-        },
-        body: JSON.stringify({ jsonrpc: "2.0", ...(notification ? {} : { id }), method, params }),
-      });
-    } catch { throw new Error("gateway_transport_failed"); }
-    if (!response.ok) throw new Error("gateway_http_rejected");
+    const response = await postGateway(ctx, config, token,
+      JSON.stringify({ jsonrpc: "2.0", ...(notification ? {} : { id }), method, params }));
     if (notification) return undefined;
-    if (!response.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
+    if (!response.contentType?.toLowerCase().startsWith("application/json")) {
       throw new Error("gateway_transport_unsupported");
     }
-    let raw: string;
-    try { raw = await response.text(); }
-    catch { throw new Error("gateway_response_unreadable"); }
-    if (Buffer.byteLength(raw) > MAX_RESPONSE_BYTES) throw new Error("gateway_response_too_large");
+    const raw = response.body;
     // A provider echoing the credential must not leak it through catalog output.
     let envelope;
     try { envelope = JSON.parse(raw); }

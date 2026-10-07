@@ -1,5 +1,11 @@
 # Recipe access continuation — 7 October 2026
 
+**Historical snapshot before operator OAuth completion.** The operator has
+since authorized the recipe connection; subsequent read-only metadata showed
+it active/healthy with 68 catalog entries. The [local transport continuation](LOCAL-TRANSPORT.md)
+supersedes the HTTPS-only next-step requirement below. The receipt is preserved
+as evidence of the earlier state; it is not the current connection verdict.
+
 **Result: blocked on connection authorization and supported gateway reachability.**
 This continuation replaces assumptions about the recipe with a scoped,
 read-only observation. It does not advance Lot 1 acceptance or start Lot 2.
@@ -61,10 +67,12 @@ is an operator qualification aid; the plugin never accesses the host database.
 | Prepare the dedicated gateway client | Paperclip native profile, gateway/token and secret binding facilities | Exact company, restrictive read tools/resource scope, finite token expiry, dedicated `gateway_client`, plugin-scoped secret reference |
 | Verify through this plugin | Explicit `inspect-gateway` action after separately bounded recipe setup | SDK/native gateway catalog followed by source adapter qualification; no automatic activation |
 
-The OAuth consent and the HTTP reachability decisions are independent. The
+At this earlier boundary, the OAuth consent and HTTP reachability decisions were independent. The
 absence of a reachable gateway does not justify extracting a connector token,
 using global fetch to bypass `ctx.http`, changing core policy, publishing a
 proxy, or adding GraphQL without a demonstrated connector coverage gap.
+The later operator-approved direct transport uses a documented SDK option with
+an explicit, strictly local destination; no silent fallback was added.
 
 ## Inspected native contracts
 

@@ -4,28 +4,44 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 import manifest from '../dist/manifest.js';
+import { syntheticGateway } from './helpers/synthetic-gateway.mjs';
 
-test('published SDK serializes scoped config, secret and HTTP calls across its actual worker bridge', { timeout: 10000 }, async t => {
+for (const transport of ['host_http', 'local_loopback']) {
+test(`published SDK worker uses scoped native secrets and ${transport} transport`, { timeout: 10000 }, async t => {
   const companyId = '10000000-0000-4000-8000-000000000001';
   const token = 'synthetic-bridge-only-credential';
+  const local = transport === 'local_loopback' ? await syntheticGateway(t) : undefined;
+  // If local transport obeyed proxy env vars, this sentinel would receive
+  // the bearer credential. A real subprocess also tests Node startup flags.
+  const proxy = transport === 'local_loopback' ? await syntheticGateway(t) : undefined;
   const config = {
     gatewayDiscoveryEnabled: true,
-    gatewayUrl: 'https://gateway.example.test/mcp/gateways/fixture',
+    gatewayTransport: transport,
+    gatewayUrl: local?.url ?? 'https://gateway.example.test/mcp/gateways/fixture',
     gatewayTokenRef: { type: 'secret_ref', secretId: '20000000-0000-4000-8000-000000000002', version: 1 },
   };
-  const child = spawn(process.execPath, ['dist/worker.js'], { stdio: ['pipe', 'pipe', 'pipe'] });
+  const proxyOrigin = proxy ? new URL(proxy.url).origin : undefined;
+  const proxyEnv = proxyOrigin ? {
+    NODE_USE_ENV_PROXY: '1', HTTP_PROXY: proxyOrigin, HTTPS_PROXY: proxyOrigin,
+    http_proxy: proxyOrigin, https_proxy: proxyOrigin, NO_PROXY: '', no_proxy: '',
+  } : {};
+  const child = spawn(process.execPath, ['dist/worker.js'], {
+    stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, ...proxyEnv },
+  });
   t.after(() => { if (child.exitCode === null) child.kill(); });
   const lines = createInterface({ input: child.stdout });
   const pending = new Map();
   const calls = [];
   const outbound = [];
   const unexpected = [];
+  const logs = [];
   let stderr = '';
   child.stderr.on('data', data => { stderr += data; });
   const send = msg => child.stdin.write(JSON.stringify(msg) + '\n');
   lines.on('line', line => {
     const msg = JSON.parse(line);
     if (!msg.method) return pending.get(msg.id)?.(msg);
+    if (msg.method === 'log') { logs.push(msg.params); return; }
     calls.push(msg.method);
     // Host services below are synthetic; SDK transport/worker code are real.
     let result;
@@ -68,11 +84,25 @@ test('published SDK serializes scoped config, secret and HTTP calls across its a
   assert.equal(out.result.status, 'catalog_observed');
   assert.equal(out.result.sourceCoverage, 'unqualified');
   assert.equal(JSON.stringify(out).includes(token), false);
-  assert.deepEqual(calls, ['config.get', 'secrets.resolve', 'http.fetch', 'http.fetch', 'http.fetch']);
-  assert.deepEqual(outbound, ['initialize', 'notifications/initialized', 'tools/list']);
+  if (local) {
+    assert.deepEqual(calls, ['config.get', 'secrets.resolve']);
+    assert.deepEqual(outbound, []);
+    assert.deepEqual(proxy.requests, []);
+    assert.deepEqual(local.requests.map(req => req.rpc.method), ['initialize', 'notifications/initialized', 'tools/list']);
+    assert.ok(local.requests.every(req => req.headers.authorization === `Bearer ${token}`));
+    assert.equal(logs.length, 3);
+    assert.ok(logs.every(log => log.meta.transport === 'local_loopback' && log.meta.outcome === 'ok'));
+    assert.equal(JSON.stringify(logs).includes(token), false);
+    assert.equal(JSON.stringify(logs).includes(local.url), false);
+  } else {
+    assert.deepEqual(calls, ['config.get', 'secrets.resolve', 'http.fetch', 'http.fetch', 'http.fetch']);
+    assert.deepEqual(outbound, ['initialize', 'notifications/initialized', 'tools/list']);
+    assert.deepEqual(logs, []);
+  }
   assert.deepEqual(unexpected, []);
   const exited = once(child, 'exit');
   await rpc('shutdown');
   assert.equal((await exited)[0], 0);
   assert.equal(stderr, '');
 });
+}
