@@ -30,6 +30,27 @@ npm pack --dry-run --json
 RPC tests with synthetic host services. Dependencies come from the public npm
 registry and the committed lockfile; no adjacent checkout is needed.
 
+The independent **Fallow** CI job uses the locked `fallow@3.23.0` and its native
+exit status to gate introduced findings, including complexity. It compares a
+pull request with its base SHA and a push with its preceding SHA. New branches
+and manual runs use the merge-base with the default branch (or the preceding
+commit when already at that base). Missing comparison history fails the check.
+The `fallow-audit` artifact preserves the native JSON report, candidate/base
+SHAs, tool version and input hashes even when the audit fails. Only that audit
+directory is uploaded; local qualification evidence stays outside the upload.
+
+To reproduce after `npm run build`:
+
+```bash
+npm run audit:static -- --base origin/main
+```
+
+The audit disables telemetry and incremental caching. `.fallowrc.json` declares
+the Paperclip runtime and manual qualification entry points and excludes local
+`artifacts/` copies; it does not relax analysis thresholds. Complexity reports
+use estimated coverage unless an actual coverage report is supplied. They are
+static evidence, separate from the synthetic tests and native qualification.
+
 Default configuration is `{ "enabled": false, "gatewayDiscoveryEnabled": false }`.
 This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
 action can inspect a configured named gateway catalog using a native secret
