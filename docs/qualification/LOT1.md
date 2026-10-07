@@ -159,6 +159,14 @@ internal/external typed blockers; child-only subtree; completed/canceled history
 incomplete family/access failure/non-conclusive issue pagination. Only analogous
 **catalog** transport failures and default/secret config boundaries were tested.
 
+## Continuation: recipe metadata inspected
+
+The [recipe access continuation](RECIPE-ACCESS.md) identifies the actual
+draft/disabled Linear connection and records a replayable read-only metadata
+receipt. The operator selected Content Assistant; project/team/Todo identifiers
+were resolved via Codex only. Native OAuth and gateway reachability remain
+blocking prerequisites. No Lot 1 verdict changed.
+
 ## Next bounded step
 
 Establish an authorized recipe gateway reachable through the existing native
