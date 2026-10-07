@@ -30,10 +30,23 @@ available for tests. No runtime mutation was performed.
 | L1-D | PARTIAL / BLOCKED natively | SDK harness and subprocess bridge perform config/secret/HTTP calls without models, operator tokens or issue APIs. Dedicated gateway credential and a reachable gateway remain unqualified. |
 | L1-E | PARTIAL / BLOCKED natively | Actual SDK serializes `ctx.secrets.resolve(secret_ref, {companyId, configPath})`. Fixtures verify scope, missing/refused references, and no returned/logged credential. Native secret-provider binding and delivery have not been exercised. |
 | L1-F | PASS — limitations recorded | JSON gateway protocol, private-address restriction, missing catalog and proof limits documented. No connector coverage gap is established; no GraphQL fallback added. |
-| L1-G | Local PASS; published result in Actions | Node 24.20.0, npm 11.19.0, TypeScript 7.0.2; typecheck, build and 43 tests pass. Lockfile-only install and package contents checked. CI runs the same checks from a clean checkout and records its exact candidate. See the PR's Package checks result before treating CI as passed. |
+| L1-G | PASS — local and published CI | Node 24.20.0, npm 11.19.0, TypeScript 7.0.2; typecheck, build and 43 tests pass. Lockfile-only install and package contents checked. CI runs the same checks from a clean checkout and records its exact candidate. The published implementation candidate passed both push and PR workflows; exact identities and artifact readback follow below. |
 
 The overall boundary remains blocked even if CI is green. No L1 pass is promoted
 to native gateway/real-connection evidence. No Lot 2/3 acceptance was weakened.
+
+## Published candidate and CI readback
+
+Implementation candidate: `58ae4c5a2bdfd11d6fb6bd8ee0074c53b98e2430`,
+[draft PR 1](https://github.com/ty000/paperclip-linear-intake/pull/1).
+Both **Bootstrap checks** and **Package checks** passed on this SHA in the
+[push workflow](https://github.com/ty000/paperclip-linear-intake/actions/runs/37635169786)
+and [PR workflow](https://github.com/ty000/paperclip-linear-intake/actions/runs/37635259839).
+The downloaded [build evidence](lot1-build-evidence-58ae4c5.json) confirms the
+candidate, SDK, Node/npm versions and lock digest. The subsequent evidence-only
+commit does not change implementation; its own exact-head CI must also pass
+before final handoff. Latest candidate identity remains available in its Actions
+artifact without a self-referential commit hash in this report.
 
 ## SDK distribution and executed evidence
 
