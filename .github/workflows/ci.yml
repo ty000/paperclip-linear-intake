@@ -144,7 +144,8 @@ jobs:
       - name: Verify pinned Fallow
         run: |
           node_modules/.bin/fallow --version > artifacts/fallow-ci/version.txt
-          test "$(cat artifacts/fallow-ci/version.txt)" = 'fallow 3.23.0'
+          # The launcher appends a binary-attestation line; keep it as evidence.
+          test "$(head -n 1 artifacts/fallow-ci/version.txt)" = 'fallow 3.23.0'
       - name: Build runtime imports before analysis
         run: npm run build
       - name: Audit introduced findings
