@@ -74,14 +74,13 @@ an alternative execution scheduler.
   and recipe installation of 0.7.13; that report does not qualify this importer
   or its receiving contract. Issues 50 and 51 are still open.
 
-These observations identify source contracts only. Operator OAuth setup has
-since produced an active, healthy recipe connection and 68 catalog entries;
-those host metadata observations do not qualify source reads by this plugin.
-A dedicated gateway/client credential, plugin installation and source-reader
-coverage remain unqualified. The recipe loopback URL cannot be reached through
-`ctx.http`; the opt-in direct transport has been tested with synthetic gateways
-on real local sockets, not with the operational gateway or Linear. No GraphQL
-fallback or host/SDK modification is introduced.
+The source baselines above remain read-only references. Native recipe discovery
+now succeeds from the installed disabled plugin through a dedicated seven-tool
+read profile, gateway client and company-bound encrypted secret. See
+[native qualification](qualification/NATIVE-ACCESS.md). The source probe observes
+provider outputs under the configured project; it does not create an admissible
+source snapshot. Complete retrieval and authority checks remain outstanding.
+No GraphQL fallback or host/SDK modification is introduced.
 
 ## Official references
 

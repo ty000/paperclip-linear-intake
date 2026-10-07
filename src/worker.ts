@@ -1,10 +1,31 @@
-import { definePlugin, runWorker } from "@paperclipai/plugin-sdk";
+import { definePlugin, runWorker, type PluginPerformActionContext } from "@paperclipai/plugin-sdk";
 import { parseConfig } from "./config.js";
+import { probeSource } from "./source-probe.js";
 import { inspectGateway } from "./gateway.js";
+
+function isAuthenticatedOperator(context: PluginPerformActionContext | undefined) {
+  return context?.actor.type === "user" && Boolean(context.actor.userId);
+}
+
+function hasMatchingCompany(context: PluginPerformActionContext): context is PluginPerformActionContext & { companyId: string } {
+  return Boolean(context.companyId) && context.actor.companyId === context.companyId;
+}
 
 const plugin = definePlugin({
   async setup(ctx) {
     // Explicit invocation only. Setup and health perform no network/secret reads.
+    ctx.actions.register("probe-source", async (_params, actionContext) => {
+      // The bridge permits company agents too. Only an authenticated operator
+      // may inspect raw source observations; params cannot supply this actor.
+      if (!isAuthenticatedOperator(actionContext) || !hasMatchingCompany(actionContext)) {
+        return { status: "blocked", reason: "source_probe_operator_required", intakeEnabled: false };
+      }
+      try {
+        return await probeSource(ctx, actionContext.companyId);
+      } catch {
+        return { status: "blocked", reason: "source_probe_failed", intakeEnabled: false };
+      }
+    });
     ctx.actions.register("inspect-gateway", async (params) => {
       try {
         return await inspectGateway(ctx, typeof params.companyId === "string" ? params.companyId : "");

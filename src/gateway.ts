@@ -12,27 +12,72 @@ const catalogSchema = z.object({
   tools: z.array(toolSchema).max(1000),
   nextCursor: z.string().min(1).max(4096).optional(),
 });
-// Native config/secrets and named gateway. Explicit loopback transport is opt-in.
-// This is catalog discovery, not a Linear adapter.
-// No tools/call implementation exists until actual Linear schemas are verified.
-export async function inspectGateway(ctx: PluginContext, companyId: string) {
-  if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
-  let config: ReturnType<typeof parseConfig>;
-  try { config = parseConfig(await ctx.config.get(companyId)); }
+type GatewayConfig = ReturnType<typeof parseConfig>;
+type GatewayTool = z.infer<typeof toolSchema>;
+type GatewayRpc = (method: "initialize" | "notifications/initialized" | "tools/list" | "tools/call",
+  params: Record<string, unknown>, notification?: boolean) => Promise<unknown>;
+
+async function readGatewayConfig(ctx: PluginContext, companyId: string) {
+  try { return parseConfig(await ctx.config.get(companyId)); }
   catch { throw new Error("configuration_unavailable_or_invalid"); }
-  if (!config.gatewayDiscoveryEnabled) return { status: "disabled" as const, intakeEnabled: false };
-  const secretRef = config.gatewayTokenRef!;
-  let token: string;
+}
+
+async function resolveGatewaySecret(ctx: PluginContext, companyId: string, secretRef: NonNullable<GatewayConfig["gatewayTokenRef"]>) {
   try {
-    token = await ctx.secrets.resolve({
+    return await ctx.secrets.resolve({
       type: secretRef.type, secretId: secretRef.secretId,
       ...(secretRef.version === undefined ? {} : { version: secretRef.version }),
     }, { companyId, configPath: "gatewayTokenRef" });
   } catch { throw new Error("gateway_secret_unavailable"); }
+}
+
+function validateGatewaySecret(token: string) {
   if (!token || /[\r\n]/.test(token)) throw new Error("gateway_secret_unavailable");
+}
+
+async function readCatalogPage(rpc: GatewayRpc, cursor: string | undefined) {
+  const result = catalogSchema.safeParse(await rpc("tools/list", cursor ? { cursor } : {}));
+  if (!result.success) throw new Error("gateway_catalog_incomplete");
+  return result.data;
+}
+
+function appendCatalogTools(tools: GatewayTool[], page: GatewayTool[], seenNames: Set<string>) {
+  for (const tool of page) {
+    if (seenNames.has(tool.name)) throw new Error("gateway_catalog_duplicate_tool");
+    seenNames.add(tool.name);
+    tools.push(tool);
+    if (tools.length > 1000) throw new Error("gateway_catalog_bound_exceeded");
+  }
+}
+
+async function readCatalog(rpc: GatewayRpc) {
+  const tools: GatewayTool[] = [];
+  const seenNames = new Set<string>();
+  const cursors = new Set<string>();
+  let cursor: string | undefined;
+  for (let page = 0; page < 10; page++) {
+    const result = await readCatalogPage(rpc, cursor);
+    appendCatalogTools(tools, result.tools, seenNames);
+    cursor = result.nextCursor;
+    if (!cursor) return tools;
+    if (cursors.has(cursor)) throw new Error("gateway_catalog_cursor_repeated");
+    cursors.add(cursor);
+  }
+  throw new Error("gateway_catalog_page_bound_exceeded");
+}
+
+// Native config/secrets and named gateway. Explicit loopback transport is opt-in.
+// Catalog discovery and bounded qualification share native authentication.
+// The only caller of tools/call is the explicitly configured read probe.
+export async function openGateway(ctx: PluginContext, companyId: string) {
+  if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
+  const config = await readGatewayConfig(ctx, companyId);
+  if (!config.gatewayDiscoveryEnabled) return undefined;
+  const token = await resolveGatewaySecret(ctx, companyId, config.gatewayTokenRef!);
+  validateGatewaySecret(token);
 
   let sequence = 0;
-  async function rpc(method: string, params: Record<string, unknown>, notification = false) {
+  async function rpc(method: "initialize" | "notifications/initialized" | "tools/list" | "tools/call", params: Record<string, unknown>, notification = false) {
     const id = ++sequence;
     const response = await postGateway(ctx, config, token,
       JSON.stringify({ jsonrpc: "2.0", ...(notification ? {} : { id }), method, params }));
@@ -54,7 +99,7 @@ export async function inspectGateway(ctx: PluginContext, companyId: string) {
 
   const initialized = await rpc("initialize", {
     protocolVersion: "2025-03-26", capabilities: {},
-    clientInfo: { name: "paperclip-linear-intake", version: "0.1.0" },
+    clientInfo: { name: "paperclip-linear-intake", version: "0.1.2" },
   });
   const init = z.object({
     protocolVersion: z.literal("2025-03-26"),
@@ -62,32 +107,19 @@ export async function inspectGateway(ctx: PluginContext, companyId: string) {
   }).safeParse(initialized);
   if (!init.success) throw new Error("gateway_protocol_unsupported");
   await rpc("notifications/initialized", {}, true);
-  const tools: z.infer<typeof toolSchema>[] = [];
-  const seenNames = new Set<string>();
-  const cursors = new Set<string>();
-  let cursor: string | undefined;
-  for (let page = 0; page < 10; page++) {
-    const result = catalogSchema.safeParse(await rpc("tools/list", cursor ? { cursor } : {}));
-    if (!result.success) throw new Error("gateway_catalog_incomplete");
-    for (const tool of result.data.tools) {
-      if (seenNames.has(tool.name)) throw new Error("gateway_catalog_duplicate_tool");
-      seenNames.add(tool.name);
-      tools.push(tool);
-      if (tools.length > 1000) throw new Error("gateway_catalog_bound_exceeded");
-    }
-    cursor = result.data.nextCursor;
-    if (!cursor) {
-      return {
-        status: "catalog_observed" as const,
-        intakeEnabled: false,
-        sourceCoverage: "unqualified" as const,
-        protocolVersion: init.data.protocolVersion,
-        catalogSha256: createHash("sha256").update(JSON.stringify(tools)).digest("hex"),
-        tools,
-      };
-    }
-    if (cursors.has(cursor)) throw new Error("gateway_catalog_cursor_repeated");
-    cursors.add(cursor);
-  }
-  throw new Error("gateway_catalog_page_bound_exceeded");
+  const tools = await readCatalog(rpc);
+  return {
+    rpc, config, protocolVersion: init.data.protocolVersion,
+    catalogSha256: createHash("sha256").update(JSON.stringify(tools)).digest("hex"), tools,
+  };
+}
+
+export async function inspectGateway(ctx: PluginContext, companyId: string) {
+  const session = await openGateway(ctx, companyId);
+  if (!session) return { status: "disabled" as const, intakeEnabled: false };
+  return {
+    status: "catalog_observed" as const, intakeEnabled: false,
+    sourceCoverage: "unqualified" as const, protocolVersion: session.protocolVersion,
+    catalogSha256: session.catalogSha256, tools: session.tools,
+  };
 }

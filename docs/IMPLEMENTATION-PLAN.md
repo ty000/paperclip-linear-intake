@@ -1,8 +1,9 @@
 # Implementation sequence
 
-Status: Lot 1 partially implemented; native source qualification blocked. The
-package, manifest, worker, SDK tests and build CI are present. There is no
-operational installation or activation. See [Lot 1 evidence](qualification/LOT1.md).
+Status: Lot 1 partially implemented. Native recipe catalog access and secret
+binding are now observed; complete source-family retrieval remains unqualified.
+The disabled package is installed for recipe qualification. See the
+[current native evidence](qualification/NATIVE-ACCESS.md).
 Lots 2 and 3 must not start until all L1-A through L1-G criteria are satisfied.
 The acceptance checks below remain authoritative and unchanged.
 

@@ -142,6 +142,35 @@ test('catalog pagination preserves full schemas and does not claim Linear covera
   assert.equal(f.requests.at(-1).params.cursor, 'page-2');
 });
 
+test('catalog accepts exactly 1000 distinct tools across pages', async () => {
+  const first = Array.from({ length: 999 }, (_, i) => ({ ...tool, name: `fixture_${i}` }));
+  const f = await fixture({ catalog: req => response(req, req.params.cursor
+    ? { tools: [{ ...tool, name: 'fixture_last' }] }
+    : { tools: first, nextCursor: 'last' }) });
+  const out = await f.run();
+  assert.equal(out.status, 'catalog_observed');
+  assert.equal(out.tools.length, 1000);
+});
+
+test('catalog rejects the 1001st tool without publishing a partial catalog', async () => {
+  const first = Array.from({ length: 1000 }, (_, i) => ({ ...tool, name: `fixture_${i}` }));
+  const f = await fixture({ catalog: req => response(req, req.params.cursor
+    ? { tools: [{ ...tool, name: 'fixture_overflow' }] }
+    : { tools: first, nextCursor: 'overflow' }) });
+  assert.deepEqual(await f.run(), { status: 'blocked', reason: 'gateway_catalog_bound_exceeded', intakeEnabled: false });
+  assert.deepEqual(f.harness.logs, []);
+});
+
+test('catalog accepts a terminal tenth page', async () => {
+  let pages = 0;
+  const f = await fixture({ catalog: req => {
+    pages++;
+    return response(req, { tools: [], ...(pages === 10 ? {} : { nextCursor: `page-${pages}` }) });
+  } });
+  assert.equal((await f.run()).status, 'catalog_observed');
+  assert.equal(pages, 10);
+});
+
 const failures = [
   ['HTTP access denied', () => new Response(token, { status: 403 }), 'gateway_http_rejected'],
   ['redirect', () => new Response(null, { status: 302, headers: { location: 'https://other.example.test' } }), 'gateway_http_rejected'],

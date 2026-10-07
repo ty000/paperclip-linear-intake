@@ -1,6 +1,6 @@
 {
   "name": "@ty000/paperclip-linear-intake",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "description": "Disabled-by-default Linear Todo intake qualification skeleton for Paperclip",
   "type": "module",
@@ -19,9 +19,10 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/build-manifest.mjs",
     "test": "npm run build && node --test test/*.test.mjs",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "audit:static": "FALLOW_TELEMETRY_DISABLED=1 DO_NOT_TRACK=1 fallow audit --format json --quiet --no-cache --no-type-aware --gate new-only"
   },
   "dependencies": {
     "@paperclipai/plugin-sdk": "2026.1005.0"
@@ -31,6 +32,7 @@
     "@types/node": "24.19.1",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
+    "fallow": "3.23.0",
     "typescript": "7.0.2"
   }
 }

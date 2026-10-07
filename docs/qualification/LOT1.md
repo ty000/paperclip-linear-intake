@@ -1,5 +1,10 @@
 # Lot 1 qualification — 7 October 2026
 
+**Historical report.** The later [native qualification](NATIVE-ACCESS.md)
+supersedes native gateway/installation blockers below. Complete source-family
+coverage remains unqualified; the original receipts remain unchanged.
+
+
 **Continuation:** [Local transport qualification](LOCAL-TRANSPORT.md) records the
 subsequent opt-in loopback implementation and its tests. It supersedes this
 report's HTTPS-only next-step requirement and initial test count. The original

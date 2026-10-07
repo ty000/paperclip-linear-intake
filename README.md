@@ -4,15 +4,17 @@ A separate Paperclip plugin that will turn an authorized Linear transition to
 **Todo** into a durable import of the ticket and its sub-issues, then hand the
 prepared work to a governed implementation workflow such as Council.
 
-**Current state:** Lot 1 partial: executable package/manifest/worker, disabled
-intake and explicit gateway catalog inspection, checked against published SDK
-`2026.1005.0`. An opt-in loopback transport now supports local recipe development
-without a public HTTPS endpoint. Native Linear access and the complete source
-reader remain unqualified.
-The package has not been installed or activated in recipe. Checks use synthetic
-credentials and gateways; real-ticket processing and Council admission are
-unqualified. Lots 2 and 3 have not started. See the
-[criterion-by-criterion qualification](docs/qualification/LOT1.md).
+**Current state:** Lot 1 partial: disabled executable plugin, native gateway
+catalog access qualified in local recipe against SDK `2026.1005.0`, and a bounded
+operator-only source probe. The complete source-family reader remains unfinished.
+Version `0.1.2` is installed in recipe with intake disabled. Its worker resolved
+a company-bound native secret, retrieved the dedicated seven-read-tool Linear
+catalog and read two explicitly scoped Content Assistant samples. The source
+probe was disabled after qualification. Source probes are not complete family
+reads. The manifest is packaged as standalone data for reliable native upgrades.
+No webhook, import or Council admission is active. Lots 2 and 3 have not started.
+See the [current native qualification](docs/qualification/NATIVE-ACCESS.md) and
+[original criterion report](docs/qualification/LOT1.md).
 
 ## Local verification
 
@@ -28,10 +30,37 @@ npm pack --dry-run --json
 RPC tests with synthetic host services. Dependencies come from the public npm
 registry and the committed lockfile; no adjacent checkout is needed.
 
+The independent **Fallow** CI job uses the locked `fallow@3.23.0` and its native
+exit status to gate introduced findings, including complexity. It compares a
+pull request with its base SHA and a push with its preceding SHA. New branches
+and manual runs use the merge-base with the default branch (or the preceding
+commit when already at that base). Missing comparison history fails the check.
+The `fallow-audit` artifact preserves the native JSON report, candidate/base
+SHAs, tool version and input hashes even when the audit fails. Only that audit
+directory is uploaded; local qualification evidence stays outside the upload.
+
+To reproduce after `npm run build`:
+
+```bash
+npm run audit:static -- --base origin/main
+```
+
+The audit disables telemetry and incremental caching. `.fallowrc.json` declares
+the Paperclip runtime and manual qualification entry points and excludes local
+`artifacts/` copies; it does not relax analysis thresholds. Complexity reports
+use estimated coverage unless an actual coverage report is supplied. They are
+static evidence, separate from the synthetic tests and native qualification.
+
+The subsequent static-audit refactoring has source/build and synthetic-test
+coverage only. It has not been installed in recipe; the native receipts still
+identify the pre-refactoring candidate `448f21840d73010a4b3097046edcef01415e7c88`.
+
 Default configuration is `{ "enabled": false, "gatewayDiscoveryEnabled": false }`.
 This version rejects `enabled: true`. An explicitly enabled `inspect-gateway`
 action can inspect a configured named gateway catalog using a native secret
-reference; it cannot call Linear tools, import issues or wake agents. Startup,
+reference. The separate `probe-source` action can make only its configured,
+bounded Linear reads for an authenticated operator; neither action imports
+issues or wakes agents. Startup,
 health and config validation perform no HTTP or secret reads.
 
 `gatewayTransport` defaults to `host_http`, using the native `ctx.http` HTTPS

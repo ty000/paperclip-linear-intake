@@ -80,3 +80,82 @@ jobs:
           name: lot1-build-evidence
           path: artifacts/build-evidence.json
           if-no-files-found: error
+
+  fallow:
+    name: Fallow
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      FALLOW_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - name: Check out exact candidate with audit history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Resolve comparison base
+        id: base
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        shell: bash
+        run: |
+          case "$EVENT_NAME" in
+            pull_request)
+              audit_base="$PR_BASE_SHA"
+              [[ "$audit_base" =~ ^[0-9a-f]{40}$ && "$audit_base" != 0000000000000000000000000000000000000000 ]]
+              ;;
+            push)
+              audit_base="$PUSH_BEFORE_SHA"
+              ;;
+            workflow_dispatch)
+              audit_base=""
+              ;;
+            *)
+              echo 'Unsupported audit event' >&2
+              exit 1
+              ;;
+          esac
+          if [[ -z "$audit_base" || "$audit_base" == 0000000000000000000000000000000000000000 ]]; then
+            audit_base=$(git merge-base HEAD "refs/remotes/origin/$DEFAULT_BRANCH")
+            if [[ "$audit_base" == "$(git rev-parse HEAD)" ]]; then
+              audit_base=$(git rev-parse HEAD^)
+            fi
+          fi
+          [[ "$audit_base" =~ ^[0-9a-f]{40}$ ]]
+          git cat-file -e "$audit_base^{commit}"
+          echo "sha=$audit_base" >> "$GITHUB_OUTPUT"
+          mkdir -p artifacts/fallow-ci
+          git rev-parse HEAD > artifacts/fallow-ci/head.txt
+          echo "$audit_base" > artifacts/fallow-ci/base.txt
+          sha256sum package-lock.json .fallowrc.json > artifacts/fallow-ci/inputs.sha256
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          cache: npm
+      - name: Pin npm
+        run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - name: Install from lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify pinned Fallow
+        run: |
+          node_modules/.bin/fallow --version > artifacts/fallow-ci/version.txt
+          # The launcher appends a binary-attestation line; keep it as evidence.
+          test "$(head -n 1 artifacts/fallow-ci/version.txt)" = 'fallow 3.23.0'
+      - name: Build runtime imports before analysis
+        run: npm run build
+      - name: Audit introduced findings
+        env:
+          AUDIT_BASE: ${{ steps.base.outputs.sha }}
+        run: npm run audit:static -- --base "$AUDIT_BASE" --output-file artifacts/fallow-ci/audit.json
+      - name: Save static audit evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fallow-audit
+          path: artifacts/fallow-ci/
+          if-no-files-found: error
