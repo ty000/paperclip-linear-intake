@@ -1,7 +1,7 @@
 # Architecture and ownership
 
 Updated 7 October 2026. Lot 1 source reads are qualified natively; Lot 2 durable
-retention is qualified in isolation. Lot 3 native import is being qualified in
+retention is qualified in isolation. Lot 3 native import is qualified in isolation in
 version `0.3.0`. Recipe remains disabled on `0.1.4`; Council admission is separate.
 See the [implementation ledger](IMPLEMENTATION-PLAN.md) and
 [versioned readiness contract](NATIVE-READINESS-V1.md).

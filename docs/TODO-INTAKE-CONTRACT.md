@@ -2,7 +2,7 @@
 
 Status: Lot 1 source access is qualified natively. Lot 2 request retention and
 source retrieval are implemented and qualified in isolation in `0.2.0`.
-Lot 3 native preparation is implemented and undergoing isolated qualification
+Lot 3 native preparation is implemented and qualified in isolation
 in `0.3.0`; Council admission remains separate. See
 [readiness v1](NATIVE-READINESS-V1.md), [source qualification](qualification/SOURCE-READER.md)
 and [retention semantics](qualification/TODO-RETENTION.md).

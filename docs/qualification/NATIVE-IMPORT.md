@@ -2,9 +2,11 @@
 
 Version `0.3.0`, branch `codex/lot3-native-family-import`, base
 `57481d46bc64e2282335c38730f3245a681387d1` (merged Lot 2).
-Local checks pass: 425 package/worker tests and 169 PostgreSQL tests,
-typecheck, build and package inspection. The final candidate and CI will be
-recorded in the adjacent qualification receipt after publication. Operational recipe stays disabled on
+**L3-A through L3-E PASS** on code candidate
+`0365009646a5ad79f41eb98111c63e5ff554fcb6`: 425 package/worker tests,
+169 PostgreSQL tests, typecheck, build, package inspection, independent review
+and four CI checks pass. The [qualification receipt](native-import-qualification.json)
+records native and build digests and the [successful CI](https://github.com/ty000/paperclip-linear-intake/actions/runs/37689862718). Operational recipe stays disabled on
 `0.1.4`. No real webhook, Linear import, agent or Council admission is activated.
 
 ## Acceptance ledger
@@ -37,6 +39,11 @@ migrations/services and the published SDK's capability/invocation-scope bridge.
 The consulted host has unrelated work in its lockfile, an untracked Council
 plugin and review documents; the imported host service/database/shared/SDK sources are unchanged.
 The fixture records source/build/migration/bridge hashes around each run.
+Final read-only replays use the candidate source and its 28 compiled modules,
+which match CI byte for byte along with both migrations. Earlier effect
+executions retain separate code hashes; the final replay does not pretend to
+repeat those mutations. The isolated PostgreSQL cluster was stopped after
+qualification and its private evidence preserved.
 
 This native layer uses an explicitly identified, disposable local PostgreSQL
 database, synthetic source families and no event subscribers. It starts no

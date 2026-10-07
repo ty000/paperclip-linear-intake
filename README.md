@@ -17,8 +17,10 @@ managed connection verified healthy. No webhook, import or Council admission
 is active. **Lot 2 is complete** in source version `0.2.0`: 383 package/worker
 tests, 79 isolated PostgreSQL tests, independent review, Fallow and four CI checks
 pass. It adds request retention and a scheduled source reader, and is not
-installed in recipe. Lot 3 native family preparation is being qualified in
-source version `0.3.0`, using an isolated database and synthetic source data.
+installed in recipe. **Lot 3 is complete** in source version `0.3.0`: 594 tests, independent review,
+the Fallow gate and four CI checks pass. Native families and uncertainty
+recovery are qualified with real core services and an isolated database.
+See the [import criterion ledger](docs/qualification/NATIVE-IMPORT.md).
 Council admission remains unavailable. Historical receipts remain unchanged.
 
 Lot 2 uses a signed raw-body webhook, an append-only delivery journal and stable
@@ -124,7 +126,7 @@ execution order, review, and acceptance.
 
 The webhook, durable request and source-reading job are implemented in `0.2.0`.
 The `0.3.0` importer prepares blocked, unassigned native families with immutable
-source and readiness documents; its isolated qualification is in progress.
+source and readiness documents; its isolated qualification is complete.
 A `source_observed` result is stored source evidence, and even `prepared` does not
 grant Council admission. See the [versioned readiness contract](docs/NATIVE-READINESS-V1.md).
 
