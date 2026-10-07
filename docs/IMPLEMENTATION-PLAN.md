@@ -19,10 +19,18 @@ independent review, Fallow gate and four CI checks pass. Real core services
 prepared native families, and readback/restart preserved original identities.
 See the [Lot 3 ledger](qualification/NATIVE-IMPORT.md) and
 [readiness v1 / separate Council work](NATIVE-READINESS-V1.md). No `0.3.0`
-installation or operational activation occurred. Lot 4 is now authorized and
-in progress in isolated intake and Council worktrees. See the
-[current-source handoff contract](COUNCIL-HANDOFF-V1.md); acceptance checks below
-remain unchanged. No Lot 4 qualification or operational activation is claimed yet.
+installation or operational activation occurred.
+
+**Lot 4 complete within isolated qualification (L4-A through L4-E PASS).**
+Intake `0.4.0` (`00c3141`) and Council `0.7.18` (`1b5269c`, base `751a82b`)
+demonstrate webhook → retained request → native import → current-source handoff
+→ Council N1 on unchanged host `61b3fd57`. Linear HTTP and CLI model content/usage
+are deterministic fixtures. The proof includes duplicate webhook delivery and
+restart of the Council worker only, and stops before N2. See the
+[Lot 4 ledger](qualification/COUNCIL-RECEIVER.md),
+[public receipt](qualification/council-receiver-qualification.json) and
+[handoff contract](COUNCIL-HANDOFF-V1.md). Operational installation, real webhook
+enrollment and real-ticket/provider activation remain separate and unperformed.
 
 Local transport continuation: the operator approved an opt-in direct loopback
 client while VPS deployment is deferred. Its scope is plugin-only code, tests
@@ -78,10 +86,11 @@ Acceptance:
 
 ## Lot 4 — Qualify the receiving Council adapter
 
-Use an isolated Council lot for the allowlisted imported origin and versioned
-readiness contract, after the hierarchy candidate has its own qualification.
-Resolve contributor/write-scope preparation through authorized project rules or
-the governed lead path.
+The qualified receiver accepts the allowlisted imported origin and versioned
+readiness contract under an enabled project mandate. Explicit revisioned project
+rules supply contributor assignments and write paths; this lot does not infer
+them through a lead. Terminal history is preserved. At least one executable
+descendant and no external source blocker reference are required for admission.
 
 Acceptance:
 
@@ -94,11 +103,11 @@ Acceptance:
 
 ## Integration proof and activation
 
-The first integration qualification uses an isolated native Paperclip instance
-with deterministic Linear/model transports. It must demonstrate Todo event →
-complete import → observed Council admission, including duplicate delivery and
-restart. Record exact source/package/host versions and distinguish simulated
-provider behavior from native host effects.
+The first integration qualification demonstrated Todo event → complete import →
+observed Council admission in an isolated native Paperclip instance with
+deterministic Linear/model transports, including duplicate delivery and Council
+worker restart. The Lot 4 ledger records exact source/package/host identities
+and distinguishes simulated provider behavior from native host effects.
 
 Installation in the operational instance, creation of the real Linear webhook,
 credential enrollment and real-ticket/provider activation are separate concrete

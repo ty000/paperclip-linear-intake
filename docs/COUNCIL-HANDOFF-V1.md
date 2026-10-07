@@ -1,8 +1,14 @@
 # Council current-source handoff v1
 
-Lot 4 implementation is in progress; receiving qualification and operational
-activation are not yet claimed. The coordinated Council work starts from
-`ty000/paperclip-council@751a82bce5436e7c54cda05e9db9fc92db072534`.
+Lot 4 is qualified in an isolated native instance using intake `0.4.0`
+(`00c314181043a76ffbadad1721494f49893079ea`) and Council `0.7.18`
+(`1b5269ce8ca10a680f27a737b6a075b385477b30`), based on Council
+`751a82bce5436e7c54cda05e9db9fc92db072534`. Host code remains unchanged at
+`61b3fd57a695614dc4a37e2303f426a34a9795cf`. See the
+[criterion ledger and replay limits](qualification/COUNCIL-RECEIVER.md) and
+[public receipt](qualification/council-receiver-qualification.json).
+Operational installation, real webhook/credential enrollment and real-ticket or
+model-provider activation remain separate and were not performed by this lot.
 
 The immutable `linear-native-readiness.v1` remains preparation evidence.
 Its `admissionAllowed:false` is unchanged. Council requires an explicitly enabled
@@ -53,7 +59,11 @@ Council authenticates the response envelope, matches its persisted nonce,
 revalidates the enabled owner/mandate and consumes a fresh positive result once.
 This happens before preparation and again before initial N1 admission. An expired
 challenge may be renewed under the same admission identity; no uncertain import
-or preparation effect is retried under a replacement key. Initial admission is
+or preparation effect is retried under a replacement key. The shared N1 boundary
+checks the consumed durable admission receipt and exact journaled activation
+payload, including direct Board calls, before reservation and before activation
+CAS. If freshness expires during reservation, that original reservation is
+retained; renewal cannot replace its command or effect identity. Initial admission is
 the remote-source boundary: later Linear changes do not silently cancel an
 already admitted mission. Council continues to enforce its pinned native source,
 mandate and budget rules.
@@ -75,3 +85,20 @@ Council tables, consume a budget, prepare contributor assignments or wake agents
 Council separately journals its native preparation delta (Backlog plus assignment
 in one write, immutable ownedPaths documents) while preserving imported source
 history and readiness unchanged.
+
+## Receiving scope and qualification
+
+The project mandate explicitly maps executable source UUIDs to contributors and
+repository paths. This receiver requires at least one executable descendant and
+refuses external source blocker references; it does not invent subtasks, infer
+ownership or widen the selected subtree. Done/cancelled descendants remain
+history and cannot become new contributions or closure targets.
+
+L4-A through L4-E passed in the installed native scenario. Four imported issues
+retained their full source descriptions, hierarchy and blockers. Three successful
+runs executed the coordinator and two leaves in dependency order; the cancelled
+historical child and original product root had no run. Duplicate delivery and a
+Council-worker restart retained one request, one intake and one mission. The
+campaign stopped at settled N1 `ready_for_review`, before N2. Linear HTTP and CLI
+model content/usage were deterministic fixtures; whole-host/intake-worker restart,
+real-provider behavior and operational deployment are not claimed.

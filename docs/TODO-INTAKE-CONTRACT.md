@@ -3,7 +3,8 @@
 Status: Lot 1 source access is qualified natively. Lot 2 request retention and
 source retrieval are implemented and qualified in isolation in `0.2.0`.
 Lot 3 native preparation is implemented and qualified in isolation
-in `0.3.0`; Council admission remains separate. See
+in `0.3.0`. Lot 4's intake `0.4.0`/Council `0.7.18` handoff is qualified in
+isolation; Council owns admission. See the [Lot 4 ledger](qualification/COUNCIL-RECEIVER.md),
 [readiness v1](NATIVE-READINESS-V1.md), [source qualification](qualification/SOURCE-READER.md)
 and [retention semantics](qualification/TODO-RETENTION.md).
 Scope: one ticket entering an explicitly configured Todo state and its selected subtree.
@@ -75,22 +76,32 @@ children, dependency mapping, project/mandate identity, and readiness revision.
 Council revalidates the configured source and current mandate before admission.
 Its existing budget and run identity remain authoritative.
 
-Three receiving gaps must be resolved separately:
+Council `0.7.18` accepts the exact origin `plugin:ty000.linear-intake` under
+company/project/source bindings and an enabled revisioned project mandate.
+Imported provenance is preserved; no manual-origin relabeling or operator
+impersonation is used.
 
-1. Council's current intake requires `originKind === "manual"`. Imported plugin
-   origins need explicit, allowlisted acceptance rather than falsified manual
-   provenance or operator impersonation.
-2. The in-progress hierarchy path requires an assigned contributor and a
-   `council-work` document with explicit `ownedPaths` for every executable leaf.
-   The import cannot invent those scopes. Obtain them from authorized project
-   rules or a governed preparation step by the lead before contributor launch.
+Explicit project rules map executable source UUIDs to contributors and
+`ownedPaths`. Council persists each preparation intent before atomically changing
+assignment and status to Backlog, creates immutable `council-work` documents and
+reads effects back. An uncertain absent effect is not dispatched again. Intake
+invents neither assignees nor paths. Done/cancelled descendants remain unassigned
+history, excluded from execution and newly completed work. This receiver requires
+at least one executable descendant and refuses external source blocker references.
 
-3. Terminal descendants need historical treatment; the current hierarchy
-   adoption path rejects done/cancelled descendants instead of preserving them.
+The authenticated native-bus challenge binds readiness, activation, fingerprint,
+request version, source/plan digests and Council mandate/admission identity.
+Intake revalidates its ledger and complete current source. Council consumes a
+fresh positive observation before preparation and again before initial N1
+admission. The shared N1 boundary also requires that durable admission proof for
+direct Board calls, before reservation and activation CAS. Expiry retains any
+existing reservation under its original command and identity. See the
+[current-source handoff contract](COUNCIL-HANDOFF-V1.md).
 
 The integration must not report “implementation started” until native Council
-admission and its actual run binding are observed. Until a compatible receiving
-contract is qualified, imports remain prepared or blocked.
+admission and its actual run binding are observed. Prepared import evidence alone
+never grants admission. Later remote Linear changes do not automatically cancel
+an admitted mission; Council retains native-source, mandate and budget gates.
 
 ## Recovery and operator visibility
 
@@ -103,9 +114,12 @@ admission-blocked, admitted, withdrawn and outcome-unknown, with source links an
 the next required action. Lot 2 implements `received`, `fetching`, `source_observed`, `withdrawn`
 and `blocked`. Lot 3 separately journals `preparing`, `prepared`, `blocked` and
 `outcome_unknown` plans and intended/dispatched/observed/uncertain effects.
-Admission states remain unimplemented. A withdrawn request can retain a
+Council separately owns its challenge, preparation, mission and admission
+journals and native inspection surfaces. This adds no importer `admitted` state
+or cross-plugin database ownership. A withdrawn request can retain a
 partially prepared historical plan; it cannot dispatch new effects or become
 prepared under the former request revision.
 
-No Slack integration, Linear status writeback, provider execution, merge or
-deployment is introduced by this first contract.
+No Slack integration, Linear status writeback, merge or deployment is introduced
+by this contract. The isolated handoff proof does not use or qualify a real model
+provider or real-ticket execution.
