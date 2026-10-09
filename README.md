@@ -32,6 +32,17 @@ activated in recipe by this lot. Historical receipts remain unchanged. See the
 [public receipt](docs/qualification/council-receiver-qualification.json) and
 [handoff contract](docs/COUNCIL-HANDOFF-V1.md).
 
+**V1 L2 is implemented in source version `0.5.0`.** Behind a separate disabled
+enrollment, one exact `paperclip-campaign` marker selects an exact milestone,
+fully paginates enrolled project metadata, reads the selected descendants and
+imports at most 33 nodes under the campaign ticket. Source parent IDs remain
+unchanged while an explicit native mapping groups milestone roots under that
+ticket. Campaign readiness binds verified PRD/TAD bytes, a material source digest
+and a separate compatible-state observation. Fixture and isolated PostgreSQL
+qualification are documented in the [V1 L2 ledger](docs/qualification/MILESTONE-SOURCE.md).
+The real gateway milestone response shape remains unqualified, so campaign
+activation remains blocked; no Linear write or provider run is part of this lot.
+
 Lot 2 uses a signed raw-body webhook, an append-only delivery journal and stable
 company/organization/issue identities. It acknowledges valid transitions after
 persistence. The scheduled native job performs the initial source retrieval
@@ -102,6 +113,12 @@ details and inventories to reject observed changes. It returns source evidence
 with eligibility flags; it does not grant admission. This action also starts
 disabled and uses the same native secret reference and managed gateway.
 
+Milestone mode additionally requires an enrolled `campaignSource` project scan,
+an exact catalog/adapter qualification record, exact reference contents and an
+explicit list of compatible state IDs. Omission keeps the historical Todo path.
+The `read-campaign-source` operator action and retained importer never write to
+Linear, alter source descriptions or relations, or wake an implementation agent.
+
 `gatewayTransport` defaults to `host_http`, using the native `ctx.http` HTTPS
 path. Explicit `local_loopback` mode uses a direct Node HTTP connection to the
 exact configured `http://127.0.0.1:<port>/mcp/gateways/<id>` endpoint. It preserves
@@ -165,8 +182,9 @@ source, mandate and budget gates.
 - Import and admission run without a model call. Any planning needed from the
   implementation lead belongs to the workflow's existing authorized budget.
 
-Milestone campaigns, Slack, Linear status writeback, merge, deployment, and
-Paperclip core changes are outside this first scope.
+Slack, Linear status writeback, merge, deployment, and Paperclip core changes
+remain outside this source/import lot. Fixed milestone campaigns are available
+only through the separately enrolled, disabled-by-default V1 path described above.
 
 ## Documents
 
