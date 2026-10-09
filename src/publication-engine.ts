@@ -49,12 +49,14 @@ export async function reconcilePublication(store: PublicationStore, client: Publ
     if (observed && effect.state === "claimed") row = await confirm(store,row,i,observed);
     if (!observed) break;
   }
+  await store.release(row);
   return row;
 }
 
 export async function dispatchPublication(store: PublicationStore, client: PublicationClient, initial: PublicationRecord,
   guardWrite: () => Promise<void>) {
   let row = await reconcilePublication(store,client,initial);
+  await store.acquire(row);
   for (let i = 0; i < row.effects.length; i++) {
     const effect = row.effects[i]!;
     if (effect.state === "confirmed") continue;
@@ -72,6 +74,7 @@ export async function dispatchPublication(store: PublicationStore, client: Publi
     if (!observed) break;
     row = await confirm(store,row,i,observed);
   }
+  await store.release(row);
   return row;
 }
 

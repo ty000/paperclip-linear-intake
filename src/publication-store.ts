@@ -17,6 +17,17 @@ export function createPublicationStore(db: PluginDatabaseClient) {
     `SELECT ${columns} FROM ${publications} WHERE company_id = $1 AND intent_id = $2`, [companyId, intentId]))[0];
   return {
     get,
+    async acquire(row: PublicationRecord) {
+      const result = await db.execute(`UPDATE ${bindings} SET active_intent_id=$3 WHERE company_id=$1 AND mission_id=$2
+        AND (active_intent_id IS NULL OR active_intent_id=$3)`, [row.companyId,row.missionId,row.intentId]);
+      requirePublication(result.rowCount === 1, "publication_previous_intent_pending");
+    },
+    async release(row: PublicationRecord) {
+      if (!row.effects.every(e => e.state === "confirmed")) return;
+      await db.execute(`UPDATE ${bindings} SET active_intent_id=NULL WHERE company_id=$1 AND mission_id=$2 AND active_intent_id=$3
+        AND EXISTS (SELECT 1 FROM ${publications} WHERE company_id=$1 AND intent_id=$3 AND version=$4)`,
+      [row.companyId,row.missionId,row.intentId,row.version]);
+    },
     async retainedRequest(request: ContinuityRequest) {
       const [row] = await db.query<{ binding_sha256: string; source_sha256: string; retained_request: IntakeRequest }>(
         `SELECT binding_sha256, source_sha256, retained_request FROM ${bindings} WHERE company_id=$1 AND mission_id=$2`, [request.binding.companyId,request.binding.missionId]);
@@ -44,6 +55,8 @@ export function createPublicationStore(db: PluginDatabaseClient) {
         ON CONFLICT DO NOTHING`, [b.companyId,intentId,b.missionId,digest,JSON.stringify(payload),JSON.stringify(effects),contentDigest(b)]);
       const row = await get(b.companyId,intentId);
       requirePublication(row && row.payloadSha256 === digest && row.missionId === b.missionId, "publication_intent_changed");
+      const intents = (items: PublicationEffect[]) => items.map(({ kind,sourceId,body,stateId }) => ({kind,sourceId,body,stateId}));
+      requirePublication(contentDigest(intents(row.effects)) === contentDigest(intents(effects)), "publication_effect_changed");
       return row;
     },
     async save(row: PublicationRecord, effects: PublicationEffect[], receipt: ProofReference | null = row.receipt) {

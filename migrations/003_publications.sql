@@ -5,6 +5,7 @@ CREATE TABLE plugin_linear_intake_e8c339297d.campaign_publication_bindings (
   binding jsonb NOT NULL,
   source_sha256 text NOT NULL,
   retained_request jsonb NOT NULL,
+  active_intent_id uuid,
   PRIMARY KEY (company_id, mission_id)
 );
 
