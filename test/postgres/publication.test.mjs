@@ -7,6 +7,7 @@ import {uuid} from '../helpers/council-handoff-fixture.mjs';
 import {createPublicationStore} from '../../dist/publication-store.js';
 import {publicationEffects,dispatchPublication} from '../../dist/publication-engine.js';
 import {openPublicationClient} from '../../dist/publication-client.js';
+import {contentDigest} from '../../dist/content-digest.js';
 let database;
 before(async()=>{database=await isolatedDatabase();});after(async()=>database?.close());beforeEach(async()=>database.reset());
 const state=(id,value)=>({sourceId:id,state:value});
@@ -15,6 +16,9 @@ test('authenticated native request publishes comment then members then terminal 
  assert.equal(f.continuityResults.at(-1)?.availability,'available');assert.equal(f.continuityResults.at(-1).acknowledgements.length,1);
  assert.deepEqual(f.writes.map(w=>[w.role,w.args.id??w.args.issueId]),[['saveComment',ids.root],['saveIssue',ids.child],['saveIssue',ids.root]]);
  assert.deepEqual(f.continuityResults.at(-1).capabilities,['fixed-source','publication-readback']);assert.deepEqual(f.continuityResults.at(-1).changes,[]);
+ assert.equal(f.continuityReferences.at(-1).key,contentDigest(f.continuityResults.at(-1)));
+ assert.equal(f.continuityReferences.at(-1).key.length,64);
+ assert.equal(f.continuityResults.at(-1).acknowledgements[0].publicationReceipt.key,`linear-publication-${uuid(40)}`);
  const first=f.continuityResults.at(-1).acknowledgements;await f.sendContinuity();assert.equal(f.writes.length,3);assert.deepEqual(f.continuityResults.at(-1).acknowledgements,first);
 });
 test('lost comment response reconciles original intent after reconstructed worker context without another comment',async()=>{

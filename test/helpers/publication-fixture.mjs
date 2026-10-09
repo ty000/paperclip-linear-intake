@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { issueDocumentKeySchema } from '@paperclipai/shared';
 import { handoffFixture, challenge, uuid } from './council-handoff-fixture.mjs';
 import { sourceIds as ids } from './source-fixture.mjs';
 import { contentDigest } from '../../dist/content-digest.js';
@@ -23,8 +24,8 @@ export async function publicationFixture(db, options={}) {
   const oldDb=f.harness.ctx.db;
   f.harness.ctx.db={namespace:db.namespace,query:(sql,params)=>sql.includes('campaign_publication')?db.query(sql,params):oldDb.query(sql,params),execute:db.execute.bind(db)};
   f.documents=new Map([[f.document.key,f.document]]); let documentNumber=100;
-  f.harness.ctx.issues.documents.get=async (issueId,key,companyId)=>{assert.equal(companyId,ids.company);assert.equal(issueId,uuid(7));return structuredClone(f.documents.get(key)??null);};
-  f.harness.ctx.issues.documents.upsert=async doc=>{f.documents.set(doc.key,{...doc,id:uuid(documentNumber++),latestRevisionId:uuid(documentNumber++),latestRevisionNumber:1});};
+  f.harness.ctx.issues.documents.get=async (issueId,key,companyId)=>{assert.equal(issueDocumentKeySchema.parse(key),key);assert.equal(companyId,ids.company);assert.equal(issueId,uuid(7));return structuredClone(f.documents.get(key)??null);};
+  f.harness.ctx.issues.documents.upsert=async doc=>{assert.equal(issueDocumentKeySchema.parse(doc.key),doc.key);f.documents.set(doc.key,{...doc,id:uuid(documentNumber++),latestRevisionId:uuid(documentNumber++),latestRevisionNumber:1});};
   const oldFetch=f.harness.ctx.http.fetch;
   f.comments=[];f.writes=[];f.publisherReads=[];
   connectPublisher(f, oldFetch, options);
@@ -33,7 +34,7 @@ export async function publicationFixture(db, options={}) {
   f.requestWire={protocol:CONTINUITY_PROTOCOL,mode:'milestone-fixed-v1',binding:f.bindingWire,challengeId:uuid(31),nonce:'b'.repeat(64),requestedAt:c.requestedAt,expiresAt:c.expiresAt,sourceSha256:f.plan.plan.campaign.materialSourceSha256,consumedSequence:0,control:'running',publications:[]};
   const put=(key,payload)=>{const body=JSON.stringify(payload),doc={key,body,id:uuid(documentNumber++),latestRevisionId:uuid(documentNumber++)};f.documents.set(key,doc);return {key,documentId:doc.id,revisionId:doc.latestRevisionId,bodySha256:contentDigest(body)};};
   f.addIntent=(updates=[],intentId=uuid(40),kind="progress")=>{const payload={protocol:CONTINUITY_PROTOCOL,mode:'milestone-fixed-v1',binding:f.bindingWire,sourceSha256:f.requestWire.sourceSha256,kind,message:'Synthetic campaign progress',statusUpdates:updates};const payloadSha256=contentDigest(payload);f.requestWire.publications.push({intentId,payloadSha256,document:put(`publication-${intentId}`,{intentId,payloadSha256,payload})});return {intentId,payload};};
-  f.continuityResults=[];f.harness.ctx.events.on('plugin.ty000.linear-intake.council-continuity-result',event=>{f.continuityResults.push(JSON.parse(f.documents.get(event.payload.response.key).body));});
+  f.continuityResults=[];f.continuityReferences=[];f.harness.ctx.events.on('plugin.ty000.linear-intake.council-continuity-result',event=>{f.continuityReferences.push(event.payload.response);f.continuityResults.push(JSON.parse(f.documents.get(event.payload.response.key).body));});
   f.sendContinuity=async overrides=>{const request=f.requestWire,proof=put(`request-${uuid(documentNumber++)}`,request);await f.harness.emit(CONTINUITY_REQUEST_EVENT,{protocol:CONTINUITY_PROTOCOL,companyId:ids.company,missionId:uuid(30),nativeRootId:uuid(7),challengeId:request.challengeId,requestSha256:contentDigest(request),request:proof},{companyId:ids.company,actorType:'plugin',actorId:'private.paperclip-council',...overrides});};
   return f;
 }

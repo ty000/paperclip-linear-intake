@@ -87,8 +87,9 @@ async function answer(ctx: PluginContext, request: ContinuityRequest) {
     observedAt: new Date(now).toISOString(), validUntil: new Date(now + 120_000).toISOString(),
     capabilities: ["fixed-source", "publication-readback"], sourceSha256: request.sourceSha256,
     availability, changes: [], acknowledgements };
+  // The full digest includes challenge and binding; no truncated identity or oversized prefix.
   const proof = await ensureContinuityDocument(ctx, request.binding.companyId, request.binding.nativeRootId,
-    `linear-continuity-${request.challengeId}-${contentDigest(response)}`, response);
+    contentDigest(response), response);
   await guardContinuity(session);
   await ctx.events.emit(CONTINUITY_RESULT_NAME, request.binding.companyId, { protocol: CONTINUITY_PROTOCOL,
     companyId: request.binding.companyId, missionId: request.binding.missionId, challengeId: request.challengeId, response: proof });

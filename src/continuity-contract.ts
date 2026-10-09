@@ -6,7 +6,9 @@ export const CONTINUITY_MODE = "milestone-fixed-v1" as const;
 export const CONTINUITY_REQUEST_EVENT = "plugin.private.paperclip-council.linear-continuity-request";
 export const CONTINUITY_RESULT_NAME = "council-continuity-result";
 const hash = z.string().regex(/^[a-f0-9]{64}$/), time = z.iso.datetime({ offset: true });
-const proofReferenceSchema = z.strictObject({ key: z.string().min(1).max(200), documentId: z.uuid(), revisionId: z.uuid(), bodySha256: hash });
+// Native issueDocumentKeySchema bounds; reject aliases rather than trimming an identity.
+export const continuityDocumentKeySchema = z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9_-]*$/);
+const proofReferenceSchema = z.strictObject({ key: continuityDocumentKeySchema, documentId: z.uuid(), revisionId: z.uuid(), bodySha256: hash });
 const subjectSchema = z.strictObject({ companyId: z.uuid(), intakeId: z.string().regex(/^linear-intake-[a-f0-9]{64}$/),
   activationId: z.uuid(), configurationFingerprint: hash, requestVersion: z.number().int().positive().max(2_147_483_647),
   nativeRootId: z.uuid(), targetProjectId: z.uuid(), readinessDocumentId: z.uuid(), readinessRevisionId: z.uuid(),
