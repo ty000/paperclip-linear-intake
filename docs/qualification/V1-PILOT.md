@@ -20,7 +20,7 @@ de branche distante, PR ou fusion.
 Créer un nouveau projet Paperclip **Hitza · qualification campagne V1** dont le workspace
 primaire est un worktree privé neuf, par exemple
 `/home/davy-lp/.paperclip/workspaces/hitza-linear-v1-pilot`. Le créer depuis le SHA fixé
-ci-dessus sur `pilot/linear-campaign-v1-2026-10`; pousser cette branche dédiée puis faire
+ci-dessus sur `codex/linear-campaign-v1-pilot-2026-10`; pousser cette branche dédiée puis faire
 des deux PR leur base. Aucune PR ne cible `main` et aucune autre mission ne partage ce worktree.
 
 Créer une petite milestone Linear **Paperclip V1 — deux livraisons documentaires**, sans
@@ -82,9 +82,16 @@ identités, consommations et intentions originales.
 
 Une unité vaut un token natif observé : `inputTokens + outputTokens`; `cachedInputTokens` est
 déjà inclus dans l’entrée et n’est pas ajouté deux fois. Les réservations retiennent une
-exposition, sans garantir un coût fournisseur maximal. Le plafond proposé couvre deux feuilles,
-leurs revues/publications et la revue globale avec arrêt avant dépassement ; il ne vaut ni budget
-monétaire ni autorisation implicite.
+exposition, sans garantir un coût fournisseur maximal. Ces montants sont une hypothèse d'admission à confirmer après le comptage des runs du test
+installé ; ils ne démontrent pas que toutes les étapes tiendront dans l'enveloppe. G4 retient
+l'exposition avant chaque nouveau run, puis règle la consommation observée à sa fin. Un run
+peut dépasser sa réservation : ce mécanisme ne garantit donc pas un plafond monétaire ou
+un plafond absolu de tokens. Aucun retry ni cycle de correction fournisseur supplémentaire
+n'est inclus. Une consommation insuffisamment connue suspend le départ suivant.
+
+L'autorisation finale fixe également une seule `periodKey`, ses dates de début/fin, les profils
+réellement disponibles et le nombre prévisionnel de runs issu de L5. Ces valeurs ne sont pas
+créées pendant la préparation.
 
 ## Inconnues qui changent les effets
 
