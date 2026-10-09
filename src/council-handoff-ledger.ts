@@ -9,10 +9,11 @@ import type { IntakeBinding, IntakeRequest } from "./intake-state.js";
 import type { ImportEffect, StoredImportPlan } from "./import-state.js";
 import { requireFreshChallenge, requireHandoff, type CouncilChallenge } from "./council-handoff-contract.js";
 
-export type HandoffSession = { ctx: PluginContext; challenge: CouncilChallenge; binding: IntakeBinding;
-  request: IntakeRequest; plan: StoredImportPlan };
+export type HandoffIdentity = Omit<CouncilChallenge, "schema" | "challengeId" | "nonce" | "stage" | "admissionId" | "mandateId" | "mandateRevisionSha256">;
+export type HandoffSession = { ctx: PluginContext; challenge: HandoffIdentity; binding: IntakeBinding;
+  request: IntakeRequest; plan: StoredImportPlan; ongoing?: boolean };
 
-function matchingIdentity(plan: StoredImportPlan, challenge: CouncilChallenge) {
+function matchingIdentity(plan: StoredImportPlan, challenge: HandoffIdentity) {
   const actual = [plan.companyId, plan.intakeId, plan.activationId, plan.fingerprint, plan.requestVersion,
     plan.sourceSha256, plan.planSha256, plan.readinessSha256, plan.plan.targetProjectId];
   const expected = [challenge.companyId, challenge.intakeId, challenge.activationId, challenge.configurationFingerprint,
@@ -21,7 +22,7 @@ function matchingIdentity(plan: StoredImportPlan, challenge: CouncilChallenge) {
   requireHandoff(plan.state === "prepared", "handoff_ledger_not_prepared");
 }
 
-async function currentBinding(ctx: PluginContext, challenge: CouncilChallenge) {
+async function currentBinding(ctx: PluginContext, challenge: HandoffIdentity) {
   const binding = await createIntakeStore(ctx.db).getBinding(challenge.companyId);
   requireHandoff(binding?.active, "handoff_authority_inactive");
   requireHandoff(binding.companyId === challenge.companyId, "handoff_identity_mismatch");
@@ -41,18 +42,18 @@ export async function guardHandoff(session: HandoffSession) {
   const plan = await store.getPlan(challenge.companyId, challenge.intakeId);
   requireHandoff(plan !== undefined, "handoff_ledger_missing");
   matchingIdentity(plan, challenge);
-  requireHandoff(await store.isCurrentCandidate(plan), "handoff_request_changed");
+  if (!session.ongoing) requireHandoff(await store.isCurrentCandidate(plan), "handoff_request_changed");
 }
 
-export async function openHandoff(ctx: PluginContext, challenge: CouncilChallenge): Promise<HandoffSession> {
+export async function openHandoff(ctx: PluginContext, challenge: HandoffIdentity, retainedRequest?: IntakeRequest): Promise<HandoffSession> {
   const binding = await currentBinding(ctx, challenge);
-  const request = await createIntakeStore(ctx.db).getRequest(challenge.companyId, challenge.intakeId);
+  const request = retainedRequest ?? await createIntakeStore(ctx.db).getRequest(challenge.companyId, challenge.intakeId);
   const plan = await createImportStore(ctx.db).getPlan(challenge.companyId, challenge.intakeId);
   requireHandoff(request !== undefined && plan !== undefined, "handoff_ledger_missing");
   matchingIdentity(plan, challenge);
   const rebuilt = buildImportPlan(binding, request, challenge.targetProjectId);
   requireHandoff(contentDigest(rebuilt) === contentDigest(plan.plan), "handoff_identity_mismatch");
-  const session = { ctx, challenge, binding, request, plan };
+  const session = { ctx, challenge, binding, request, plan, ...(retainedRequest ? { ongoing: true } : {}) };
   await guardHandoff(session);
   return session;
 }

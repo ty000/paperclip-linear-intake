@@ -24,12 +24,12 @@ async function readGatewayConfig(ctx: PluginContext, companyId: string) {
   catch { throw new Error("configuration_unavailable_or_invalid"); }
 }
 
-async function resolveGatewaySecret(ctx: PluginContext, companyId: string, secretRef: NonNullable<GatewayConfig["gatewayTokenRef"]>) {
+async function resolveGatewaySecret(ctx: PluginContext, companyId: string, secretRef: NonNullable<GatewayConfig["gatewayTokenRef"]>, configPath: string) {
   try {
     return await ctx.secrets.resolve({
       type: secretRef.type, secretId: secretRef.secretId,
       ...(secretRef.version === undefined ? {} : { version: secretRef.version }),
-    }, { companyId, configPath: "gatewayTokenRef" });
+    }, { companyId, configPath });
   } catch { throw new Error("gateway_secret_unavailable"); }
 }
 
@@ -80,12 +80,14 @@ function configuredRpc(mode: GatewayConfig["gatewayToolCallMode"], mcp: GatewayR
 // Native config/secrets and named gateway. Explicit loopback transport is opt-in.
 // Catalog discovery and bounded qualification share native authentication.
 // Only explicitly configured source readers call tools/call.
-export async function openGateway(ctx: PluginContext, companyId: string, guard: GatewayReadGuard = async () => {}) {
+export async function openGateway(ctx: PluginContext, companyId: string, guard: GatewayReadGuard = async () => {}, purpose: "read" | "publication" = "read") {
   if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
-  const config = await readGatewayConfig(ctx, companyId);
+  const original = await readGatewayConfig(ctx, companyId);
+  if (purpose === "publication" && (!original.councilContinuityEnabled || !original.publisher)) throw new Error("publication_disabled");
+  const config = original;
   if (!config.gatewayDiscoveryEnabled) return undefined;
-  await guard(config);
-  const token = await resolveGatewaySecret(ctx, companyId, config.gatewayTokenRef!);
+  await guard(original);
+  const token = await resolveGatewaySecret(ctx, companyId, purpose === "publication" ? config.publisher!.gatewayTokenRef : config.gatewayTokenRef!, purpose === "publication" ? "publisher.gatewayTokenRef" : "gatewayTokenRef");
   validateGatewaySecret(token);
 
   function assertCredentialAbsent(value: unknown) {
@@ -96,10 +98,10 @@ export async function openGateway(ctx: PluginContext, companyId: string, guard: 
 
   let sequence = 0;
   async function rpc(method: "initialize" | "notifications/initialized" | "tools/list" | "tools/call", params: Record<string, unknown>, notification = false) {
-    await guard(config);
+    await guard(original);
     const id = ++sequence;
     const response = await postGateway(ctx, config, token,
-      JSON.stringify({ jsonrpc: "2.0", ...(notification ? {} : { id }), method, params }));
+      JSON.stringify({ jsonrpc: "2.0", ...(notification ? {} : { id }), method, params }), purpose);
     if (notification) return undefined;
     if (!response.contentType?.toLowerCase().startsWith("application/json")) {
       throw new Error("gateway_transport_unsupported");
@@ -131,11 +133,11 @@ export async function openGateway(ctx: PluginContext, companyId: string, guard: 
   // returned its complete catalog. Callers still validate all source role pins.
   const sessionRpc = configuredRpc(config.gatewayToolCallMode, rpc,
     async params => {
-      await guard(config);
-      return callNativeGateway(ctx, config, token, params, assertCredentialAbsent);
+      await guard(original);
+      return callNativeGateway(ctx, config, token, params, assertCredentialAbsent, purpose);
     });
   return {
-    rpc: sessionRpc, assertCredentialAbsent, config, protocolVersion: init.data.protocolVersion,
+    rpc: sessionRpc, assertCredentialAbsent, config: original, protocolVersion: init.data.protocolVersion,
     catalogSha256: createHash("sha256").update(JSON.stringify(tools)).digest("hex"), tools,
   };
 }

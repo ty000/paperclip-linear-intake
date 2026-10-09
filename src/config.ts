@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import { intakeConfigSchema, validateIntakeSettings } from "./intake-config.js";
 import { z } from "@paperclipai/plugin-sdk";
+import { publisherSchema } from "./publication-config.js";
 
 const toolPin = z.strictObject({
   name: z.string().min(1).max(256),
@@ -13,6 +14,8 @@ export const configSchema = z.strictObject({
   nativeImportEnabled: z.boolean().default(false),
   // Changing this opt-in changes the enrollment fingerprint; an old binding is never silently upgraded.
   councilHandoffEnabled: z.boolean().default(false),
+  councilContinuityEnabled: z.boolean().default(false),
+  publisher: publisherSchema.optional(),
   intake: intakeConfigSchema.optional(),
   gatewayDiscoveryEnabled: z.boolean().default(false),
   gatewayTransport: z.enum(["host_http", "local_loopback"]).default("host_http"),
@@ -130,6 +133,16 @@ function validateCouncilHandoff(config: Config) {
   if (!config.nativeImportEnabled) throw new Error("handoff_configuration_missing");
 }
 
+function validatePublisher(config: Config) {
+  if (config.councilContinuityEnabled && (!config.councilHandoffEnabled || !config.publisher)) throw new Error("publication_configuration_missing");
+  if (!config.publisher) return;
+  if (config.publisher.enabled && !config.councilContinuityEnabled) throw new Error("publication_configuration_missing");
+  if (config.publisher.gatewayUrl === config.gatewayUrl || config.publisher.gatewayTokenRef.secretId === config.gatewayTokenRef?.secretId) throw new Error("publication_profile_not_separate");
+  if (config.gatewayTransport === "local_loopback") parseLocalGatewayUrl(config.publisher.gatewayUrl);
+  else validateHostGatewayUrl(config.publisher.gatewayUrl);
+  if (new Set(Object.values(config.publisher.states)).size !== 3) throw new Error("publication_states_invalid");
+}
+
 export function parseConfig(raw: unknown) {
   const result = configSchema.safeParse(raw);
   // Never forward validation errors: they can quote untrusted config values.
@@ -143,5 +156,6 @@ export function parseConfig(raw: unknown) {
   validateIntakeSettings(config);
   validateNativeImport(config);
   validateCouncilHandoff(config);
+  validatePublisher(config);
   return config;
 }
