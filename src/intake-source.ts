@@ -46,9 +46,9 @@ function marker(description: string | null) {
 
 function campaignEligible(payload: unknown, source: RetainedSource, scope: Scope, compatibleStateIds: string[]) {
   const { root, current } = rootObservation(payload, source.issueId);
-  return root.teamId === scope.teamId && root.projectId === scope.projectId && root.archivedAt === null
-    && compatibleStateIds.includes(current.state.id)
-    && !["started", "completed", "canceled"].includes(current.state.type);
+  return [root.teamId === scope.teamId, root.projectId === scope.projectId, root.archivedAt === null,
+    compatibleStateIds.includes(current.state.id),
+    !["started", "completed", "canceled"].includes(current.state.type)].every(Boolean);
 }
 
 async function currentRoot(ctx: PluginContext, companyId: string, source: RetainedSource, guard: GatewayReadGuard) {
@@ -66,22 +66,44 @@ async function currentMarker(current: Awaited<ReturnType<typeof currentRoot>>, s
   return marker(parsed.data.description);
 }
 
+async function retainedCampaignEligible(ctx: PluginContext, companyId: string, source: RetainedSource,
+  current: Awaited<ReturnType<typeof currentRoot>>) {
+  const config = parseConfig(await ctx.config.get(companyId)).campaignSource;
+  if (!config) throw new SourceReadError("campaign_source_disabled");
+  return campaignEligible(current.payload, source, current.scope, config.compatibleCampaignStateIds);
+}
+
+function finalEligibility(campaign: boolean, retainedCampaign: boolean, family: Awaited<ReturnType<typeof readCampaignSource>>["family"]
+  | Awaited<ReturnType<typeof readSourceFamily>>["family"], source: RetainedSource) {
+  const finalRoot = family.issues.find(issue => issue.uuid === source.issueId);
+  if (!campaign) return eligible(finalRoot, source, family);
+  if (!retainedCampaign) return family.selectedRootInTodo;
+  return true;
+}
+
+async function initialEligibility(ctx: PluginContext, companyId: string, source: RetainedSource,
+  current: Awaited<ReturnType<typeof currentRoot>>, retainedCampaign: boolean) {
+  return retainedCampaign ? retainedCampaignEligible(ctx, companyId, source, current)
+    : eligible(current.payload, source, current.scope);
+}
+
+async function markerObserved(current: Awaited<ReturnType<typeof currentRoot>>, source: RetainedSource) {
+  return source.snapshot ? undefined : currentMarker(current, source);
+}
+
+async function observeFamily(ctx: PluginContext, companyId: string, source: RetainedSource,
+  guard: GatewayReadGuard, campaign: boolean) {
+  if (campaign) return readCampaignSource(ctx, companyId, source.issueId, false, guard);
+  return readSourceFamily(ctx, companyId, source.issueId, false, guard);
+}
+
 export async function readRetainedFamily(ctx: PluginContext, companyId: string, source: RetainedSource, guard: GatewayReadGuard) {
   const current = await currentRoot(ctx, companyId, source, guard);
   const retainedCampaign = source.snapshot?.schema === CAMPAIGN_SOURCE_SCHEMA;
-  if (retainedCampaign) {
-    const config = parseConfig(await ctx.config.get(companyId)).campaignSource;
-    if (!config) throw new SourceReadError("campaign_source_disabled");
-    if (!campaignEligible(current.payload, source, current.scope, config.compatibleCampaignStateIds)) {
-      return { status: "withdrawn" as const };
-    }
-  } else if (!eligible(current.payload, source, current.scope)) return { status: "withdrawn" as const };
-  const observedMarker = source.snapshot ? undefined : await currentMarker(current, source);
+  if (!await initialEligibility(ctx, companyId, source, current, retainedCampaign)) return { status: "withdrawn" as const };
+  const observedMarker = await markerObserved(current, source);
   const campaign = retainedCampaign || observedMarker !== undefined;
-  const result = campaign ? await readCampaignSource(ctx, companyId, source.issueId, false, guard)
-    : await readSourceFamily(ctx, companyId, source.issueId, false, guard);
-  const finalRoot = result.family.issues.find(issue => issue.uuid === source.issueId);
-  if (!campaign && !eligible(finalRoot, source, result.family)) return { status: "withdrawn" as const };
-  if (campaign && !retainedCampaign && !result.family.selectedRootInTodo) return { status: "withdrawn" as const };
+  const result = await observeFamily(ctx, companyId, source, guard, campaign);
+  if (!finalEligibility(campaign, retainedCampaign, result.family, source)) return { status: "withdrawn" as const };
   return { status: "source_observed" as const, family: result.family };
 }

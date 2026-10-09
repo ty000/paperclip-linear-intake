@@ -131,15 +131,12 @@ function validateReaderEnrollment(config: Config) {
 function validateCampaignEnrollment(config: Config) {
   const campaign = config.campaignSource;
   if (!campaign) return;
-  if (!config.sourceReader || !config.gatewayDiscoveryEnabled) throw new Error("campaign_configuration_missing");
-  if (!campaign.compatibleCampaignStateIds.includes(config.sourceReader.todoStateId)) {
-    throw new Error("campaign_configuration_invalid");
-  }
-  if (new Set(campaign.compatibleCampaignStateIds).size !== campaign.compatibleCampaignStateIds.length) {
-    throw new Error("campaign_configuration_invalid");
-  }
+  if (![config.sourceReader, config.gatewayDiscoveryEnabled].every(Boolean)) throw new Error("campaign_configuration_missing");
   const references = campaign.referenceDocuments.map(reference => `${reference.url}\u0000${reference.version}\u0000${reference.sha256}`);
-  if (new Set(references).size !== references.length) throw new Error("campaign_configuration_invalid");
+  const valid = [campaign.compatibleCampaignStateIds.includes(config.sourceReader!.todoStateId),
+    new Set(campaign.compatibleCampaignStateIds).size === campaign.compatibleCampaignStateIds.length,
+    new Set(references).size === references.length].every(Boolean);
+  if (!valid) throw new Error("campaign_configuration_invalid");
 }
 
 function validateToolCallMode(config: Config) {

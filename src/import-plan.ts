@@ -250,7 +250,7 @@ function campaignReadiness(campaign: CampaignSourceExtension): CampaignReadiness
 
 function validateCampaignContents(family: CampaignFamily, ticket: Detail, selected: Detail[]) {
   const campaign = family.campaign;
-  requirePlan(campaign.ticketSourceId === ticket.uuid && campaign.projectId === family.projectId,
+  requirePlan([campaign.ticketSourceId === ticket.uuid, campaign.projectId === family.projectId].every(Boolean),
     "campaign_identity_invalid");
   for (const reference of [campaign.referenceContents.prd, campaign.referenceContents.tad]) {
     requirePlan(textSha256(reference.content) === reference.sha256, "campaign_reference_invalid");
@@ -260,41 +260,88 @@ function validateCampaignContents(family: CampaignFamily, ticket: Detail, select
   requirePlan(campaignStateObservationSha256([ticket, ...selected]) === campaign.stateCompatibility.observationSha256,
     "campaign_state_hash_invalid");
   requirePlan(campaign.stateCompatibility.status === "compatible", "campaign_state_incompatible");
-  requirePlan(ticket.currentStateId === family.todoStateId && ticket.archivedAt === null
-    && !["started", "completed", "canceled"].includes(ticket.statusType), "campaign_root_ineligible");
+  requirePlan([ticket.currentStateId === family.todoStateId, ticket.archivedAt === null,
+    !["started", "completed", "canceled"].includes(ticket.statusType)].every(Boolean), "campaign_root_ineligible");
   for (const issue of selected) requirePlan(!["started", "triage"].includes(issue.statusType), "campaign_work_already_started");
+}
+
+type CampaignMap = CampaignFamily["campaign"]["nativeMapping"][number];
+
+function requireMappedIssue(issues: Map<string, Detail>, entry: CampaignMap) {
+  const issue = issues.get(entry.sourceId);
+  requirePlan([issue !== undefined, entry.sourceParentId === issue?.parentId].every(Boolean), "campaign_mapping_invalid");
+  return issue!;
+}
+
+function addMilestoneRoot(family: CampaignFamily, entry: CampaignMap, roots: string[]) {
+  requirePlan(entry.nativeParentSourceId === family.rootIssueId, "campaign_mapping_invalid");
+  roots.push(entry.sourceId);
+}
+
+function addMilestoneNode(issues: Map<string, Detail>, entry: CampaignMap, issue: Detail,
+  children: Map<string, string[]>) {
+  const parent = issues.get(entry.nativeParentSourceId!);
+  requirePlan([parent !== undefined, [parent?.id, parent?.uuid].includes(issue.parentId ?? "")].every(Boolean),
+    "campaign_mapping_invalid");
+  const siblings = children.get(parent!.uuid) ?? [];
+  children.set(parent!.uuid, [...siblings, entry.sourceId]);
+}
+
+function addCampaignMapping(family: CampaignFamily, issues: Map<string, Detail>, entry: CampaignMap,
+  children: Map<string, string[]>, roots: string[]) {
+  const issue = requireMappedIssue(issues, entry);
+  if (entry.sourceId === family.rootIssueId) return;
+  requirePlan([entry.role !== "campaign-root", entry.nativeParentSourceId !== null].every(Boolean), "campaign_mapping_invalid");
+  if (entry.role === "milestone-root") return addMilestoneRoot(family, entry, roots);
+  addMilestoneNode(issues, entry, issue, children);
+}
+
+function appendCampaignChild(ordered: string[], seen: Set<string>, child: string) {
+  requirePlan(!seen.has(child), "campaign_parent_cycle");
+  seen.add(child); ordered.push(child);
+}
+
+function orderedCampaignIds(rootId: string, roots: string[], children: Map<string, string[]>, expected: number) {
+  requirePlan(roots.length > 0, "campaign_mapping_invalid");
+  const ordered = [rootId, ...roots.sort()], seen = new Set(ordered);
+  for (let index = 1; index < ordered.length; index++) {
+    for (const child of (children.get(ordered[index]!) ?? []).sort()) appendCampaignChild(ordered, seen, child);
+  }
+  requirePlan(seen.size === expected, "campaign_parent_cycle");
+  return ordered;
 }
 
 function campaignOrder(family: CampaignFamily, issues: Map<string, Detail>) {
   const bySource = new Map(family.campaign.nativeMapping.map(entry => [entry.sourceId, entry]));
-  requirePlan(bySource.size === family.campaign.nativeMapping.length && bySource.size === issues.size,
+  requirePlan([bySource.size === family.campaign.nativeMapping.length, bySource.size === issues.size].every(Boolean),
     "campaign_mapping_invalid");
   const root = bySource.get(family.rootIssueId);
-  requirePlan(root?.role === "campaign-root" && root.nativeParentSourceId === null, "campaign_mapping_invalid");
+  requirePlan([root?.role === "campaign-root", root?.nativeParentSourceId === null].every(Boolean), "campaign_mapping_invalid");
   const children = new Map<string, string[]>(), roots: string[] = [];
-  for (const [sourceId, issue] of issues) {
-    const entry = bySource.get(sourceId);
-    requirePlan(entry && entry.sourceParentId === issue.parentId, "campaign_mapping_invalid");
-    if (sourceId === family.rootIssueId) continue;
-    requirePlan(entry.role !== "campaign-root" && entry.nativeParentSourceId !== null, "campaign_mapping_invalid");
-    if (entry.role === "milestone-root") {
-      requirePlan(entry.nativeParentSourceId === family.rootIssueId, "campaign_mapping_invalid"); roots.push(sourceId);
-    } else {
-      const parent = issues.get(entry.nativeParentSourceId!);
-      requirePlan(parent && [parent.id, parent.uuid].includes(issue.parentId ?? ""), "campaign_mapping_invalid");
-      children.set(parent.uuid, [...(children.get(parent.uuid) ?? []), sourceId]);
-    }
+  for (const entry of family.campaign.nativeMapping) addCampaignMapping(family, issues, entry, children, roots);
+  return { ordered: orderedCampaignIds(family.rootIssueId, roots, children, issues.size), bySource };
+}
+
+function validateCampaignInventoryRow(issue: Detail, raw: unknown[], selected: Map<string, Detail>,
+  seenChildren: Map<string, string>, parentId: string) {
+  const parsed = parsePage({ issues: raw, hasNextPage: false });
+  for (const child of parsed.issues) {
+    const detail = selected.get(child.uuid);
+    requirePlan([detail !== undefined, [issue.id, issue.uuid].includes(child.parentId ?? "")].every(Boolean),
+      "import_inventory_invalid");
+    same(identity(child), identity(detail!), "import_inventory_invalid");
+    requirePlan(!seenChildren.has(child.uuid), "import_inventory_invalid");
+    seenChildren.set(child.uuid, parentId);
   }
-  requirePlan(roots.length > 0, "campaign_mapping_invalid");
-  const ordered = [family.rootIssueId, ...roots.sort()], seen = new Set(ordered);
-  for (let index = 1; index < ordered.length; index++) {
-    const parent = ordered[index]!;
-    for (const child of (children.get(parent) ?? []).sort()) {
-      requirePlan(!seen.has(child), "campaign_parent_cycle"); seen.add(child); ordered.push(child);
+}
+
+function validateCampaignInventoryMapping(mapping: CampaignMap[], seenChildren: Map<string, string>) {
+  for (const entry of mapping) {
+    if (entry.role === "milestone-node") {
+      requirePlan(seenChildren.get(entry.sourceId) === entry.nativeParentSourceId, "campaign_mapping_invalid");
     }
+    if (entry.role === "milestone-root") requirePlan(!seenChildren.has(entry.sourceId), "campaign_mapping_invalid");
   }
-  requirePlan(seen.size === issues.size, "campaign_parent_cycle");
-  return { ordered, bySource };
 }
 
 function validateCampaignInventory(family: CampaignFamily, issues: Map<string, Detail>) {
@@ -304,22 +351,9 @@ function validateCampaignInventory(family: CampaignFamily, issues: Map<string, D
   const seenChildren = new Map<string, string>();
   for (const [parentId, issue] of selected) {
     const raw = rows.get(parentId); requirePlan(raw !== undefined, "import_inventory_incomplete");
-    const parsed = parsePage({ issues: raw, hasNextPage: false });
-    for (const child of parsed.issues) {
-      const detail = selected.get(child.uuid);
-      requirePlan(detail && [issue.id, issue.uuid].includes(child.parentId ?? ""), "import_inventory_invalid");
-      same(identity(child), identity(detail), "import_inventory_invalid");
-      requirePlan(!seenChildren.has(child.uuid), "import_inventory_invalid");
-      seenChildren.set(child.uuid, parentId);
-    }
+    validateCampaignInventoryRow(issue, raw!, selected, seenChildren, parentId);
   }
-  for (const entry of family.campaign.nativeMapping) {
-    if (entry.role === "milestone-node") {
-      requirePlan(seenChildren.get(entry.sourceId) === entry.nativeParentSourceId, "campaign_mapping_invalid");
-    } else if (entry.role === "milestone-root") {
-      requirePlan(!seenChildren.has(entry.sourceId), "campaign_mapping_invalid");
-    }
-  }
+  validateCampaignInventoryMapping(family.campaign.nativeMapping, seenChildren);
 }
 
 function buildCampaignImportPlan(binding: IntakeBinding, request: IntakeRequest, targetProjectId: string,

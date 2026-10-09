@@ -86,23 +86,42 @@ async function readMetadata(client: CampaignClient) {
   return { project, states };
 }
 
+function nextCursor(page: ReturnType<typeof parsePage>, cursors: Set<string>) {
+  const cursor = page.cursor!;
+  if (cursors.has(cursor)) fail("source_cursor_repeated");
+  cursors.add(cursor);
+  return cursor;
+}
+
+function appendProjectPage(client: CampaignClient, rows: Inventory[], ids: Set<string>, page: ReturnType<typeof parsePage>) {
+  for (const issue of page.issues) {
+    if (ids.has(issue.uuid)) fail("source_duplicate_issue");
+    ids.add(issue.uuid); rows.push(issue);
+  }
+  if (rows.length > client.scope.maxIssues * 20) fail("source_project_inventory_bound_exceeded");
+}
+
 async function projectInventory(client: CampaignClient) {
   const rows: Inventory[] = [], ids = new Set<string>(), cursors = new Set<string>();
   let cursor: string | undefined;
   for (let pageNumber = 0; pageNumber < client.campaign.maxProjectPages; pageNumber++) {
     const page = parsePage(await client.call("listIssues", { project: client.scope.projectId, fields: inventoryFields,
       includeArchived: true, orderBy: "createdAt", limit: client.scope.pageSize, ...(cursor ? { cursor } : {}) }));
-    for (const issue of page.issues) {
-      if (ids.has(issue.uuid)) fail("source_duplicate_issue");
-      ids.add(issue.uuid); rows.push(issue);
-      if (rows.length > client.scope.maxIssues * 20) fail("source_project_inventory_bound_exceeded");
-    }
+    appendProjectPage(client, rows, ids, page);
     if (!page.hasNextPage) return { rows, pageCount: pageNumber + 1 };
-    cursor = page.cursor!;
-    if (cursors.has(cursor)) fail("source_cursor_repeated");
-    cursors.add(cursor);
+    cursor = nextCursor(page, cursors);
   }
   return fail("source_page_bound_exceeded");
+}
+
+function appendChildPage(client: CampaignClient, parent: Detail, rows: Inventory[], ids: Set<string>,
+  page: ReturnType<typeof parsePage>) {
+  for (const child of page.issues) {
+    verifyScope(client, child);
+    if (![parent.id, parent.uuid].includes(child.parentId ?? "")) fail("source_parent_mismatch");
+    if (ids.has(child.uuid)) fail("source_duplicate_child");
+    ids.add(child.uuid); rows.push(child);
+  }
 }
 
 async function listChildren(client: CampaignClient, parent: Detail) {
@@ -111,16 +130,9 @@ async function listChildren(client: CampaignClient, parent: Detail) {
   for (let pageNumber = 0; pageNumber < client.scope.maxPagesPerParent; pageNumber++) {
     const page = parsePage(await client.call("listIssues", { parentId: parent.id, fields: inventoryFields,
       includeArchived: true, orderBy: "createdAt", limit: client.scope.pageSize, ...(cursor ? { cursor } : {}) }));
-    for (const child of page.issues) {
-      verifyScope(client, child);
-      if (![parent.id, parent.uuid].includes(child.parentId ?? "")) fail("source_parent_mismatch");
-      if (ids.has(child.uuid)) fail("source_duplicate_child");
-      ids.add(child.uuid); rows.push(child);
-    }
+    appendChildPage(client, parent, rows, ids, page);
     if (!page.hasNextPage) return rows.sort((a, b) => a.uuid.localeCompare(b.uuid));
-    cursor = page.cursor!;
-    if (cursors.has(cursor)) fail("source_cursor_repeated");
-    cursors.add(cursor);
+    cursor = nextCursor(page, cursors);
   }
   return fail("source_page_bound_exceeded");
 }
@@ -130,84 +142,129 @@ function inventoryIdentity(issue: Inventory | Detail) {
     projectId: issue.projectId, projectMilestone: issueMilestone(issue), updatedAt: issue.updatedAt };
 }
 
+async function loadDirectIssue(client: CampaignClient, states: States, issues: Map<string, Detail>, queue: Detail[], item: Inventory) {
+  if (issues.has(item.uuid)) fail("source_duplicate_issue");
+  const detail = await readDetail(client, states, item.uuid);
+  same(inventoryIdentity(detail), inventoryIdentity(item), "source_inventory_changed");
+  issues.set(detail.uuid, detail); queue.push(detail);
+}
+
+async function loadChildIssue(client: CampaignClient, states: States, issues: Map<string, Detail>, queue: Detail[], child: Inventory) {
+  const existing = issues.get(child.uuid);
+  if (existing) return same(inventoryIdentity(existing), inventoryIdentity(child), "source_inventory_changed");
+  if (issues.size >= Math.min(client.scope.maxIssues, 32)) fail("source_issue_bound_exceeded");
+  const detail = await readDetail(client, states, child.uuid);
+  same(inventoryIdentity(detail), inventoryIdentity(child), "source_inventory_changed");
+  issues.set(detail.uuid, detail); queue.push(detail);
+}
+
+function recordChildOwner(childOwner: Map<string, string>, child: Inventory, parent: Detail) {
+  const owner = childOwner.get(child.uuid);
+  if (owner && owner !== parent.uuid) fail("source_hierarchy_repeated");
+  childOwner.set(child.uuid, parent.uuid);
+}
+
 async function expandMilestone(client: CampaignClient, states: States, direct: Inventory[]) {
   const issues = new Map<string, Detail>(), queue: Detail[] = [], childInventory = new Map<string, Inventory[]>(), childOwner = new Map<string, string>();
-  for (const item of direct.sort((a, b) => a.uuid.localeCompare(b.uuid))) {
-    if (issues.has(item.uuid)) fail("source_duplicate_issue");
-    const detail = await readDetail(client, states, item.uuid);
-    same(inventoryIdentity(detail), inventoryIdentity(item), "source_inventory_changed");
-    issues.set(detail.uuid, detail); queue.push(detail);
-  }
+  for (const item of direct.sort((a, b) => a.uuid.localeCompare(b.uuid))) await loadDirectIssue(client, states, issues, queue, item);
   for (const parent of queue) {
     const children = await listChildren(client, parent);
     childInventory.set(parent.uuid, children);
     for (const child of children) {
-      const owner = childOwner.get(child.uuid);
-      if (owner && owner !== parent.uuid) fail("source_hierarchy_repeated");
-      childOwner.set(child.uuid, parent.uuid);
-      const existing = issues.get(child.uuid);
-      if (existing) {
-        same(inventoryIdentity(existing), inventoryIdentity(child), "source_inventory_changed");
-        continue;
-      }
-      if (issues.size >= Math.min(client.scope.maxIssues, 32)) fail("source_issue_bound_exceeded");
-      const detail = await readDetail(client, states, child.uuid);
-      same(inventoryIdentity(detail), inventoryIdentity(child), "source_inventory_changed");
-      issues.set(detail.uuid, detail); queue.push(detail);
+      recordChildOwner(childOwner, child, parent);
+      await loadChildIssue(client, states, issues, queue, child);
     }
   }
   return { issues, childInventory, childOwner };
 }
 
+function compatibleTicket(client: CampaignClient, ticket: Detail) {
+  return [ticket.archivedAt === null, !["started", "completed", "canceled"].includes(ticket.statusType),
+    client.campaign.compatibleCampaignStateIds.includes(ticket.currentStateId)].every(Boolean);
+}
+
+function compatibleSelectedIssue(issue: Detail) {
+  return [["backlog", "unstarted", "completed", "canceled"].includes(issue.statusType),
+    issue.archivedAt === null || ["completed", "canceled"].includes(issue.statusType)].every(Boolean);
+}
+
 function requireCompatibleState(client: CampaignClient, ticket: Detail, issues: Detail[]) {
-  if (ticket.archivedAt || ["started", "completed", "canceled"].includes(ticket.statusType)
-      || !client.campaign.compatibleCampaignStateIds.includes(ticket.currentStateId)) fail("campaign_state_incompatible");
+  if (!compatibleTicket(client, ticket)) fail("campaign_state_incompatible");
   for (const issue of issues) {
     if (issue.statusType === "started") fail("campaign_work_already_started");
-    if (!["backlog", "unstarted", "completed", "canceled"].includes(issue.statusType)) fail("campaign_state_incompatible");
-    if (issue.archivedAt && !["completed", "canceled"].includes(issue.statusType)) fail("campaign_state_incompatible");
+    if (!compatibleSelectedIssue(issue)) fail("campaign_state_incompatible");
   }
 }
 
-function nativeMapping(ticket: Detail, issues: Map<string, Detail>, childOwner: Map<string, string>): CampaignNativeMapping[] {
+function childGroups(childOwner: Map<string, string>) {
   const children = new Map<string, string[]>();
   for (const [child, parent] of childOwner) children.set(parent, [...(children.get(parent) ?? []), child]);
+  return children;
+}
+
+function appendOrderedChild(ordered: string[], seen: Set<string>, child: string) {
+  if (seen.has(child)) fail("campaign_parent_cycle");
+  seen.add(child); ordered.push(child);
+}
+
+function hierarchyOrder(issues: Map<string, Detail>, childOwner: Map<string, string>) {
   const roots = [...issues.keys()].filter(id => !childOwner.has(id)).sort();
   if (roots.length === 0) fail("campaign_parent_cycle");
-  const ordered = [...roots], seen = new Set(roots);
-  for (const parent of ordered) for (const child of (children.get(parent) ?? []).sort()) {
-    if (seen.has(child)) fail("campaign_parent_cycle");
-    seen.add(child); ordered.push(child);
+  const ordered = [...roots], seen = new Set(roots), children = childGroups(childOwner);
+  for (const parent of ordered) {
+    for (const child of (children.get(parent) ?? []).sort()) appendOrderedChild(ordered, seen, child);
   }
   if (seen.size !== issues.size) fail("campaign_parent_cycle");
+  return ordered;
+}
+
+function mappingEntry(ticket: Detail, issues: Map<string, Detail>, childOwner: Map<string, string>, sourceId: string) {
+  const issue = issues.get(sourceId)!, owner = childOwner.get(sourceId);
+  return { sourceId, sourceParentId: issue.parentId, nativeParentSourceId: owner ?? ticket.uuid,
+    role: owner ? "milestone-node" as const : "milestone-root" as const };
+}
+
+function nativeMapping(ticket: Detail, issues: Map<string, Detail>, childOwner: Map<string, string>): CampaignNativeMapping[] {
   return [{ sourceId: ticket.uuid, sourceParentId: ticket.parentId, nativeParentSourceId: null, role: "campaign-root" },
-    ...ordered.map(sourceId => { const issue = issues.get(sourceId)!; const owner = childOwner.get(sourceId);
-      return { sourceId, sourceParentId: issue.parentId, nativeParentSourceId: owner ?? ticket.uuid,
-        role: owner ? "milestone-node" as const : "milestone-root" as const }; })];
+    ...hierarchyOrder(issues, childOwner).map(sourceId => mappingEntry(ticket, issues, childOwner, sourceId))];
+}
+
+function selectedMilestone(project: z.infer<typeof projectSchema>, ticket: Detail) {
+  const marker = contract(() => parseCampaignMarker(ticket.description));
+  if (!marker) fail("campaign_marker_missing");
+  if (issueMilestone(ticket) !== null) fail("campaign_ticket_in_milestone");
+  const matches = project.milestones.filter(value => value.id === marker.milestoneId);
+  if (matches.length !== 1) fail("campaign_milestone_missing");
+  const observed = matches[0]!;
+  return { marker, milestone: { id: observed.id, name: observed.name, description: observed.description ?? null } };
+}
+
+function directMembers(inventory: Awaited<ReturnType<typeof projectInventory>>, milestoneId: string) {
+  const direct = inventory.rows.filter(issue => issueMilestone(issue) === milestoneId);
+  if (direct.length === 0) fail("campaign_milestone_empty");
+  if (direct.length > 32) fail("source_issue_bound_exceeded");
+  return direct;
+}
+
+function requireCampaignBlockers(selected: Detail[]) {
+  const blockers = familyBlockers(selected);
+  if (blockers.cycleAffectedIssueIds.length) fail("campaign_blocker_cycle");
+  if (blockers.externalBlockers.length) fail("campaign_external_blocker");
+  return blockers;
 }
 
 async function collectCampaign(client: CampaignClient, ticketId: string) {
   const { project, states } = await readMetadata(client);
   const ticket = await readDetail(client, states, ticketId);
-  const marker = contract(() => parseCampaignMarker(ticket.description));
-  if (!marker) fail("campaign_marker_missing");
-  if (issueMilestone(ticket) !== null) fail("campaign_ticket_in_milestone");
-  const milestoneMatches = project.milestones.filter(value => value.id === marker.milestoneId);
-  if (milestoneMatches.length !== 1) fail("campaign_milestone_missing");
-  const observedMilestone = milestoneMatches[0]!;
-  const milestone = { id: observedMilestone.id, name: observedMilestone.name, description: observedMilestone.description ?? null };
+  const { marker, milestone } = selectedMilestone(project, ticket);
   const references = { prd: contract(() => resolveCampaignReference(marker.prd, client.campaign.referenceDocuments)),
     tad: contract(() => resolveCampaignReference(marker.tad, client.campaign.referenceDocuments)) };
   const inventory = await projectInventory(client);
-  const direct = inventory.rows.filter(issue => issueMilestone(issue) === marker.milestoneId);
-  if (direct.length === 0) fail("campaign_milestone_empty");
-  if (direct.length > 32) fail("source_issue_bound_exceeded");
+  const direct = directMembers(inventory, marker.milestoneId);
   const expanded = await expandMilestone(client, states, direct);
   const selected = [...expanded.issues.values()].sort((a, b) => a.uuid.localeCompare(b.uuid));
   requireCompatibleState(client, ticket, selected);
-  const blockers = familyBlockers(selected);
-  if (blockers.cycleAffectedIssueIds.length) fail("campaign_blocker_cycle");
-  if (blockers.externalBlockers.length) fail("campaign_external_blocker");
+  const blockers = requireCampaignBlockers(selected);
   const mapping = nativeMapping(ticket, expanded.issues, expanded.childOwner);
   const digestInput = { milestone, referenceContents: references, nativeMapping: mapping };
   const materialSourceSha256 = campaignMaterialSourceSha256(ticket, selected, digestInput);

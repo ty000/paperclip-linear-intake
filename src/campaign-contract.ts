@@ -3,8 +3,8 @@ import { z } from "@paperclipai/plugin-sdk";
 import { contentDigest } from "./content-digest.js";
 
 export const CAMPAIGN_MODE = "milestone-fixed-v1" as const;
-export const CAMPAIGN_MARKER_SCHEMA = "linear-milestone-campaign.v1" as const;
-export const CAMPAIGN_READINESS_SCHEMA = "linear-milestone-campaign-readiness.v1" as const;
+const CAMPAIGN_MARKER_SCHEMA = "linear-milestone-campaign.v1" as const;
+const CAMPAIGN_READINESS_SCHEMA = "linear-milestone-campaign-readiness.v1" as const;
 
 const uuid = z.uuid();
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
@@ -14,13 +14,13 @@ const httpsUrl = z.url().max(2048).refine(value => {
   return parsed.protocol === "https:" && !parsed.username && !parsed.password && !parsed.hash;
 }, "Campaign references require a bounded HTTPS URL without credentials or fragments");
 
-export const campaignReferenceSchema = z.strictObject({
+const campaignReferenceSchema = z.strictObject({
   url: httpsUrl,
   version: z.string().trim().min(1).max(64),
   sha256: digest,
 });
 
-export const campaignMarkerSchema = z.strictObject({
+const campaignMarkerSchema = z.strictObject({
   schema: z.literal(CAMPAIGN_MARKER_SCHEMA),
   milestoneId: uuid,
   prd: campaignReferenceSchema,
@@ -31,7 +31,7 @@ export const campaignReferenceContentSchema = campaignReferenceSchema.extend({
   content: z.string().min(1).max(1_000_000),
 }).strict();
 
-export const campaignNativeMappingSchema = z.strictObject({
+const campaignNativeMappingSchema = z.strictObject({
   sourceId: uuid,
   sourceParentId: sourceReference.nullable(),
   nativeParentSourceId: uuid.nullable(),
@@ -77,18 +77,19 @@ function campaignError(code: string): never {
   throw new CampaignContractError(code);
 }
 
+function markerJson(source: string) {
+  const openings = [...source.matchAll(/```paperclip-campaign\b/g)];
+  const matches = [...source.matchAll(/^```paperclip-campaign[\t ]*\r?\n([\s\S]*?)\r?\n```[\t ]*$/gm)];
+  if (openings.length !== 1 || matches.length !== 1) return campaignError("campaign_marker_invalid");
+  try { return JSON.parse(matches[0]![1]!) as unknown; }
+  catch { return campaignError("campaign_marker_invalid"); }
+}
+
 /** Returns undefined only when no campaign fence exists. Any malformed or repeated fence fails closed. */
 export function parseCampaignMarker(description: string | null): CampaignMarker | undefined {
   const source = description ?? "";
   if (!source.includes("```paperclip-campaign")) return undefined;
-  const openings = [...source.matchAll(/```paperclip-campaign\b/g)];
-  if (openings.length !== 1) return campaignError("campaign_marker_invalid");
-  const matches = [...source.matchAll(/^```paperclip-campaign[\t ]*\r?\n([\s\S]*?)\r?\n```[\t ]*$/gm)];
-  if (matches.length !== 1) return campaignError("campaign_marker_invalid");
-  let value: unknown;
-  try { value = JSON.parse(matches[0]![1]!); }
-  catch { return campaignError("campaign_marker_invalid"); }
-  const parsed = campaignMarkerSchema.safeParse(value);
+  const parsed = campaignMarkerSchema.safeParse(markerJson(source));
   if (!parsed.success) return campaignError("campaign_marker_invalid");
   return parsed.data;
 }
