@@ -45,7 +45,10 @@ ordered effects before Linear dispatch. A per-campaign SQL compare-and-set slot
 serializes different intents; per-row version checks arbitrate competing workers
 for the same intent. No timeout releases an uncertain effect or invents a new key.
 
-One root-ticket comment includes the original intent ID and payload hash. Exact
+One root-ticket comment renders readable progress, source titles, PRD/TAD links,
+known pull-request links and the final criterion coverage. Internal bindings and
+proof IDs stay in native evidence; a discreet marker retains the original intent
+ID and payload hash. Exact
 content plus marker, with complete bounded pagination, qualifies its readback.
 This is not a claim of native comment immutability. Optional `statusUpdates`
 contains at most 33 `{sourceId, state: "started"|"completed"|"cancelled"}` entries;
@@ -58,6 +61,14 @@ The comment precedes status changes. A terminal root status is last, after all
 preceding effects have read back. The entire intent receives one immutable native
 receipt only when every effect is confirmed. A lost response is reconciled under
 the same intent; even a complete empty readback never authorizes another comment.
+Comment-only decision/cancellation intents use their own row CAS so a paused
+status intent does not hide the owner’s control message. They never release or
+acknowledge an older intent. Fully confirmed intents remain acknowledgeable during
+pause. Other pending status intents retain their identity for owner resume; Council
+still blocks new work until its full outbox is confirmed. Cancellation with an
+uncertain or superseded pending status remains visibly blocked in V1; there is no
+false confirmation or automatic disposition protocol.
+
 A crash after claim but before send therefore remains blocked for explicit
 operator investigation. There is deliberately no automatic retry/repair action
 for this irreducible uncertainty.

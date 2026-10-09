@@ -9,7 +9,7 @@ import { requirePublication } from "./continuity-contract.js";
 import { readPublicationComments } from "./publication-comments.js";
 
 const suffixes = { saveComment: "save-comment", listComments: "list-comments", saveIssue: "save-issue", getIssue: "get-issue" } as const;
-const fields = ["uuid", "title", "description", "parentId", "teamId", "projectId", "projectMilestone", "updatedAt", "createdAt",
+const fields = ["id", "uuid", "title", "description", "parentId", "teamId", "projectId", "projectMilestone", "updatedAt", "createdAt",
   "status", "statusType", "stateHistory", "completedAt", "canceledAt", "archivedAt", "relations"];
 
 type GatewaySession = NonNullable<Awaited<ReturnType<typeof openGateway>>>;
@@ -56,7 +56,7 @@ export async function openPublicationClient(ctx: PluginContext, companyId: strin
     comments: (issueId: string) => readPublicationComments(issueId, publisher.maxCommentPages,
       cursor => call("listComments", { issueId, limit: publisher.pageSize, orderBy: "createdAt", ...(cursor ? { cursor } : {}) })),
     async issue(issueId: string) {
-      const raw = await call("getIssue", { id: issueId, fields });
+      const raw = await call("getIssue", { id: issueId, fields, includeRelations: true });
       const issue = parseDetail(raw);
       requirePublication(issue.uuid === issueId && issue.teamId === session.config.sourceReader!.teamId
         && issue.projectId === session.config.sourceReader!.projectId, "publication_issue_mismatch");

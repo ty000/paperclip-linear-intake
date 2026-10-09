@@ -1,4 +1,6 @@
 import { z } from "@paperclipai/plugin-sdk";
+import { contentDigest } from "./content-digest.js";
+import { publicationText, emptyPresentation } from "./publication-text.js";
 import { requirePublication } from "./continuity-contract.js";
 
 const pageSchema = z.object({ comments: z.array(z.object({ id: z.uuid(), body: z.string(), issueId: z.uuid().optional() }).passthrough()).max(250),
@@ -33,4 +35,13 @@ export async function readPublicationComments(issueId: string, maxPages: number,
     cursor = nextCursor(parsed.data, cursors);
   }
   throw new Error("publication_comments_incomplete");
+}
+
+/** Presentation is derived from the retained source and bound Council payload, never live metadata. */
+export function renderPublicationComment(payload: import("./continuity-contract.js").PublicationPayload,
+  intentId: string, context = emptyPresentation) {
+  const marker = `<!-- paperclip-linear:${intentId}:${contentDigest(payload)} -->`;
+  const body = `${publicationText(payload, context)}\n\n${marker}`;
+  requirePublication(Buffer.byteLength(body) <= 24_000, "publication_content_bound");
+  return body;
 }

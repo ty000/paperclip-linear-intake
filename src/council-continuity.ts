@@ -22,28 +22,28 @@ async function openSession(ctx: PluginContext, request: ContinuityRequest, store
   return session;
 }
 
-function allowStatusControl(request: ContinuityRequest, states: Array<{ state: string }>) {
+function statusControlAllows(request: ContinuityRequest, states: Array<{ state: string }>) {
   const allowed = request.control === "running" || states.length === 0
     || (["cancel_requested", "cancelled"].includes(request.control) && states.every(u => u.state === "cancelled"));
-  requirePublication(allowed, "publication_control_paused");
+  return allowed;
 }
 
 async function journalIntents(session: HandoffSession, request: ContinuityRequest, store: PublicationStore, client: PublicationClient) {
-  const { activeSourceIds } = campaignSourceIdentity(session, request), rows = [];
+  const { activeSourceIds, presentation } = campaignSourceIdentity(session, request), rows = [];
   for (const reference of request.publications.slice(0, 32)) {
     const value = await readContinuityDocument(session.ctx, request.binding.companyId, request.binding.nativeRootId, reference.document);
     const document = publicationDocumentSchema.parse(value);
     requirePublication([document.intentId === reference.intentId, document.payloadSha256 === reference.payloadSha256,
       contentDigest(document.payload) === reference.payloadSha256].every(Boolean), "publication_document_changed");
-    allowStatusControl(request, document.payload.statusUpdates ?? []);
-    const effects = publicationEffects(request, reference.intentId, document.payload, activeSourceIds, client.publisher.states);
+    const effects = publicationEffects(request, reference.intentId, document.payload, activeSourceIds, client.publisher.states, presentation);
     rows.push(await store.ensure(request, reference.intentId, document.payload, effects));
   }
   return rows;
 }
 
 async function dispatchIfEnabled(session: HandoffSession, store: PublicationStore, client: PublicationClient,
-  row: import("./publication-store.js").PublicationRecord, guardWrite: () => Promise<void>) {
+  row: import("./publication-store.js").PublicationRecord, guardWrite: () => Promise<void>, request: ContinuityRequest) {
+  if (!statusControlAllows(request, row.payload.statusUpdates ?? [])) return row;
   const config = await guardContinuity(session);
   return config.publisher!.enabled ? dispatchPublication(store, client, row, guardWrite) : row;
 }
@@ -63,7 +63,7 @@ async function publish(session: HandoffSession, request: ContinuityRequest, stor
     await observeCampaign(session, request, store);
   };
   for (const row of rows) {
-    const current = await dispatchIfEnabled(session, store, client, row, guardWrite);
+    const current = await dispatchIfEnabled(session, store, client, row, guardWrite, request);
     if (current.effects.every(effect => effect.state === "confirmed")) {
       acknowledgements.push(await publicationReceipt(session.ctx, store, current));
     }

@@ -42,3 +42,20 @@ test('ongoing state authority requires confirmed readback and terminal result do
  const rows=[row('completed',ids.done,'2020-01-01'),row('started',ids.started,'2040-01-01'),row('cancelled',ids.canceled,'2041-01-01','claimed')];
  assert.equal(confirmedPublicationStates(rows).get(ids.child),ids.done);assert.throws(()=>confirmedPublicationStates([...rows,row('cancelled',ids.canceled,'2019-01-01')]),/conflict/);
 });
+test('comment readback rejects missing continuation, duplicate IDs, scope drift and unknown output shapes',async()=>{
+ const {readPublicationComments}=await import('../dist/publication-comments.js');
+ for(const page of [{comments:[],hasNextPage:true},{comments:[{id:uuid(1),body:'a'},{id:uuid(1),body:'b'}],hasNextPage:false},
+  {comments:[{id:uuid(1),body:'a',issueId:ids.outside}],hasNextPage:false},{nodes:[],pageInfo:{hasNextPage:false}}]){
+  await assert.rejects(readPublicationComments(ids.root,2,async()=>page),/publication_comments_/);
+ }
+ let pages=0;await assert.rejects(readPublicationComments(ids.root,3,async()=>({comments:[{id:uuid(++pages),body:'a'}],hasNextPage:true,cursor:'same'})),/incomplete/);
+});
+test('human comment renders source scope, next step, PR and coverage without internal bindings or JSON',async()=>{
+ const {renderPublicationComment}=await import('../dist/publication-comments.js');const f=await publicationFixture(noDb),{payload,intentId}=f.addIntent([{sourceId:ids.child,state:'completed'}]);
+ const body=renderPublicationComment({...payload,kind:'closure',observation:{state:'complete',nextAction:'Vérification terminée.'},
+  campaignDelivery:{result:{pullRequestUrl:'https://github.com/example/project/pull/7'}},
+  campaignClosure:{coverage:[{criterionId:'internal-criterion',label:'Export lisible'}],report:{verdict:'approved',rows:[{criterionId:'internal-criterion',result:'satisfied',verification:{environment:'isolation',method:'test de lecture'},remainder:null}]}}},intentId,
+  {sources:[{sourceId:ids.child,label:'SYN-2 — Export'}],references:[{label:'PRD',url:'https://example.test/prd'}]});
+ assert.match(body,/Export lisible — Satisfait/);assert.match(body,/1\/1 critères satisfaits/);assert.match(body,/pull\/7/);assert.match(body,/SYN-2 — Export : Terminé/);assert.match(body,/Vérification terminée/);
+ const main=body.split('<!--')[0];for(const value of [payload.binding.missionId,'internal-criterion','binding','sourceSha256','"protocol"'])assert.equal(main.includes(value),false);
+});

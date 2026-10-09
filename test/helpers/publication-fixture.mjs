@@ -19,7 +19,7 @@ export function setState(f, id, stateId) {
   i.completedAt=type==='completed'?'2026-10-07T12:00:00.000Z':null;i.canceledAt=type==='canceled'?'2026-10-07T12:00:00.000Z':null;
 }
 export async function publicationFixture(db, options={}) {
-  const f=await handoffFixture({campaign:true,configure(config){config.councilContinuityEnabled=true;config.publisher=publicationConfig();}});
+  const f=await handoffFixture({campaign:true,configure(config){config.councilContinuityEnabled=true;config.publisher=publicationConfig();options.configure?.(config);}});
   const oldDb=f.harness.ctx.db;
   f.harness.ctx.db={namespace:db.namespace,query:(sql,params)=>sql.includes('campaign_publication')?db.query(sql,params):oldDb.query(sql,params),execute:db.execute.bind(db)};
   f.documents=new Map([[f.document.key,f.document]]); let documentNumber=100;
@@ -32,7 +32,7 @@ export async function publicationFixture(db, options={}) {
   f.bindingWire={companyId:ids.company,projectId:uuid(4),missionId:uuid(30),nativeRootId:uuid(7),campaignId:uuid(30),sourceRootId:ids.root,authoritySha256:'a'.repeat(64),subject};
   f.requestWire={protocol:CONTINUITY_PROTOCOL,mode:'milestone-fixed-v1',binding:f.bindingWire,challengeId:uuid(31),nonce:'b'.repeat(64),requestedAt:c.requestedAt,expiresAt:c.expiresAt,sourceSha256:f.plan.plan.campaign.materialSourceSha256,consumedSequence:0,control:'running',publications:[]};
   const put=(key,payload)=>{const body=JSON.stringify(payload),doc={key,body,id:uuid(documentNumber++),latestRevisionId:uuid(documentNumber++)};f.documents.set(key,doc);return {key,documentId:doc.id,revisionId:doc.latestRevisionId,bodySha256:contentDigest(body)};};
-  f.addIntent=(updates=[],intentId=uuid(40))=>{const payload={protocol:CONTINUITY_PROTOCOL,mode:'milestone-fixed-v1',binding:f.bindingWire,sourceSha256:f.requestWire.sourceSha256,kind:'progress',message:'Synthetic campaign progress',statusUpdates:updates};const payloadSha256=contentDigest(payload);f.requestWire.publications.push({intentId,payloadSha256,document:put(`publication-${intentId}`,{intentId,payloadSha256,payload})});return {intentId,payload};};
+  f.addIntent=(updates=[],intentId=uuid(40),kind="progress")=>{const payload={protocol:CONTINUITY_PROTOCOL,mode:'milestone-fixed-v1',binding:f.bindingWire,sourceSha256:f.requestWire.sourceSha256,kind,message:'Synthetic campaign progress',statusUpdates:updates};const payloadSha256=contentDigest(payload);f.requestWire.publications.push({intentId,payloadSha256,document:put(`publication-${intentId}`,{intentId,payloadSha256,payload})});return {intentId,payload};};
   f.continuityResults=[];f.harness.ctx.events.on('plugin.ty000.linear-intake.council-continuity-result',event=>{f.continuityResults.push(JSON.parse(f.documents.get(event.payload.response.key).body));});
   f.sendContinuity=async overrides=>{const request=f.requestWire,proof=put(`request-${uuid(documentNumber++)}`,request);await f.harness.emit(CONTINUITY_REQUEST_EVENT,{protocol:CONTINUITY_PROTOCOL,companyId:ids.company,missionId:uuid(30),nativeRootId:uuid(7),challengeId:request.challengeId,requestSha256:contentDigest(request),request:proof},{companyId:ids.company,actorType:'plugin',actorId:'private.paperclip-council',...overrides});};
   return f;

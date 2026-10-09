@@ -49,7 +49,7 @@ test('a later intent can read back an already-confirmed own status without sendi
  const f=await publicationFixture(database.db);f.addIntent([state(ids.child,'started')]);await f.sendContinuity();f.requestWire.publications=[];f.addIntent([state(ids.child,'started')],uuid(41));await f.sendContinuity();
  assert.equal(f.continuityResults.at(-1)?.acknowledgements.length,1);assert.equal(f.writes.filter(w=>w.role==='saveIssue').length,1);assert.equal(f.comments.length,2);
 });
-test('manual completed state, semantic mapping mismatch, and own terminal reopening block new effects',async()=>{
+test('manual completed state blocks publication before any comment',async()=>{
  const f=await publicationFixture(database.db);f.addIntent([state(ids.child,'completed')]);setState(f,ids.child,ids.done);await f.sendContinuity();assert.equal(f.writes.length,0);
 });
 test('revocation between durable claim and send leaves unknown original identity and never sends after resume',async()=>{
@@ -61,4 +61,27 @@ test('two different campaign intents cannot acquire a publication slot concurren
  const f=await publicationFixture(database.db),a=createPublicationStore(database.db),b=createPublicationStore(database.db);await a.bind(f.requestWire,f.request);
  const one=f.addIntent([],uuid(40)),two=f.addIntent([],uuid(41));const effects=p=>publicationEffects(f.requestWire,p.intentId,p.payload,new Set([ids.root]),f.config.publisher.states);
  const rows=await Promise.all([a.ensure(f.requestWire,one.intentId,one.payload,effects(one)),b.ensure(f.requestWire,two.intentId,two.payload,effects(two))]);const results=await Promise.allSettled([a.acquire(rows[0]),b.acquire(rows[1])]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);
+});
+
+test('status mapping must name the enrolled semantic state, not just a valid UUID',async()=>{
+ const f=await publicationFixture(database.db,{configure(config){[config.publisher.states.started,config.publisher.states.completed]=[config.publisher.states.completed,config.publisher.states.started];}});
+ f.addIntent([{sourceId:ids.child,state:'started'}]);await f.sendContinuity();assert.equal(f.writes.length,0);assert.equal(f.continuityResults.at(-1)?.availability,'unavailable');
+});
+test('pause after lost final response still acknowledges original confirmed publication',async()=>{
+ let lost=false;const f=await publicationFixture(database.db,{afterCall(_f,role){if(role==='saveIssue'&&!lost){lost=true;throw Error('lost');}}});
+ f.addIntent([{sourceId:ids.child,state:'started'}]);await f.sendContinuity();f.requestWire.control='paused';await f.sendContinuity();assert.equal(f.writes.length,2);assert.equal(f.continuityResults.at(-1)?.acknowledgements.length,1);
+});
+test('an entirely pending started intent does not suppress a cancellation comment',async()=>{
+ const f=await publicationFixture(database.db);f.config.publisher.enabled=false;f.addIntent([{sourceId:ids.child,state:'started'}]);await f.sendContinuity();
+ f.requestWire.control='cancel_requested';f.config.publisher.enabled=true;f.addIntent([],uuid(41),'cancellation');await f.sendContinuity();
+ assert.equal(f.comments.length,1);assert.equal(f.writes.filter(w=>w.role==='saveIssue').length,0);assert.deepEqual(f.continuityResults.at(-1)?.acknowledgements.map(a=>a.intentId),[uuid(41)]);
+});
+
+test('control comment can publish after prior comment readback while its started status stays pending',async()=>{
+ const f=await publicationFixture(database.db);f.addIntent([{sourceId:ids.child,state:'started'}]);const execute=f.harness.ctx.db.execute;
+ f.harness.ctx.db.execute=async(sql,args)=>{const out=await execute(sql,args);if(sql.includes('SET effects=')&&JSON.parse(args[0])[0].state==='confirmed')f.config.publisher.enabled=false;return out;};
+ await f.sendContinuity();assert.equal(f.comments.length,1);const rows=await createPublicationStore(database.db).list(ids.company,uuid(30));assert.equal(rows[0].effects[1].state,'pending');
+ f.harness.ctx.db.execute=execute;f.config.publisher.enabled=true;f.requestWire.control='paused';f.addIntent([],uuid(41),'decision');await f.sendContinuity();
+ assert.equal(f.comments.length,2);assert.equal(f.writes.filter(w=>w.role==='saveIssue').length,0);assert.deepEqual(f.continuityResults.at(-1)?.acknowledgements.map(a=>a.intentId),[uuid(41)]);
+ f.requestWire.control='running';await f.sendContinuity();assert.equal(f.writes.filter(w=>w.role==='saveIssue').length,1);assert.equal(f.continuityResults.at(-1)?.acknowledgements.length,2);
 });

@@ -7,7 +7,7 @@ import { currentConfig, fingerprint } from "./intake-authority.js";
 import { confirmedPublicationStates } from "./publication-engine.js";
 import type { PublicationStore } from "./publication-store.js";
 
-const issueSchema = z.object({ uuid: z.uuid(), currentStateId: z.uuid(), statusType: z.string(), archivedAt: z.string().nullable() });
+const issueSchema = z.object({ uuid: z.uuid(), id: z.string(), title: z.string(), currentStateId: z.uuid(), statusType: z.string(), archivedAt: z.string().nullable() });
 
 export function campaignSourceIdentity(session: HandoffSession, request: ContinuityRequest) {
   const campaign = campaignReadinessSchema.parse(session.plan.plan.campaign);
@@ -16,7 +16,9 @@ export function campaignSourceIdentity(session: HandoffSession, request: Continu
   "continuity_source_binding_changed");
   const original = z.array(issueSchema).min(1).max(33).parse(session.request.snapshot?.issues);
   const active = original.filter(i => i.archivedAt === null && !["completed", "canceled"].includes(i.statusType));
-  return { campaign, original, activeSourceIds: new Set(active.map(i => i.uuid)) };
+  const presentation = { sources: original.map(issue => ({ sourceId: issue.uuid, label: `${issue.id} — ${issue.title}` })),
+    references: [{ label: "PRD", url: campaign.references.prd.url }, { label: "TAD", url: campaign.references.tad.url }] };
+  return { campaign, original, presentation, activeSourceIds: new Set(active.map(i => i.uuid)) };
 }
 
 export async function guardContinuity(session: HandoffSession) {

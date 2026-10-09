@@ -1,19 +1,17 @@
+import { renderPublicationComment } from "./publication-comments.js";
+import type { PublicationPresentation } from "./publication-text.js";
 import { contentDigest } from "./content-digest.js";
 import { requirePublication, type ContinuityRequest, type PublicationPayload } from "./continuity-contract.js";
 import type { PublicationClient } from "./publication-client.js";
 import type { PublicationEffect, PublicationRecord, PublicationStore } from "./publication-store.js";
 
 export function publicationEffects(request: ContinuityRequest, intentId: string, payload: PublicationPayload,
-  activeSourceIds: ReadonlySet<string>, states: PublicationClient["publisher"]["states"]): PublicationEffect[] {
+  activeSourceIds: ReadonlySet<string>, states: PublicationClient["publisher"]["states"], presentation?: PublicationPresentation): PublicationEffect[] {
   requirePublication(contentDigest(payload.binding) === contentDigest(request.binding) && payload.sourceSha256 === request.sourceSha256, "publication_binding_changed");
   const root = request.binding.sourceRootId, updates = payload.statusUpdates ?? [];
   requirePublication(new Set(updates.map(u => u.sourceId)).size === updates.length, "publication_duplicate_status");
   for (const update of updates) requirePublication(activeSourceIds.has(update.sourceId), "publication_source_outside_campaign");
-  const { protocol: _protocol, binding: _binding, sourceSha256: _source, mode: _mode, statusUpdates: _statuses, kind, ...content } = payload;
-  const label = { progress: "Progression", blocker: "Blocage", question: "Question", decision: "Décision", closure: "Bilan", cancellation: "Annulation" }[kind];
-  const marker = `<!-- paperclip-linear:${intentId}:${contentDigest(payload)} -->`;
-  const body = `## Council — ${label}\n\n${JSON.stringify(content, null, 2)}\n\n${marker}`;
-  requirePublication(Buffer.byteLength(body) <= 24_000, "publication_content_bound");
+  const body = renderPublicationComment(payload, intentId, presentation);
   // The terminal campaign-root status is last, after all other effects read back.
   const ordered = [...updates].sort((a,b) => Number(a.sourceId === root && a.state !== "started") - Number(b.sourceId === root && b.state !== "started"));
   return [{ kind: "comment", sourceId: root, body, state: "pending" },
@@ -91,10 +89,20 @@ async function dispatchEffect(store: PublicationStore, client: PublicationClient
   return reconcileClaim(store, client, row, index);
 }
 
+function controlComment(row: PublicationRecord) {
+  return [row.effects.length === 1, row.effects[0]?.kind === "comment",
+    ["decision", "cancellation"].includes(row.payload.kind)].every(Boolean);
+}
+
+async function acquirePublication(store: PublicationStore, row: PublicationRecord) {
+  if (!controlComment(row)) await store.acquire(row);
+}
+
 export async function dispatchPublication(store: PublicationStore, client: PublicationClient, initial: PublicationRecord,
   guardWrite: () => Promise<void>) {
   let row = await reconcilePublication(store, client, initial);
-  await store.acquire(row);
+  // A control comment has no status effect and cannot settle or release an older intent.
+  await acquirePublication(store, row);
   for (let i = 0; i < row.effects.length; i++) {
     const effect = row.effects[i]!;
     if (effect.state === "confirmed") continue;
