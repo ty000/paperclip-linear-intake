@@ -3,6 +3,7 @@ import { parseConfig } from "./config.js";
 import { probeSource } from "./source-probe.js";
 import { inspectGateway } from "./gateway.js";
 import { readSourceFamily } from "./source-family.js";
+import { readCampaignSource } from "./campaign-source.js";
 import { SourceReadError } from "./source-client.js";
 import { createIntakeRuntime, type IntakeRuntime } from "./intake-runtime.js";
 import { registerIntakeActions } from "./intake-actions.js";
@@ -45,6 +46,17 @@ const plugin = definePlugin({
         // caller input; authority comes exclusively from the action context.
         const input = z.object({ issueId: z.uuid() }).parse(params);
         return await readSourceFamily(ctx, actionContext.companyId, input.issueId);
+      } catch (error) {
+        return familyReadFailure(error);
+      }
+    });
+    ctx.actions.register("read-campaign-source", async (params, actionContext) => {
+      if (!isAuthenticatedOperator(actionContext) || !hasMatchingCompany(actionContext)) {
+        return { status: "blocked", reason: "source_reader_operator_required", importPerformed: false };
+      }
+      try {
+        const input = z.object({ issueId: z.uuid() }).parse(params);
+        return await readCampaignSource(ctx, actionContext.companyId, input.issueId);
       } catch (error) {
         return familyReadFailure(error);
       }

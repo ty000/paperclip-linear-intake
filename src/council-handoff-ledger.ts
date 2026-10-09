@@ -104,6 +104,8 @@ function verifyReadinessBody(readiness: ImportEffect, effects: ImportEffect[], s
   const receipts = session.plan.expectedEffectKeys.filter(key => key !== readiness.effectKey)
     .map(key => effectReceipt(byKey.get(key)!));
   requireHandoff(contentDigest(body.effects) === contentDigest(receipts), "handoff_effects_changed");
+  requireHandoff(contentDigest(body.campaign ?? null) === contentDigest(session.plan.plan.campaign ?? null),
+    "handoff_readiness_invalid");
 }
 
 function verifyReadinessReceipt(session: HandoffSession, found: Record<string, unknown> | undefined) {
