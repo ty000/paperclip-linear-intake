@@ -146,4 +146,3 @@ export function resolveCampaignReference(reference: CampaignReference,
   }
   return parsed.data;
 }
-

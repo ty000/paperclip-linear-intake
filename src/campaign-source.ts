@@ -308,4 +308,3 @@ export async function readCampaignSource(ctx: PluginContext, companyId: string, 
     startedAt, completedAt: new Date().toISOString(), consistency: "repeated_material_and_state_compatible" as const,
     requests: client.requests() };
 }
-
