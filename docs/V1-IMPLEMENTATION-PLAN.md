@@ -12,6 +12,8 @@ ni mise à niveau de recette ni qualification du gateway réel.
 | --- | --- |
 | Intake : raccordement, import milestone, publication/revalidation | [#11](https://github.com/ty000/paperclip-linear-intake/pull/11) → [#12](https://github.com/ty000/paperclip-linear-intake/pull/12) → [#13](https://github.com/ty000/paperclip-linear-intake/pull/13) |
 | Council : contrôles, occupation du dépôt, réception, livraisons sérielles, clôture globale | [#79](https://github.com/ty000/paperclip-council/pull/79) → [#80](https://github.com/ty000/paperclip-council/pull/80) → [#81](https://github.com/ty000/paperclip-council/pull/81) → [#82](https://github.com/ty000/paperclip-council/pull/82) → [#83](https://github.com/ty000/paperclip-council/pull/83) |
+| Council : scénario natif installé, qualification en cours | [#84, draft](https://github.com/ty000/paperclip-council/pull/84), après #83 |
+
 Ce plan précise la réalisation
 de la V1 ; il ne rouvre pas son périmètre et ne transforme pas les fonctions
 reportées en prérequis. Le [plan historique](IMPLEMENTATION-PLAN.md) reste inchangé.

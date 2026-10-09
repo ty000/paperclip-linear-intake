@@ -42,6 +42,12 @@ Le tunnel, son exposition et l'enregistrement du webhook sont des effets à
 inclure dans l'autorisation du pilote, pas dans la livraison du code. Aucun de
 ces effets n'a été réalisé. La qualification isolée utilise son propre serveur.
 
+Priorité confirmée par l'utilisateur : terminer d'abord la vérification du flow
+local ; ajouter l'entrée publique seulement si sa mise en place reste simple.
+Paperclip fournit déjà le serveur HTTP WSL, aucun second serveur applicatif n'est
+nécessaire. Aucun outil de tunnel courant n'est actuellement disponible dans le
+PATH WSL observé (`cloudflared`, `ngrok`, `tailscale`, `caddy`).
+
 Références : [webhooks Linear](https://linear.app/developers/webhooks),
 [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/).
 
@@ -134,6 +140,12 @@ monétaire ou un plafond absolu de tokens. Aucun retry ni cycle de correction fo
 supplémentaire n'est inclus. L'autorisation finale fixe période, nombre prévisionnel de
 runs issu de L5 et profils réellement disponibles. Une consommation insuffisamment connue
 suspend le départ suivant.
+
+Le scénario nominal isolé prévoit 17 runs : huit par livraison (préparation,
+contribution, intégration, deux avis spécialisés, verdict, publication, fusion)
+puis une revue globale. Ses 2 550 unités de fixture ne sont pas une estimation de
+consommation réelle. Le pilote réutilisera ce compte seulement après confirmation
+par la preuve terminale L5, sans autoriser de correction ou de reprise additionnelle.
 
 Le même relevé voit Council `0.7.26` et intake `0.1.4` installés, sans run actif parmi les
 207 runs renvoyés. Une mise à niveau recharge le plugin de l'instance, pas seulement le
