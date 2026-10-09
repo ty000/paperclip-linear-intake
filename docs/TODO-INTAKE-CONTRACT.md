@@ -65,9 +65,13 @@ result remains uncertain; do not repeat a create or use a replacement identity.
 
 The family remains ineligible for Council until all selected objects,
 descriptions, source revisions and relations have been read back and the
-immutable readiness document is complete. Native task creation must not trigger
+revision-pinned readiness document is complete. Native task creation must not trigger
 implementation wakes before this boundary. Event delivery alone cannot replace
 this durable readiness check.
+
+Paperclip documents are mutable. The importer pins the observed identity,
+revision and content hash and rejects drift; the SDK supplies no native
+immutability guarantee.
 
 ## Council handoff
 
@@ -83,7 +87,7 @@ impersonation is used.
 
 Explicit project rules map executable source UUIDs to contributors and
 `ownedPaths`. Council persists each preparation intent before atomically changing
-assignment and status to Backlog, creates immutable `council-work` documents and
+assignment and status to Backlog, creates revision-pinned `council-work` documents and
 reads effects back. An uncertain absent effect is not dispatched again. Intake
 invents neither assignees nor paths. Done/cancelled descendants remain unassigned
 history, excluded from execution and newly completed work. This receiver requires

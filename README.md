@@ -7,9 +7,12 @@ admission, accounting and implementation dispatch.
 
 **Fixed campaign publisher (source 0.6.0):** optional authenticated Council
 continuity now has a durable comment/status journal, exact readback and restart
-reconciliation. It remains disabled by default and has only synthetic SDK and
-isolated PostgreSQL qualification. No real Linear publication is qualified by this
-change. See [campaign publication](docs/qualification/CAMPAIGN-PUBLICATION.md).
+reconciliation. It remains disabled by default. Synthetic SDK and isolated
+PostgreSQL checks are complemented by the [complete installed isolated
+campaign](https://github.com/ty000/paperclip-council/blob/ecb8032bdc8f5608265b87c2317c7b979a835794/docs/LINEAR-CAMPAIGN-V1.md): two serial integrations, global review, terminal readback and
+repository release. Linear/GitHub/model responses and usage remain fixtures;
+real Linear publication and recette activation are not qualified. See
+[campaign publication](docs/qualification/CAMPAIGN-PUBLICATION.md).
 
 **Current state:** Lot 1 is qualified against SDK `2026.1005.0`. The disabled
 plugin has read two enrolled leaves and one complete native Content Assistant
@@ -160,8 +163,9 @@ identity, recovery, and the handoff. Council owns the project mandate, budget,
 execution order, review, and acceptance.
 
 The webhook, durable request and source-reading job are implemented in `0.2.0`.
-The `0.3.0` importer prepares blocked, unassigned native families with immutable
-source and readiness documents; its isolated qualification is complete.
+The `0.3.0` importer prepares blocked, unassigned native families with revision-pinned
+source and readiness documents; its isolated qualification is complete. Paperclip
+documents remain natively mutable; consumers verify the retained revision and hash.
 A `source_observed` result is stored source evidence, and even `prepared` does not
 grant Council admission. See the [versioned readiness contract](docs/NATIVE-READINESS-V1.md).
 
