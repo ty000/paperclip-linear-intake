@@ -3,6 +3,7 @@ import { contentDigest } from "./content-digest.js";
 
 export const CONTINUITY_PROTOCOL = "council-linear-continuity-v1" as const;
 export const CONTINUITY_MODE = "milestone-fixed-v1" as const;
+export const TERMINAL_PUBLICATION_PROTOCOL = "council-terminal-publication-claim-v1" as const;
 export const CONTINUITY_REQUEST_EVENT = "plugin.private.paperclip-council.linear-continuity-request";
 export const CONTINUITY_RESULT_NAME = "council-continuity-result";
 const hash = z.string().regex(/^[a-f0-9]{64}$/), time = z.iso.datetime({ offset: true });
@@ -15,8 +16,12 @@ const subjectSchema = z.strictObject({ companyId: z.uuid(), intakeId: z.string()
   readinessSha256: hash, sourceSha256: hash, planSha256: hash });
 const continuityBindingSchema = z.strictObject({ companyId: z.uuid(), projectId: z.uuid(), missionId: z.uuid(),
   nativeRootId: z.uuid(), campaignId: z.uuid(), sourceRootId: z.uuid(), authoritySha256: hash, subject: subjectSchema });
-const publicationReferenceSchema = z.strictObject({ intentId: z.uuid(), payloadSha256: hash, document: proofReferenceSchema });
+const terminalClaimSchema = z.strictObject({ intentId: z.uuid(), payloadSha256: hash,
+  claimedVersion: z.number().int().positive().max(2_147_483_647), claimedAt: time });
+const publicationReferenceSchema = z.strictObject({ intentId: z.uuid(), payloadSha256: hash, document: proofReferenceSchema,
+  terminalClaim: terminalClaimSchema.optional() });
 const continuityRequestSchema = z.strictObject({ protocol: z.literal(CONTINUITY_PROTOCOL), mode: z.literal(CONTINUITY_MODE),
+  terminalPublicationProtocol: z.literal(TERMINAL_PUBLICATION_PROTOCOL), resumeVersion: z.number().int().nonnegative().max(2_147_483_647),
   binding: continuityBindingSchema, challengeId: z.uuid(), nonce: hash, requestedAt: time, expiresAt: time, sourceSha256: hash,
   consumedSequence: z.literal(0), control: z.enum(["running", "pause_requested", "paused", "cancel_requested", "cancelled"]),
   publications: z.array(publicationReferenceSchema).max(64) });
@@ -64,5 +69,10 @@ export function validateContinuityRequest(notice: ContinuityNotice, value: unkno
     b.campaignId === b.missionId, s.companyId === b.companyId, s.targetProjectId === b.projectId, s.nativeRootId === b.nativeRootId].every(Boolean),
   "continuity_binding_invalid");
   requirePublication(new Set(request.publications.map(p => p.intentId)).size === request.publications.length, "publication_duplicate_intent");
+  for (const reference of request.publications) {
+    const claim = reference.terminalClaim;
+    requirePublication(!claim || (claim.intentId === reference.intentId && claim.payloadSha256 === reference.payloadSha256
+      && Date.parse(claim.claimedAt) <= Date.parse(request.requestedAt)), "publication_terminal_claim_invalid");
+  }
   return request;
 }

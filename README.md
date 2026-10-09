@@ -5,14 +5,15 @@ A separate Paperclip plugin that retains an authorized Linear transition to
 source attestations to an explicitly enabled Council receiver. Council owns
 admission, accounting and implementation dispatch.
 
-**Fixed campaign publisher (source 0.6.0):** optional authenticated Council
+**Fixed campaign publisher (source 0.6.1):** optional authenticated Council
 continuity now has a durable comment/status journal, exact readback and restart
 reconciliation. It remains disabled by default. Synthetic SDK and isolated
 PostgreSQL checks are complemented by the [complete installed isolated
-campaign](https://github.com/ty000/paperclip-council/blob/ecb8032bdc8f5608265b87c2317c7b979a835794/docs/LINEAR-CAMPAIGN-V1.md): two serial integrations, global review, terminal readback and
+campaign](https://github.com/ty000/paperclip-council/blob/d12c1a1df5afcb4719273729a62d7bf662b04a5d/docs/linear-v1-audit-native.json): two serial integrations, global review, terminal permission/readback and
 repository release. Linear/GitHub/model responses and usage remain fixtures;
 real Linear publication and recette activation are not qualified. See
-[campaign publication](docs/qualification/CAMPAIGN-PUBLICATION.md).
+[campaign publication](docs/qualification/CAMPAIGN-PUBLICATION.md) and
+[the PRD/TAD correction ledger](docs/qualification/V1-AUDIT-CORRECTIONS.md).
 
 **Current state:** Lot 1 is qualified against SDK `2026.1005.0`. The disabled
 plugin has read two enrolled leaves and one complete native Content Assistant
@@ -81,19 +82,31 @@ this test at recipe. CI provisions its own PostgreSQL service and runs storage
 and worker integration tests, including concurrent deliveries and interrupted
 writes, in addition to the ordinary package tests.
 
-The independent **Fallow** CI job uses the locked `fallow@3.23.0` and its native
-exit status to gate introduced findings, including complexity. It compares a
+The independent **Fallow** CI job uses the locked `fallow@3.23.0` and compares a
 pull request with its base SHA and a push with its preceding SHA. New branches
 and manual runs use the merge-base with the default branch (or the preceding
 commit when already at that base). Missing comparison history fails the check.
-The `fallow-audit` artifact preserves the native JSON report, candidate/base
-SHAs, tool version and input hashes even when the audit fails. Only that audit
+The CI gate keeps introduced moderate CRAP findings with estimated zero coverage
+as warnings, matching the local static-audit policy for these findings. Actual
+measured coverage is not inferred from that estimate. Introduced high/critical complexity,
+imports, dependencies, cycles, boundaries and other native failures still block.
+Only this known moderate CRAP case can override a native failure; incomplete or
+unknown reports, attribution changes and tool errors fail closed. No analysis
+threshold or source suppression is changed. The exception also requires empty
+dead-code finding lists and zero dead-code counts/errors, including inherited debt.
+The `fallow-audit` artifact preserves the unchanged native JSON report and exit
+code, the derived `gate.json`, candidate/base SHAs, tool version and input hashes
+even when the audit fails. Only that audit
 directory is uploaded; local qualification evidence stays outside the upload.
 
 To reproduce after `npm run build`:
 
 ```bash
-npm run audit:static -- --base origin/main
+audit_base=$(git rev-parse origin/main)
+mkdir -p artifacts/fallow-local
+audit_exit=0
+npm run audit:static -- --base "$audit_base" --output-file artifacts/fallow-local/audit.json || audit_exit=$?
+node scripts/fallow-ci-gate.mjs artifacts/fallow-local/audit.json "$audit_exit" "$audit_base" "$(git rev-parse HEAD)"
 ```
 
 The audit disables telemetry and incremental caching. `.fallowrc.json` declares

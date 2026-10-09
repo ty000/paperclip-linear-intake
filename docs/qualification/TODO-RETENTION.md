@@ -43,7 +43,8 @@ must verify native project and receiving mandate authority before any import or
 admission.
 
 Only an authenticated operator action with a matching native company context
-can call `activate-intake`, `deactivate-intake` or `inspect-intake`. Caller
+can call `activate-intake`, `deactivate-intake`, `inspect-intake` or
+`retry-source-read`. Caller
 parameters cannot supply that authority. Enrollment persists a single primary
 company binding, a server-generated activation identity and timestamp, and a
 fingerprint of the complete validated configuration (excluding `enabled`).
@@ -92,6 +93,28 @@ owner and request version protect completion. Worker loss permits at most three
 claims under the original request identity. A known source-read failure becomes
 `blocked`; it is not automatically retried. Explicit deactivation invalidates
 claims and completions belonging to that epoch.
+
+For `blocked/source_read_failed`, `inspect-intake` now exposes `version`,
+`errorCode`, `remainingAttempts`, `nextAction` and the retained retry history.
+An identified Board operator can explicitly request
+`retry-source-read({intakeId, expectedVersion})` using that exact version.
+The command queues the same request; it performs no source read or native import.
+The scheduled job subsequently rereads current eligibility and the complete
+source under the original activation and configured bounds. Automatic retries,
+new Todo transitions and a new activation do not grant this authority.
+
+The request must still belong to the active, unchanged binding, have no snapshot,
+lease, unapplied event or import plan, and retain `source_read_failed`. The
+compare-and-set appends the operator, failed attempt count, request version,
+error code and time before changing `blocked` to `received`. A duplicate command
+or lost response returns that original authorization without another entry.
+Neither the delivery history nor the original request ID is replaced. Total
+source claims remain limited to three, including worker-loss claims; the counter
+cannot be reset. At the limit, inspection reports `source_attempt_limit` for
+operator investigation. This action never restarts an import or uncertain effect.
+Migration `004_source_retry.sql` only adds an empty history to existing requests;
+previous deliveries, snapshots, import plans and pinned proof documents remain
+unchanged.
 
 A Todo transition never received or retained cannot be reconstructed by this
 lot: the connector does not provide a qualified durable event journal with the

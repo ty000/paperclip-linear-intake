@@ -2,6 +2,7 @@
   "entry": [
     "src/manifest.ts",
     "src/worker.ts",
+    "scripts/fallow-ci-gate.mjs",
     "scripts/qualification/host-loader-preflight.mjs",
     "scripts/qualification/native-catalog-readback.mjs",
     "scripts/qualification/native-import-host.mjs",

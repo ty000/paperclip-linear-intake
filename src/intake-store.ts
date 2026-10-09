@@ -1,7 +1,7 @@
 import type { PluginDatabaseClient } from "@paperclipai/plugin-sdk";
 import type { NormalizedWebhookEvent, WebhookAuthority } from "./webhook-event.js";
 import { INTAKE_DATABASE_NAMESPACE, IntakeStoreError, projectEvent, validateSnapshot,
-  type IntakeBinding, type IntakeRequest } from "./intake-state.js";
+  MAX_SOURCE_ATTEMPTS, type SourceReadRetry, type IntakeBinding, type IntakeRequest } from "./intake-state.js";
 
 const bindings = `${INTAKE_DATABASE_NAMESPACE}.intake_binding`;
 const deliveries = `${INTAKE_DATABASE_NAMESPACE}.intake_deliveries`;
@@ -11,7 +11,7 @@ const bindingColumns = `company_id AS "companyId", activation_id AS "activationI
 const requestColumns = `company_id AS "companyId", organization_id AS "organizationId", issue_id AS "issueId",
   intake_id AS "intakeId", activation_id AS "activationId", accepted, status, version, revision, event_at AS "eventAt",
   classification, delivery_id AS "deliveryId", accepted_at AS "acceptedAt", attempts, lease_owner AS "leaseOwner",
-  lease_until AS "leaseUntil", snapshot, snapshot_sha256 AS "snapshotSha256", error_code AS "errorCode"`;
+  lease_until AS "leaseUntil", snapshot, snapshot_sha256 AS "snapshotSha256", error_code AS "errorCode", source_retry_history AS "sourceRetryHistory"`;
 const activeBinding = `EXISTS (SELECT 1 FROM ${bindings} b WHERE b.singleton = true AND b.company_id = $1
   AND b.activation_id = $2 AND b.active = true)`;
 const noPendingEvent = `NOT EXISTS (SELECT 1 FROM ${deliveries} d WHERE d.company_id = $1
@@ -30,6 +30,8 @@ type Completion = Omit<Claim, "leaseMs" | "maxAttempts"> & {
   revision: number; status: "source_observed" | "withdrawn" | "blocked";
   snapshot?: Record<string, unknown>; snapshotSha256?: string; errorCode?: string;
 };
+type SourceRetryRequest = { companyId: string; intakeId: string; activationId: string; fingerprint: string;
+  expectedVersion: number; actorUserId: string; now: string };
 type Delivery = { activationId: string; rawBodySha256: string; event: NormalizedWebhookEvent; applied: boolean };
 
 function iso(value: string): string { return new Date(value).toISOString(); }
@@ -93,6 +95,25 @@ function validateErrorCode(code: string | undefined): void {
 
 function optionalJson(value: Record<string, unknown> | undefined): string | null {
   return value === undefined ? null : JSON.stringify(value);
+}
+
+function requiredRetryRequest(row: IntakeRequest | undefined, input: SourceRetryRequest): IntakeRequest {
+  if (!row) throw new IntakeStoreError("intake_request_missing");
+  if (row.activationId !== input.activationId) throw new IntakeStoreError("intake_binding_inactive");
+  return row;
+}
+
+function repeatedRetry(row: IntakeRequest, input: SourceRetryRequest) {
+  const found = (row.sourceRetryHistory ?? []).find(item => item.requestVersion === input.expectedVersion);
+  if (!found) return undefined;
+  if (found.actorUserId !== input.actorUserId) throw new IntakeStoreError("intake_retry_actor_changed");
+  return found;
+}
+
+function retryReadback(row: IntakeRequest | undefined, input: SourceRetryRequest) {
+  const retained = repeatedRetry(requiredRetryRequest(row, input), input);
+  if (!retained) throw new IntakeStoreError("intake_retry_not_allowed");
+  return retained;
 }
 
 class IntakeStore {
@@ -262,6 +283,27 @@ class IntakeStore {
     const row = await this.getRequest(input.companyId, input.intakeId);
     if (!row) return undefined;
     return ownsLease(row, input.owner, until) ? row : undefined;
+  }
+
+  async retrySourceRead(input: SourceRetryRequest): Promise<SourceReadRetry> {
+    const prior = requiredRetryRequest(await this.getRequest(input.companyId, input.intakeId), input);
+    const repeated = repeatedRetry(prior, input);
+    if (repeated) return repeated;
+    if (prior.attempts >= MAX_SOURCE_ATTEMPTS) throw new IntakeStoreError("source_attempt_limit");
+    const history: SourceReadRetry = { requestVersion: input.expectedVersion, attempts: prior.attempts,
+      errorCode: "source_read_failed", requestedAt: iso(input.now), actorUserId: input.actorUserId };
+    await this.db.execute(`UPDATE ${requests} r SET status = 'received', error_code = NULL,
+      source_retry_history = source_retry_history || $6::jsonb, version = version + 1
+      WHERE company_id = $1 AND activation_id = $2 AND intake_id = $3 AND version = $5 AND accepted = true
+      AND status = 'blocked' AND error_code = 'source_read_failed' AND attempts < $7
+      AND snapshot IS NULL AND snapshot_sha256 IS NULL AND lease_owner IS NULL AND lease_until IS NULL
+      AND jsonb_array_length(source_retry_history) < 2 AND ${noPendingEvent}
+      AND NOT EXISTS (SELECT 1 FROM ${INTAKE_DATABASE_NAMESPACE}.import_plans p WHERE p.company_id = $1 AND p.intake_id = $3)
+      AND EXISTS (SELECT 1 FROM ${bindings} b WHERE b.singleton = true AND b.company_id = $1
+        AND b.activation_id = $2 AND b.fingerprint = $4 AND b.active = true)`,
+    [input.companyId, input.activationId, input.intakeId, input.fingerprint, input.expectedVersion,
+      JSON.stringify([history]), MAX_SOURCE_ATTEMPTS]);
+    return retryReadback(await this.getRequest(input.companyId, input.intakeId), input);
   }
 
   async finishRequest(input: Completion): Promise<boolean> {

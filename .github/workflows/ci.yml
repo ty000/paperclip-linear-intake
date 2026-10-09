@@ -155,7 +155,14 @@ jobs:
       - name: Audit introduced findings
         env:
           AUDIT_BASE: ${{ steps.base.outputs.sha }}
-        run: npm run audit:static -- --base "$AUDIT_BASE" --output-file artifacts/fallow-ci/audit.json
+        run: |
+          set +e
+          npm run audit:static -- --base "$AUDIT_BASE" --output-file artifacts/fallow-ci/audit.json
+          audit_exit=$?
+          set -e
+          printf '%s\n' "$audit_exit" > artifacts/fallow-ci/native-exit-code.txt
+          node scripts/fallow-ci-gate.mjs artifacts/fallow-ci/audit.json "$audit_exit" \
+            "$AUDIT_BASE" "$(git rev-parse HEAD)" > artifacts/fallow-ci/gate.json
       - name: Save static audit evidence, including failures
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

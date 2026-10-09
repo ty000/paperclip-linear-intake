@@ -105,6 +105,11 @@ restant ; ses PR encore ouvertes ne sont pas réutilisées implicitement. Une
 nouvelle campagne requiert un nouvel engagement explicite et une éligibilité
 complète, sans réexécuter aveuglément des résultats historiques.
 
+L’attente de publication finale reste annulable tant que cette publication n’a
+pas été engagée. Une fois engagée, Paperclip l’indique et réconcilie son résultat ;
+il n’accepte pas une annulation concurrente qui produirait un second résultat
+terminal. Rétablir une source modifiée ne déclenche jamais une reprise automatique.
+
 L’utilisateur voit dans Paperclip l’état réel si la publication Linear est en
 attente. Les demandes ultérieures de pause/reprise/annulation depuis les statuts
 Linear ne sont pas prises en charge en V1 ; un changement inattendu est signalé
@@ -138,6 +143,7 @@ des prérequis de livraison de la V1.
 
 | Évolution ultérieure | Coût évité pour la V1 | Comportement présent |
 | --- | --- | --- |
+| Investigations sans modification du dépôt | Parcours de livraison et preuve spécifiques sans PR | Préparer leurs résultats avant engagement ; les feuilles exécutables V1 livrent une modification du dépôt vérifiée par PR. |
 | Adaptation automatique des membres, critères et versions | Analyse sémantique, invalidation ciblée et replanification | Périmètre fixé, suspension expliquée. |
 | Absorption d’un ticket déjà engagé | Transfert concurrent de propriété, preuves et comptabilité | Engagement recouvrant retenu. |
 | Création automatique de prérequis | Qualification de nécessité, créations et nouvelles dépendances | Intervention humaine. |

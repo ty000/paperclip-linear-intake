@@ -5,12 +5,19 @@ import { requirePublication, type ContinuityRequest, type PublicationPayload } f
 import type { PublicationClient } from "./publication-client.js";
 import type { PublicationEffect, PublicationRecord, PublicationStore } from "./publication-store.js";
 
-export function publicationEffects(request: ContinuityRequest, intentId: string, payload: PublicationPayload,
-  activeSourceIds: ReadonlySet<string>, states: PublicationClient["publisher"]["states"], presentation?: PublicationPresentation): PublicationEffect[] {
+export function validatePublicationScope(request: ContinuityRequest, payload: PublicationPayload, activeSourceIds: ReadonlySet<string>) {
   requirePublication(contentDigest(payload.binding) === contentDigest(request.binding) && payload.sourceSha256 === request.sourceSha256, "publication_binding_changed");
-  const root = request.binding.sourceRootId, updates = payload.statusUpdates ?? [];
+  const updates = payload.statusUpdates ?? [];
   requirePublication(new Set(updates.map(u => u.sourceId)).size === updates.length, "publication_duplicate_status");
   for (const update of updates) requirePublication(activeSourceIds.has(update.sourceId), "publication_source_outside_campaign");
+  requirePublication(!updates.some(u => u.sourceId === request.binding.sourceRootId && u.state === "completed")
+    || payload.kind === "closure", "publication_terminal_kind_required");
+}
+
+export function publicationEffects(request: ContinuityRequest, intentId: string, payload: PublicationPayload,
+  activeSourceIds: ReadonlySet<string>, states: PublicationClient["publisher"]["states"], presentation?: PublicationPresentation): PublicationEffect[] {
+  validatePublicationScope(request, payload, activeSourceIds);
+  const root = request.binding.sourceRootId, updates = payload.statusUpdates ?? [];
   const body = renderPublicationComment(payload, intentId, presentation);
   // The terminal campaign-root status is last, after all other effects read back.
   const ordered = [...updates].sort((a,b) => Number(a.sourceId === root && a.state !== "started") - Number(b.sourceId === root && b.state !== "started"));
@@ -33,7 +40,7 @@ async function observe(client: PublicationClient, effect: PublicationEffect, int
   if (matches.length === 0) return undefined;
   const comment = matches[0]!;
   requirePublication(comment.body === effect.body, "publication_comment_changed");
-  return { sourceId: effect.sourceId, commentId: comment.id, bodySha256: contentDigest(comment.body) };
+  return { sourceId: effect.sourceId, commentId: comment.id, ...(comment.url ? { commentUrl: comment.url } : {}), bodySha256: contentDigest(comment.body) };
 }
 
 async function confirm(store: PublicationStore, row: PublicationRecord, index: number, readback: Record<string, unknown>) {
@@ -89,9 +96,9 @@ async function dispatchEffect(store: PublicationStore, client: PublicationClient
   return reconcileClaim(store, client, row, index);
 }
 
-function controlComment(row: PublicationRecord) {
+export function controlComment(row: PublicationRecord) {
   return [row.effects.length === 1, row.effects[0]?.kind === "comment",
-    ["decision", "cancellation"].includes(row.payload.kind)].every(Boolean);
+    ["decision", "cancellation", "blocker", "question"].includes(row.payload.kind)].every(Boolean);
 }
 
 async function acquirePublication(store: PublicationStore, row: PublicationRecord) {

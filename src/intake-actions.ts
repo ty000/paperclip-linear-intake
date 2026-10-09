@@ -18,6 +18,12 @@ function safeFailure(error: unknown) {
 }
 
 export function registerIntakeActions(ctx: PluginContext, runtime: IntakeRuntime) {
+  ctx.actions.register("retry-source-read", async (params, context) => {
+    const companyId = operatorCompany(context);
+    if (!companyId || context?.actor.type !== "user") return { status: "blocked", reason: "intake_operator_required" };
+    try { return await runtime.retrySourceRead(companyId, context.actor.userId!, params); }
+    catch (error) { return safeFailure(error); }
+  });
   const actions = { "activate-intake": runtime.activate, "deactivate-intake": runtime.deactivate,
     "inspect-intake": runtime.status };
   for (const [name, action] of Object.entries(actions)) {
