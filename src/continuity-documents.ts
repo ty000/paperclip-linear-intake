@@ -1,8 +1,9 @@
 import type { PluginContext } from "@paperclipai/plugin-sdk";
 import { contentDigest } from "./content-digest.js";
-import { requirePublication, type ProofReference } from "./continuity-contract.js";
+import { continuityDocumentKeySchema, requirePublication, type ProofReference } from "./continuity-contract.js";
 
 export async function readContinuityDocument(ctx: PluginContext, companyId: string, issueId: string, reference: ProofReference) {
+  requirePublication(continuityDocumentKeySchema.safeParse(reference.key).success, "continuity_document_key");
   const document = await ctx.issues.documents.get(issueId,reference.key,companyId);
   requirePublication(document, "continuity_document_changed");
   requirePublication([document.id === reference.documentId, document.latestRevisionId === reference.revisionId,
@@ -13,6 +14,7 @@ export async function readContinuityDocument(ctx: PluginContext, companyId: stri
 
 /** Stable document keys and exact-body readback; upsert never replaces differing content. */
 export async function ensureContinuityDocument(ctx: PluginContext, companyId: string, issueId: string, key: string, payload: unknown): Promise<ProofReference> {
+  requirePublication(continuityDocumentKeySchema.safeParse(key).success, "continuity_document_key");
   const body = JSON.stringify(payload);
   requirePublication(Buffer.byteLength(body) <= 128_000, "continuity_document_bound");
   let document = await ctx.issues.documents.get(issueId,key,companyId);

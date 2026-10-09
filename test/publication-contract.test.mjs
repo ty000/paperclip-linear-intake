@@ -13,7 +13,7 @@ const noDb={namespace:'plugin_linear_intake_e8c339297d',query:async()=>{assert.f
 const notice=f=>({companyId:ids.company,missionId:uuid(30),nativeRootId:uuid(7),challengeId:f.requestWire.challengeId,requestSha256:contentDigest(f.requestWire)});
 test('fixed request rejects mode/control/source identity widening, expired challenge and duplicate intents',async()=>{
  const f=await publicationFixture(noDb);f.addIntent();assert.deepEqual(validateContinuityRequest(notice(f),f.requestWire),f.requestWire);
- for(const edit of [r=>r.mode='legacy',r=>r.consumedSequence=1,r=>r.binding.campaignId=uuid(99),r=>r.expiresAt='2020-01-01T00:00:00.000Z',r=>r.publications.push(r.publications[0])]){
+ for(const edit of [r=>r.mode='legacy',r=>r.consumedSequence=1,r=>r.binding.campaignId=uuid(99),r=>r.expiresAt='2020-01-01T00:00:00.000Z',r=>r.publications.push(r.publications[0]),r=>r.publications[0].document.key='a'.repeat(65)]){
   const r=structuredClone(f.requestWire);edit(r);assert.throws(()=>validateContinuityRequest({...notice(f),requestSha256:contentDigest(r)},r));
  }
  assert.equal(parseContinuityNotice({payload:notice(f)}),undefined);
