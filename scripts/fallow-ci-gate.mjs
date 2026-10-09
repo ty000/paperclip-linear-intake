@@ -23,9 +23,17 @@ function exactKeys(value, keys, reason) {
   require(Object.keys(value).sort().join("|") === [...keys].sort().join("|"), reason);
 }
 
+function validateReportShape(report) {
+  require(record(report), "Expected a Fallow report object");
+  // Fallow 3.23 omits next_steps when no follow-up suggestions exist.
+  const keys = Object.hasOwn(report, "next_steps") ? reportKeys : reportKeys.filter(key => key !== "next_steps");
+  exactKeys(report, keys, "Unknown or incomplete Fallow report");
+  require(!Object.hasOwn(report, "next_steps") || Array.isArray(report.next_steps), "Invalid next_steps suggestions");
+}
+
 function validateIdentity(report, nativeExitCode, base, head) {
   require([0, 1].includes(nativeExitCode), "Fallow did not finish normally");
-  exactKeys(report, reportKeys, "Unknown or incomplete Fallow report");
+  validateReportShape(report);
   require(report.kind === "audit" && report.command === "audit", "Expected a native audit report");
   require(report.version === "3.23.0" && report.schema_version === 10, "Unsupported Fallow version or schema");
   require([base, head].every(value => /^[a-f0-9]{40}$/.test(value)), "Exact base and candidate SHAs required");

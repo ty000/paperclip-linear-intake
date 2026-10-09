@@ -113,6 +113,27 @@ test("accepts an ordinary clean native audit", () => {
   value.summary.complexity_findings = 1; value.verdict = "pass";
   assert.equal(evaluateAudit(value, 0, base, head).status, "pass");
 });
+test("accepts a clean docs-only audit with omitted empty next_steps", () => {
+  const value = report(); delete value.next_steps;
+  value.complexity.findings = []; value.attribution.complexity_introduced = 0; value.attribution.complexity_inherited = 0;
+  value.summary.complexity_findings = 0; value.summary.max_cyclomatic = null; value.verdict = "pass";
+  const before = structuredClone(value), result = evaluateAudit(value, 0, base, head);
+  assert.equal(result.status, "pass"); assert.equal(result.nativeExitCode, 0); assert.deepEqual(value, before);
+});
+test("optional suggestions do not change the moderate CRAP decision", () => {
+  const value = report(); delete value.next_steps; assert.equal(evaluate(value).status, "warn");
+});
+for (const suggestions of [null, {}, "next", undefined]) test(`rejects present malformed next_steps ${JSON.stringify(suggestions)}`, () => {
+  const value = report(); value.next_steps = suggestions; assert.throws(() => evaluate(value), /Invalid next_steps suggestions/);
+});
+test("omitted suggestions do not permit unknown report fields", () => {
+  const value = report(); delete value.next_steps; value.unknown_findings = [];
+  assert.throws(() => evaluate(value), /Unknown or incomplete Fallow report/);
+});
+test("omitted suggestions do not permit missing finding sections", () => {
+  const value = report(); delete value.next_steps; delete value.complexity;
+  assert.throws(() => evaluate(value), /Unknown or incomplete Fallow report/);
+});
 test("keeps unrelated native warnings without defining another severity policy", () => {
   const value = report(); value.verdict = "warn"; value.attribution.styling_introduced = 1;
   assert.equal(evaluateAudit(value, 0, base, head).status, "warn");
