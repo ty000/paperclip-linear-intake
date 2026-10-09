@@ -36,19 +36,22 @@ function sourceVerifier(ctx: PluginContext, binding: IntakeBinding, request: Int
       await guard();
     });
     assertImport(observed.status === "source_observed", "import_source_withdrawn");
-    const expected = request.snapshot;
-    if (expected?.schema === CAMPAIGN_SOURCE_SCHEMA) {
-      const current = observed.family!;
-      if (current.schema !== CAMPAIGN_SOURCE_SCHEMA) throw new ImportStoreError("import_source_changed");
-      const expectedCampaign = expected.campaign as Record<string, unknown> | undefined;
-      assertImport(current.campaign.materialSourceSha256 === expectedCampaign?.materialSourceSha256,
-        "import_source_changed");
-      assertImport(current.campaign.stateCompatibility.status === "compatible", "import_source_state_incompatible");
-    } else {
-      assertImport(observed.family!.sourceSha256 === request.snapshotSha256, "import_source_changed");
-    }
+    verifyRetainedSource(request, observed.family!);
     await guard();
   };
+}
+
+function verifyRetainedSource(request: IntakeRequest, current: NonNullable<Awaited<ReturnType<typeof readRetainedFamily>>["family"]>) {
+  const expected = request.snapshot;
+  if (expected?.schema !== CAMPAIGN_SOURCE_SCHEMA) {
+    assertImport(current.sourceSha256 === request.snapshotSha256, "import_source_changed");
+    return;
+  }
+  if (current.schema !== CAMPAIGN_SOURCE_SCHEMA) throw new ImportStoreError("import_source_changed");
+  const expectedCampaign = expected.campaign as Record<string, unknown>;
+  assertImport(expectedCampaign != null, "import_source_changed");
+  assertImport(current.campaign.materialSourceSha256 === expectedCampaign.materialSourceSha256, "import_source_changed");
+  assertImport(current.campaign.stateCompatibility.status === "compatible", "import_source_state_incompatible");
 }
 
 async function validPlan(store: Store, binding: IntakeBinding, candidate: ImportCandidate, request: IntakeRequest,

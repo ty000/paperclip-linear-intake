@@ -30,6 +30,10 @@ async function readMetadata(client: SourceClient) {
   await verifyWorkspace(client);
   const project = parseProject(await client.call("getProject", { query: client.scope.projectId }));
   same(project.uuid, client.scope.projectId, "source_project_mismatch");
+  return readTeamStates(client);
+}
+
+export async function readTeamStates(client: SourceClient) {
   const team = parseTeam(await client.call("getTeam", { query: client.scope.teamId }));
   same(team.id, client.scope.teamId, "source_team_mismatch");
   const states = parseStatuses(await client.call("listStatuses", { team: client.scope.teamId }));

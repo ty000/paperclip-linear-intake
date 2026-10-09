@@ -281,10 +281,11 @@ function addMilestoneRoot(family: CampaignFamily, entry: CampaignMap, roots: str
 function addMilestoneNode(issues: Map<string, Detail>, entry: CampaignMap, issue: Detail,
   children: Map<string, string[]>) {
   const parent = issues.get(entry.nativeParentSourceId!);
-  requirePlan([parent !== undefined, [parent?.id, parent?.uuid].includes(issue.parentId ?? "")].every(Boolean),
-    "campaign_mapping_invalid");
-  const siblings = children.get(parent!.uuid) ?? [];
-  children.set(parent!.uuid, [...siblings, entry.sourceId]);
+  requirePlan(parent !== undefined, "campaign_mapping_invalid");
+  const retainedParent = parent!;
+  requirePlan([retainedParent.id, retainedParent.uuid].some(id => id === issue.parentId), "campaign_mapping_invalid");
+  const siblings = children.get(retainedParent.uuid) ?? [];
+  children.set(retainedParent.uuid, [...siblings, entry.sourceId]);
 }
 
 function addCampaignMapping(family: CampaignFamily, issues: Map<string, Detail>, entry: CampaignMap,
