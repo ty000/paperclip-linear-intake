@@ -86,7 +86,8 @@ test(`published SDK worker uses scoped native secrets and ${transport} transport
     });
   }
   assert.equal((await rpc('initialize', { manifest, config: {} })).result.ok, true);
-  assert.deepEqual(subscriptions, [{ eventPattern: 'plugin.private.paperclip-council.linear-intake-revalidation-request', filter: null }]);
+  assert.deepEqual(subscriptions, [{ eventPattern: 'plugin.private.paperclip-council.linear-intake-revalidation-request', filter: null },
+    { eventPattern: 'plugin.private.paperclip-council.linear-continuity-request', filter: null }]);
   const denied = await rpc('performAction', { key: 'probe-source', companyId,
     actorContext: { type: 'agent', agentId: 'synthetic-agent', companyId },
     params: { actor: { type: 'user', userId: 'spoof' },

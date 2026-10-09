@@ -4,7 +4,7 @@ import { configSchema } from "./config.js";
 export default {
   id: "ty000.linear-intake",
   apiVersion: 1,
-  version: "0.5.0",
+  version: "0.6.0",
   displayName: "Linear Todo Intake",
   description: "Explicitly enrolled Todo or fixed-milestone retention, native family preparation and authenticated source revalidation for Council.",
   author: "ty000",
@@ -32,6 +32,9 @@ export default {
       if: { required: ["councilHandoffEnabled"], properties: { councilHandoffEnabled: { const: true } } },
       then: { required: ["nativeImportEnabled"],
         properties: { nativeImportEnabled: { const: true } } },
+    }, {
+      if: { required: ["councilContinuityEnabled"], properties: { councilContinuityEnabled: { const: true } } },
+      then: { required: ["councilHandoffEnabled", "publisher"], properties: { councilHandoffEnabled: { const: true } } },
     }],
   },
 } satisfies PaperclipPluginManifestV1;

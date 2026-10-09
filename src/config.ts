@@ -156,14 +156,30 @@ function validateCouncilHandoff(config: Config) {
   if (!config.nativeImportEnabled) throw new Error("handoff_configuration_missing");
 }
 
+function samePublisherSecret(config: Config) {
+  return config.publisher!.gatewayTokenRef.secretId === config.gatewayTokenRef?.secretId;
+}
+
+function validatePublisherProfile(config: Config) {
+  const publisher = config.publisher!;
+  if ([publisher.gatewayUrl === config.gatewayUrl,
+    samePublisherSecret(config)].some(Boolean)) throw new Error("publication_profile_not_separate");
+  if (config.gatewayTransport === "local_loopback") parseLocalGatewayUrl(publisher.gatewayUrl);
+  else validateHostGatewayUrl(publisher.gatewayUrl);
+  if (new Set(Object.values(publisher.states)).size !== 3) throw new Error("publication_states_invalid");
+}
+
 function validatePublisher(config: Config) {
-  if (config.councilContinuityEnabled && (!config.councilHandoffEnabled || !config.publisher)) throw new Error("publication_configuration_missing");
+  if (config.councilContinuityEnabled) {
+    if (![config.councilHandoffEnabled, config.publisher].every(Boolean)) throw new Error("publication_configuration_missing");
+  }
   if (!config.publisher) return;
-  if (config.publisher.enabled && !config.councilContinuityEnabled) throw new Error("publication_configuration_missing");
-  if (config.publisher.gatewayUrl === config.gatewayUrl || config.publisher.gatewayTokenRef.secretId === config.gatewayTokenRef?.secretId) throw new Error("publication_profile_not_separate");
-  if (config.gatewayTransport === "local_loopback") parseLocalGatewayUrl(config.publisher.gatewayUrl);
-  else validateHostGatewayUrl(config.publisher.gatewayUrl);
-  if (new Set(Object.values(config.publisher.states)).size !== 3) throw new Error("publication_states_invalid");
+  validatePublisherEnabled(config);
+  validatePublisherProfile(config);
+}
+
+function validatePublisherEnabled(config: Config) {
+  if (config.publisher!.enabled && !config.councilContinuityEnabled) throw new Error("publication_configuration_missing");
 }
 
 export function parseConfig(raw: unknown) {

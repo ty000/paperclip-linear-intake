@@ -11,6 +11,8 @@ import { createImportRuntime } from "./import-runtime.js";
 import { registerImportActions } from "./import-actions.js";
 import { registerCouncilHandoff } from "./council-handoff.js";
 
+import { registerCouncilContinuity } from "./council-continuity.js";
+
 let intakeRuntime: IntakeRuntime | undefined;
 
 function isAuthenticatedOperator(context: PluginPerformActionContext | undefined) {
@@ -28,6 +30,7 @@ const plugin = definePlugin({
     const imports = createImportRuntime(ctx);
     registerImportActions(ctx, imports);
     registerCouncilHandoff(ctx);
+    registerCouncilContinuity(ctx);
     const runtime = intakeRuntime;
     ctx.jobs.register("drain-intake", async () => {
       try { await runtime.drain(); }

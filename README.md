@@ -5,6 +5,12 @@ A separate Paperclip plugin that retains an authorized Linear transition to
 source attestations to an explicitly enabled Council receiver. Council owns
 admission, accounting and implementation dispatch.
 
+**Fixed campaign publisher (source 0.6.0):** optional authenticated Council
+continuity now has a durable comment/status journal, exact readback and restart
+reconciliation. It remains disabled by default and has only synthetic SDK and
+isolated PostgreSQL qualification. No real Linear publication is qualified by this
+change. See [campaign publication](docs/qualification/CAMPAIGN-PUBLICATION.md).
+
 **Current state:** Lot 1 is qualified against SDK `2026.1005.0`. The disabled
 plugin has read two enrolled leaves and one complete native Content Assistant
 family: parent plus three children, full descriptions, two internal blocking

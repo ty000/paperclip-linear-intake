@@ -4,8 +4,9 @@ import { requirePublication, type ProofReference } from "./continuity-contract.j
 
 export async function readContinuityDocument(ctx: PluginContext, companyId: string, issueId: string, reference: ProofReference) {
   const document = await ctx.issues.documents.get(issueId,reference.key,companyId);
-  requirePublication(document && document.id === reference.documentId && document.latestRevisionId === reference.revisionId
-    && contentDigest(document.body) === reference.bodySha256 && Buffer.byteLength(document.body) <= 128_000, "continuity_document_changed");
+  requirePublication(document, "continuity_document_changed");
+  requirePublication([document.id === reference.documentId, document.latestRevisionId === reference.revisionId,
+    contentDigest(document.body) === reference.bodySha256, Buffer.byteLength(document.body) <= 128_000].every(Boolean), "continuity_document_changed");
   try { return JSON.parse(document.body) as unknown; }
   catch { throw new Error("continuity_document_invalid"); }
 }

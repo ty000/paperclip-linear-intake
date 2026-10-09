@@ -39,6 +39,6 @@ test('built worker runs the actual SDK JSON-RPC host with no unsolicited effects
   await rpc('shutdown');
   assert.equal((await exited)[0], 0);
   assert.deepEqual(hostCalls.map(({ method, params }) => ({ method, params })), [{ method: 'events.subscribe',
-    params: { eventPattern: 'plugin.private.paperclip-council.linear-intake-revalidation-request', filter: null } }]);
+    params: { eventPattern: 'plugin.private.paperclip-council.linear-intake-revalidation-request', filter: null } }, { method: 'events.subscribe', params: { eventPattern: 'plugin.private.paperclip-council.linear-continuity-request', filter: null } }]);
   assert.equal(stderr, '');
 });

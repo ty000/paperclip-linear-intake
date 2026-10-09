@@ -77,17 +77,23 @@ function configuredRpc(mode: GatewayConfig["gatewayToolCallMode"], mcp: GatewayR
   };
 }
 
+function gatewaySecret(config: GatewayConfig, purpose: "read" | "publication") {
+  if (purpose === "read") return { ref: config.gatewayTokenRef!, path: "gatewayTokenRef" };
+  if (![config.councilContinuityEnabled, config.publisher].every(Boolean)) throw new Error("publication_disabled");
+  return { ref: config.publisher!.gatewayTokenRef, path: "publisher.gatewayTokenRef" };
+}
+
 // Native config/secrets and named gateway. Explicit loopback transport is opt-in.
 // Catalog discovery and bounded qualification share native authentication.
 // Only explicitly configured source readers call tools/call.
 export async function openGateway(ctx: PluginContext, companyId: string, guard: GatewayReadGuard = async () => {}, purpose: "read" | "publication" = "read") {
   if (!z.uuid().safeParse(companyId).success) throw new Error("company_scope_required");
   const original = await readGatewayConfig(ctx, companyId);
-  if (purpose === "publication" && (!original.councilContinuityEnabled || !original.publisher)) throw new Error("publication_disabled");
+  const credential = gatewaySecret(original, purpose);
   const config = original;
   if (!config.gatewayDiscoveryEnabled) return undefined;
   await guard(original);
-  const token = await resolveGatewaySecret(ctx, companyId, purpose === "publication" ? config.publisher!.gatewayTokenRef : config.gatewayTokenRef!, purpose === "publication" ? "publisher.gatewayTokenRef" : "gatewayTokenRef");
+  const token = await resolveGatewaySecret(ctx, companyId, credential.ref, credential.path);
   validateGatewaySecret(token);
 
   function assertCredentialAbsent(value: unknown) {
@@ -120,7 +126,7 @@ export async function openGateway(ctx: PluginContext, companyId: string, guard: 
 
   const initialized = await rpc("initialize", {
     protocolVersion: "2025-03-26", capabilities: {},
-    clientInfo: { name: "paperclip-linear-intake", version: "0.4.0" },
+    clientInfo: { name: "paperclip-linear-intake", version: "0.6.0" },
   });
   const init = z.object({
     protocolVersion: z.literal("2025-03-26"),
