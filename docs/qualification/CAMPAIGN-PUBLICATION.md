@@ -32,7 +32,7 @@ Revoking the complete intake binding or continuity authority also stops reads.
 
 ## Original identity and readback
 
-An authentic native event from `private.paperclip-council` locates an immutable
+An authentic native event from `private.paperclip-council` locates a revision-bound
 request document through `nativeRootId`. Company, mission, campaign, project,
 prepared import, material source hash, exact document revisions, nonce and
 five-minute challenge are verified. No payload actor or replacement import can
@@ -58,8 +58,10 @@ already-confirmed own state is read back without another status write; a manual
 preexisting desired state is not adopted.
 
 The comment precedes status changes. A terminal root status is last, after all
-preceding effects have read back. The entire intent receives one immutable native
-receipt only when every effect is confirmed. A lost response is reconciled under
+preceding effects have read back. The entire intent receives one revision-bound native
+receipt only when every effect is confirmed. The SDK permits document updates and
+deletion; retaining the original body is an application rule, not native immutability.
+A lost response is reconciled under
 the same intent; even a complete empty readback never authorizes another comment.
 Comment-only decision/cancellation intents use their own row CAS so a paused
 status intent does not hide the owner’s control message. They never release or

@@ -59,3 +59,11 @@ test('human comment renders source scope, next step, PR and coverage without int
  assert.match(body,/Export lisible — Satisfait/);assert.match(body,/1\/1 critères satisfaits/);assert.match(body,/pull\/7/);assert.match(body,/SYN-2 — Export : Terminé/);assert.match(body,/Vérification terminée/);
  const main=body.split('<!--')[0];for(const value of [payload.binding.missionId,'internal-criterion','binding','sourceSha256','"protocol"'])assert.equal(main.includes(value),false);
 });
+test('human comments preserve delivery order and show blocked global coverage',async()=>{
+ const {renderPublicationComment}=await import('../dist/publication-comments.js');const f=await publicationFixture(noDb),{payload,intentId}=f.addIntent([]);
+ const context={sources:[{sourceId:ids.root,label:'Campaign'},{sourceId:ids.child,label:'First delivery'}],references:[]};
+ const plan=renderPublicationComment({...payload,campaignPlan:{leaves:[{sourceId:ids.child},{sourceId:ids.root}]}},intentId,context);
+ assert.match(plan,/1\. First delivery/);assert.match(plan,/2\. Campaign/);
+ const blocked=renderPublicationComment({...payload,kind:'blocker',campaignReview:{coverage:[{criterionId:'shared',label:'Both files retained'}],report:{verdict:'blocked',rows:[{criterionId:'shared',result:'unknown',verification:{environment:'isolation',method:'integrated check'},remainder:'The second file is absent'}]}}},intentId,context);
+ assert.match(blocked,/revue globale bloque la clôture/);assert.match(blocked,/Both files retained — À vérifier/);assert.match(blocked,/The second file is absent/);
+});
