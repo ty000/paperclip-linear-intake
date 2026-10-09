@@ -99,11 +99,15 @@ async function observeFamily(ctx: PluginContext, companyId: string, source: Reta
 
 export async function readRetainedFamily(ctx: PluginContext, companyId: string, source: RetainedSource, guard: GatewayReadGuard) {
   const current = await currentRoot(ctx, companyId, source, guard);
-  const retainedCampaign = source.snapshot?.schema === CAMPAIGN_SOURCE_SCHEMA;
+  const retainedCampaign = retainedCampaignSource(source);
   if (!await initialEligibility(ctx, companyId, source, current, retainedCampaign)) return { status: "withdrawn" as const };
   const observedMarker = await markerObserved(current, source);
   const campaign = retainedCampaign || observedMarker !== undefined;
   const result = await observeFamily(ctx, companyId, source, guard, campaign);
   if (!finalEligibility(campaign, retainedCampaign, result.family, source)) return { status: "withdrawn" as const };
   return { status: "source_observed" as const, family: result.family };
+}
+
+function retainedCampaignSource(source: RetainedSource) {
+  return source.snapshot?.schema === CAMPAIGN_SOURCE_SCHEMA;
 }

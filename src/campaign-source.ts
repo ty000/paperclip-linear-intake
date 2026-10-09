@@ -6,7 +6,8 @@ import { parseConfig } from "./config.js";
 import { contentDigest as digest } from "./content-digest.js";
 import { openSourceClient, SourceReadError, type SourceClient } from "./source-client.js";
 import { familyBlockers } from "./source-graph.js";
-import { parseDetail, parseStatuses, parseTeam } from "./source-payload.js";
+import { parseDetail, parseStatuses } from "./source-payload.js";
+import { readTeamStates } from "./source-family.js";
 
 export const CAMPAIGN_SOURCE_SCHEMA = "linear-milestone-source.v1" as const;
 const detailFields = ["id", "uuid", "title", "description", "parentId", "teamId", "projectId", "projectMilestone",
@@ -89,10 +90,7 @@ async function readMetadata(client: CampaignClient, options?: ContinuationOption
   same(workspace.id, client.scope.organizationId, "source_organization_mismatch");
   const project = parsed(projectSchema, await client.call("getProject", { query: client.scope.projectId, includeMilestones: true }));
   same(project.uuid, client.scope.projectId, "source_project_mismatch");
-  const team = parseTeam(await client.call("getTeam", { query: client.scope.teamId }));
-  same(team.id, client.scope.teamId, "source_team_mismatch");
-  const states = parseStatuses(await client.call("listStatuses", { team: client.scope.teamId }));
-  if (!states.some(state => state.id === client.scope.todoStateId)) fail("source_todo_state_missing");
+  const states = await readTeamStates(client);
   verifyPublisherStates(states, options?.publisherStateIds);
   return { project, states };
 }
@@ -129,7 +127,7 @@ function appendChildPage(client: CampaignClient, parent: Detail, rows: Inventory
   page: ReturnType<typeof parsePage>) {
   for (const child of page.issues) {
     verifyScope(client, child);
-    if (![parent.id, parent.uuid].includes(child.parentId ?? "")) fail("source_parent_mismatch");
+    if (![parent.id, parent.uuid].some(id => id === child.parentId)) fail("source_parent_mismatch");
     if (ids.has(child.uuid)) fail("source_duplicate_child");
     ids.add(child.uuid); rows.push(child);
   }
@@ -199,13 +197,19 @@ function compatibleSelectedIssue(issue: Detail) {
     issue.archivedAt === null || ["completed", "canceled"].includes(issue.statusType)].every(Boolean);
 }
 
+function trustedState(issue: Detail, trusted: ReadonlyMap<string, string>) {
+  return issue.archivedAt === null && trusted.get(issue.uuid) === issue.currentStateId;
+}
+
 function requireCompatibleState(client: CampaignClient, ticket: Detail, issues: Detail[], trusted: ReadonlyMap<string, string>) {
-  if (!(ticket.archivedAt === null && trusted.get(ticket.uuid) === ticket.currentStateId) && !compatibleTicket(client, ticket)) fail("campaign_state_incompatible");
-  for (const issue of issues) {
-    if (issue.archivedAt === null && trusted.get(issue.uuid) === issue.currentStateId) continue;
-    if (issue.statusType === "started") fail("campaign_work_already_started");
-    if (!compatibleSelectedIssue(issue)) fail("campaign_state_incompatible");
-  }
+  if (![trustedState(ticket, trusted), compatibleTicket(client, ticket)].some(Boolean)) fail("campaign_state_incompatible");
+  issues.forEach(issue => requireCompatibleIssue(issue, trusted));
+}
+
+function requireCompatibleIssue(issue: Detail, trusted: ReadonlyMap<string, string>) {
+  if (trustedState(issue, trusted)) return;
+  if (issue.statusType === "started") fail("campaign_work_already_started");
+  if (!compatibleSelectedIssue(issue)) fail("campaign_state_incompatible");
 }
 
 function childGroups(childOwner: Map<string, string>) {
@@ -223,11 +227,13 @@ function hierarchyOrder(issues: Map<string, Detail>, childOwner: Map<string, str
   const roots = [...issues.keys()].filter(id => !childOwner.has(id)).sort();
   if (roots.length === 0) fail("campaign_parent_cycle");
   const ordered = [...roots], seen = new Set(roots), children = childGroups(childOwner);
-  for (const parent of ordered) {
-    for (const child of (children.get(parent) ?? []).sort()) appendOrderedChild(ordered, seen, child);
-  }
+  for (const parent of ordered) appendOrderedChildren(ordered, seen, children.get(parent));
   if (seen.size !== issues.size) fail("campaign_parent_cycle");
   return ordered;
+}
+
+function appendOrderedChildren(ordered: string[], seen: Set<string>, children: string[] = []) {
+  for (const child of children.sort()) appendOrderedChild(ordered, seen, child);
 }
 
 function mappingEntry(ticket: Detail, issues: Map<string, Detail>, childOwner: Map<string, string>, sourceId: string) {
@@ -248,7 +254,11 @@ function selectedMilestone(project: z.infer<typeof projectSchema>, ticket: Detai
   const matches = project.milestones.filter(value => value.id === marker.milestoneId);
   if (matches.length !== 1) fail("campaign_milestone_missing");
   const observed = matches[0]!;
-  return { marker, milestone: { id: observed.id, name: observed.name, description: observed.description ?? null } };
+  return { marker, milestone: milestoneDescription(observed) };
+}
+
+function milestoneDescription(observed: z.infer<typeof milestoneSchema>) {
+  return { id: observed.id, name: observed.name, description: observed.description ?? null };
 }
 
 function directMembers(inventory: Awaited<ReturnType<typeof projectInventory>>, milestoneId: string) {
