@@ -132,13 +132,14 @@ function connectLedger(f, options) {
 }
 
 export function challenge(f, stage = 'preparation') {
+  const now = Date.now();
   return { schema: 'linear-intake-revalidation-request.v1', challengeId: uuid(20), nonce: '1'.repeat(64), stage,
     companyId: sourceIds.company, admissionId: uuid(21), mandateId: uuid(22), mandateRevisionSha256: '2'.repeat(64),
     intakeId: f.request.intakeId, activationId: f.binding.activationId, configurationFingerprint: f.binding.fingerprint,
     requestVersion: f.plan.requestVersion, nativeRootId: uuid(7), targetProjectId: uuid(4),
     readinessDocumentId: uuid(8), readinessRevisionId: uuid(9), readinessSha256: f.plan.readinessSha256,
     sourceSha256: f.plan.sourceSha256, planSha256: f.plan.planSha256,
-    requestedAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 300_000).toISOString() };
+    requestedAt: new Date(now).toISOString(), expiresAt: new Date(now + 300_000).toISOString() };
 }
 
 export async function handoffFixture(options = {}) {
