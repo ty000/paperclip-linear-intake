@@ -1,6 +1,6 @@
 # Questions pour le grill technique — Intégration Linear / Paperclip / Council
 
-8 octobre 2026 · Source produit : [PRD v0.1](PRD.md).
+9 octobre 2026 · Source produit : [PRD v0.2](PRD.md).
 
 **Ce fichier n'est pas un TAD.** Il contient uniquement les questions à résoudre
 pour pouvoir en rédiger un. Les décisions produit acquises restent dans le PRD.
@@ -8,6 +8,13 @@ Les propositions précédentes de modules, de noms ou de mécanismes ne valent p
 choix technique. Le prochain grill pourra suivre cet ordre, une question à la
 fois ; les faits disponibles dans le code ou le runtime seront inspectés plutôt
 que redemandés à l'utilisateur.
+
+Les décisions D15–D21 fixent désormais l'adaptation automatique des changements
+autorisés, la correction expliquée des statuts, la pause au prochain point sûr,
+le rattachement d'un ticket à sa milestone, la création de prérequis techniques,
+le rétablissement après échec d'intégration et l'annulation du travail restant.
+Les questions ci-dessous portent sur leur réalisation et leur qualification,
+sans rouvrir ces arbitrages produit.
 
 ## T01 — Réutilisation native et responsabilité des campagnes
 
@@ -29,10 +36,16 @@ d'une demande Todo portant sur un ticket ?**
 
 - Quelle surface native porte l'acte, son auteur, le projet, le dépôt et les
   limites ; comment les membres et révisions initiales sont-ils identifiés ?
-- Comment traiter un enfant déjà engagé, une activation recouvrante, une
-  milestone déjà partiellement réalisée et des tickets historiquement Todo ?
+- Comment rattacher un ticket déjà engagé à la campagne de milestone comme
+  livraison courante, avec conservation du travail, des identités, des preuves,
+  de l'historique et du budget consommé, sans double exécution (D18) ?
+- Comment traiter les autres activations recouvrantes, une milestone déjà
+  partiellement réalisée et des tickets historiquement Todo ?
 - Comment réconcilier ajout, retrait, changement de milestone, pause ou annulation
   sans élargir silencieusement l'autorité initiale ?
+- Comment établir qu'un nouveau ticket technique sert strictement les critères
+  déjà autorisés et respecte produit, TAD et limites, puis confirmer sa création,
+  son rattachement et ses dépendances avant sa prise en charge (D19) ?
 
 ## T03 — Contexte autonome, plan et correspondances
 
@@ -85,6 +98,9 @@ attentes internes et preuves de complétion ?**
   correction, attente et intégré ; que faire lorsqu'il n'existe pas d'équivalent ?
 - Qui est autorisé à modifier chaque champ, et lesquels restent protégés contre
   une réécriture automatique ? Comment représenter les agents responsables ?
+- Comment appliquer la correction automatique et expliquée des statuts de
+  progression incohérents avec les preuves, tout en reconnaissant et respectant
+  les commandes de pause et d'annulation (D16, D17, D21) ?
 - Quelles informations appartiennent à la description, au plan, à un document,
   à une relation ou à un commentaire ; comment éviter le bruit et la duplication ?
 - Quelle observation confirme une mise à jour, une PR liée, une feuille Done,
@@ -109,8 +125,11 @@ attentes internes et preuves de complétion ?**
 **Comment détecter les changements matériels et suspendre seulement les travaux
 dont les hypothèses ou preuves ne sont plus valides ?**
 
-- Quelles modifications sont informatives, techniques couvertes ou structurantes
-  et nécessitent un arbitrage ; qui établit cette classification ?
+- Comment vérifier l'habilitation de l'auteur et la compatibilité d'une
+  modification avec produit, TAD et limites pour adapter puis poursuivre sans
+  seconde confirmation (D15) ; qui établit cette classification et sa preuve ?
+- Comment retenir les seuls travaux dépendants lorsqu'une autorité n'est pas
+  établie ou qu'un dépassement nécessite un arbitrage ?
 - Comment comparer source actuelle et version consommée, puis suivre l'impact sur
   les descendants, dépendants, plans, candidats et verdicts ?
 - À quel point sûr arrêter les nouveaux effets d'un travail déjà en cours,
@@ -131,6 +150,11 @@ de livraison et les dépendances vérifiées de chacune ?**
   Done ou une relation de parenté libère un travail à tort ?
 - Comment gérer base avancée, conflit d'intégration, candidat modifié et nouvelle
   revue avant de commencer la livraison suivante ?
+- Comment représenter un échec après fusion, rattacher la PR corrective ou de
+  retour arrière et vérifier ses conséquences, l'autorité et le budget avant
+  contrôles, revue indépendante et nouvelle vérification intégrée (D20) ?
+- Comment conserver le blocage de la livraison suivante tant que les obligations
+  applicables restent insatisfaites, même si un retour arrière rétablit la base ?
 
 ## T10 — Indisponibilité, arrêt et reprise
 
@@ -145,6 +169,15 @@ source Linear ou sa synchronisation ne sont plus suffisamment vérifiables ?**
   changement intervenu pendant la panne a été pris en compte ?
 - Quelles limites de tentatives et d'attente réutiliser ; quelle action humaine
   est attendue lorsque la réconciliation demeure non concluante ?
+- Quels points sûrs permettent à la seule opération en cours de préserver un
+  état récupérable après pause, sans nouveau travail ni nouvelle fusion ; comment
+  réconcilier un effet déjà envoyé et authentifier la reprise explicite après
+  revalidation (D17) ?
+- Comment appliquer l'annulation du travail restant, réconcilier les effets puis
+  fermer les seules PR non fusionnées devenues sans objet, conserver leurs
+  commits et préserver les livraisons déjà intégrées (D21) ?
+- Comment représenter travail livré et annulé sans succès global ni reprise
+  implicite, et distinguer une demande séparée de retrait du code intégré ?
 
 ## T11 — Arbitrages et visibilité dans les surfaces natives
 
@@ -178,12 +211,16 @@ ni ses configurations historiques ?**
 **Quelles preuves rendront l'architecture suffisamment définie et vérifiable
 pour autoriser ensuite des lots d'implémentation bornés ?**
 
-- Quelle matrice reliera exigences R01–R14, composants propriétaires, interfaces,
-  scénarios V01–V12 et preuves attendues ?
+- Quelle matrice reliera décisions D01–D21, exigences R01–R17, composants
+  propriétaires, interfaces, scénarios V01–V18 et preuves attendues ?
 - Quels contrôles sont déterministes, lesquels nécessitent un host Paperclip
   isolé, une vraie connexion Linear, de vrais agents ou une fusion Git observée ?
 - Quel scénario représentatif vérifiera reprise sans contexte, campagnes
   dépendantes, changement de source, panne, doublon et clôture sans faux succès ?
+- Quelles preuves couvrent les variantes autorisées et refusées de D15–D21,
+  notamment budget conservé au rattachement, périmètre du prérequis créé,
+  correction de statut distincte d'un arrêt, fusion déjà envoyée et obligations
+  restant ouvertes après un retour arrière ou une annulation ?
 - Quelles conditions sépareront code, qualification, installation et activation,
   avec migration vérifiée avant toute évolution de gate opérationnelle ?
 - Quel résultat de clôture sera exposé à un futur cycle de release sans inclure
