@@ -108,3 +108,14 @@ readback requires the full qualified reader shape. A differing native output
 fails closed. A real publication profile, output readback and permission scope
 must still be qualified explicitly before activation. This lot performed no real
 Linear writes, recipe migration, installed-host change or provider run.
+
+## Subsequent installed isolated qualification
+
+The [complete campaign scenario](https://github.com/ty000/paperclip-council/blob/ecb8032bdc8f5608265b87c2317c7b979a835794/docs/LINEAR-CAMPAIGN-V1.md) subsequently exercised this publisher
+with Council on a real disposable Paperclip host. Seventeen native runs produced
+two private Git integrations, an independent fixture global review, confirmed
+terminal publication, native closure and repository release. The [candidate
+receipt](https://github.com/ty000/paperclip-council/blob/ecb8032bdc8f5608265b87c2317c7b979a835794/docs/linear-v1-campaign-native.json) records exact commits, package digests and cleanup. Linear,
+GitHub and model responses remain fixtures; real gateway write qualification and
+recette activation are still outstanding. The source-only evidence above retains
+its original boundary.

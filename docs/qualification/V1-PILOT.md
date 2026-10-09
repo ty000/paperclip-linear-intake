@@ -1,8 +1,10 @@
 # Pilote réel V1 — Hitza
 
-Statut : proposition de recette sans effet, à revoir après qualification de L5. Ce document
+Statut : proposition de recette sans effet. Le parcours L5 a passé sa
+[qualification installée isolée](https://github.com/ty000/paperclip-council/blob/ecb8032bdc8f5608265b87c2317c7b979a835794/docs/linear-v1-campaign-native.json) ; le pilote réel reste différé. Ce document
 n’autorise aucune installation, activation, écriture Linear, exécution fournisseur, création
 de branche distante, PR ou fusion.
+
 ## Cible fixée
 
 - Paperclip recette : `http://127.0.0.1:3210`, société **e-ty local**
@@ -142,11 +144,11 @@ supplémentaire n'est inclus. L'autorisation finale fixe période, nombre prévi
 runs issu de L5 et profils réellement disponibles. Une consommation insuffisamment connue
 suspend le départ suivant.
 
-Le scénario nominal isolé prévoit 17 runs : huit par livraison (préparation,
+Le scénario nominal isolé a réussi avec 17 runs : huit par livraison (préparation,
 contribution, intégration, deux avis spécialisés, verdict, publication, fusion)
 puis une revue globale. Ses 2 550 unités de fixture ne sont pas une estimation de
-consommation réelle. Le pilote réutilisera ce compte seulement après confirmation
-par la preuve terminale L5, sans autoriser de correction ou de reprise additionnelle.
+consommation réelle. La preuve terminale L5 confirme ce compte pour le scénario
+nominal, sans autoriser de correction ou de reprise additionnelle.
 
 Le même relevé voit Council `0.7.26` et intake `0.1.4` installés, sans run actif parmi les
 207 runs renvoyés. Une mise à niveau recharge le plugin de l'instance, pas seulement le
@@ -155,7 +157,9 @@ niveau avant effet. Ce relevé temporaire n'est pas une garantie de disponibilit
 
 ## Inconnues qui changent les effets
 
-Restent à relever en lecture seule : versions finales L1–L5, IDs du nouveau projet/milestone/
+Les sources qualifiées sont Council `0.7.31` et intake `0.6.0`, aux commits exacts
+du reçu L5. Restent à relever en lecture seule avant mise à niveau : versions
+réellement installées, IDs du nouveau projet/milestone/
 tickets/acteurs/états, références de secrets disponibles, schémas et pagination gateway réels,
 droits du profil publisher, état de la connexion, disponibilité de la branche distante et
 occupation Council. Les lectures gateway et les écritures commentaire/statut ont deux preuves

@@ -3,7 +3,8 @@
 9 octobre 2026 · Sources : [PRD v0.3](PRD.md), [TAD draft v0.2](TAD.md).
 
 **Statut au 9 octobre 2026 : L0 et les lots source L1–L5 sont proposés en PR ;
-le parcours complet est en qualification intégrée isolée. L6 est préparé, non exécuté.**
+le parcours complet a passé la qualification intégrée isolée. L6 réel est préparé,
+différé et non exécuté.** [Preuve et limites](https://github.com/ty000/paperclip-council/blob/ecb8032bdc8f5608265b87c2317c7b979a835794/docs/LINEAR-CAMPAIGN-V1.md).
 Voir le [raccordement V1](V1-CONNECTION.md) et le [pilote proposé](qualification/V1-PILOT.md).
 Les PR restent à fusionner dans leur ordre de dépendance ; leur publication ne vaut
 ni mise à niveau de recette ni qualification du gateway réel.
@@ -12,7 +13,7 @@ ni mise à niveau de recette ni qualification du gateway réel.
 | --- | --- |
 | Intake : raccordement, import milestone, publication/revalidation | [#11](https://github.com/ty000/paperclip-linear-intake/pull/11) → [#12](https://github.com/ty000/paperclip-linear-intake/pull/12) → [#13](https://github.com/ty000/paperclip-linear-intake/pull/13) |
 | Council : contrôles, occupation du dépôt, réception, livraisons sérielles, clôture globale | [#79](https://github.com/ty000/paperclip-council/pull/79) → [#80](https://github.com/ty000/paperclip-council/pull/80) → [#81](https://github.com/ty000/paperclip-council/pull/81) → [#82](https://github.com/ty000/paperclip-council/pull/82) → [#83](https://github.com/ty000/paperclip-council/pull/83) |
-| Council : scénario natif installé, qualification en cours | [#84, draft](https://github.com/ty000/paperclip-council/pull/84), après #83 |
+| Council : scénario natif installé, qualification isolée réussie | [#84](https://github.com/ty000/paperclip-council/pull/84), après #83 |
 
 Ce plan précise la réalisation
 de la V1 ; il ne rouvre pas son périmètre et ne transforme pas les fonctions
@@ -400,8 +401,8 @@ de descriptions, fermeture automatique des PR annulées, correction/revert auton
 après fusion, Slack, déploiement et release. Réutiliser du code déjà présent ne
 donne pas le droit d’activer ces comportements reportés.
 
-**Premier lot recommandé : L0**, directement dans un run borné, sans refaire le
-grill ni produire un backlog/sprint plan supplémentaire. Sa sortie détermine les
-modifications indispensables de L1. Les autres lots restent planifiés ; les
-écritures dans chaque dépôt et les effets du pilote devront être autorisés dans
-le périmètre correspondant, sans élargissement implicite depuis ce document.
+**Suite après qualification isolée :** fusionner les PR dans leur ordre de
+dépendance, puis préparer la mise à niveau autorisée de recette. Le pilote L6
+reste différé : entrée HTTPS publique, qualification réelle des gateways de
+lecture et d’écriture, cible et budget doivent être confirmés avant ses effets.
+Aucun backlog ou sprint plan supplémentaire n’est nécessaire.
