@@ -81,19 +81,31 @@ this test at recipe. CI provisions its own PostgreSQL service and runs storage
 and worker integration tests, including concurrent deliveries and interrupted
 writes, in addition to the ordinary package tests.
 
-The independent **Fallow** CI job uses the locked `fallow@3.23.0` and its native
-exit status to gate introduced findings, including complexity. It compares a
+The independent **Fallow** CI job uses the locked `fallow@3.23.0` and compares a
 pull request with its base SHA and a push with its preceding SHA. New branches
 and manual runs use the merge-base with the default branch (or the preceding
 commit when already at that base). Missing comparison history fails the check.
-The `fallow-audit` artifact preserves the native JSON report, candidate/base
-SHAs, tool version and input hashes even when the audit fails. Only that audit
+The CI gate keeps introduced moderate CRAP findings with estimated zero coverage
+as warnings, matching the local static-audit policy for these findings. Actual
+measured coverage is not inferred from that estimate. Introduced high/critical complexity,
+imports, dependencies, cycles, boundaries and other native failures still block.
+Only this known moderate CRAP case can override a native failure; incomplete or
+unknown reports, attribution changes and tool errors fail closed. No analysis
+threshold or source suppression is changed. The exception also requires empty
+dead-code finding lists and zero dead-code counts/errors, including inherited debt.
+The `fallow-audit` artifact preserves the unchanged native JSON report and exit
+code, the derived `gate.json`, candidate/base SHAs, tool version and input hashes
+even when the audit fails. Only that audit
 directory is uploaded; local qualification evidence stays outside the upload.
 
 To reproduce after `npm run build`:
 
 ```bash
-npm run audit:static -- --base origin/main
+audit_base=$(git rev-parse origin/main)
+mkdir -p artifacts/fallow-local
+audit_exit=0
+npm run audit:static -- --base "$audit_base" --output-file artifacts/fallow-local/audit.json || audit_exit=$?
+node scripts/fallow-ci-gate.mjs artifacts/fallow-local/audit.json "$audit_exit" "$audit_base" "$(git rev-parse HEAD)"
 ```
 
 The audit disables telemetry and incremental caching. `.fallowrc.json` declares
