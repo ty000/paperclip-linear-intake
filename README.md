@@ -160,8 +160,9 @@ identity, recovery, and the handoff. Council owns the project mandate, budget,
 execution order, review, and acceptance.
 
 The webhook, durable request and source-reading job are implemented in `0.2.0`.
-The `0.3.0` importer prepares blocked, unassigned native families with immutable
-source and readiness documents; its isolated qualification is complete.
+The `0.3.0` importer prepares blocked, unassigned native families with revision-pinned
+source and readiness documents; its isolated qualification is complete. Paperclip
+documents remain natively mutable; consumers verify the retained revision and hash.
 A `source_observed` result is stored source evidence, and even `prepared` does not
 grant Council admission. See the [versioned readiness contract](docs/NATIVE-READINESS-V1.md).
 

@@ -70,8 +70,9 @@ adopter de milestone existante, puis exactement quatre tickets neufs :
 4. une feuille B, enfant du parent et bloquée par A, ajoutant
    `docs/paperclip-pilot/readback-contract.md` et complétant le même check pour les deux fichiers.
 
-Le ticket campagne contient le marqueur `linear-milestone-campaign.v1`, l’UUID de la nouvelle
-milestone et ces références explicites : PRD `docs/01-product/PRD.md`, version
+Le ticket campagne contient un unique bloc JSON balisé `paperclip-campaign`, avec
+`schema: "linear-milestone-campaign.v1"`, l’UUID de la nouvelle milestone et ces
+références explicites : PRD `docs/01-product/PRD.md`, version
 `8677031484a7eb7d84dfcd28d137e093e50d7bad`, SHA-256
 `5e158560e7efbae13a67455998da2a0953a0ad87f733b397bcfe882f806222d4` ; TAD
 `docs/02-architecture/TAD.md`, même version, SHA-256
