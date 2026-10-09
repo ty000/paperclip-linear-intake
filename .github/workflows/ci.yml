@@ -170,7 +170,8 @@ jobs:
     timeout-minutes: 5
     services:
       postgres:
-        image: postgres:18.1
+        # Official Docker image, same digest; avoid anonymous Docker Hub pull limits.
+        image: public.ecr.aws/docker/library/postgres:18.1@sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f
         env:
           POSTGRES_USER: intake_test
           POSTGRES_PASSWORD: synthetic_ci_only
