@@ -217,10 +217,20 @@ conservés comme données, pas comme une seconde machine d’orchestration compl
 
 Une demande d’arrêt est persistée séparément avant son achèvement. Pause et
 annulation sont possibles depuis tout état non terminal, y compris préparation,
-revue globale et attente de publication. Dès observation, aucun nouveau travail
+revue globale et attente de publication tant que la permission terminale n’a pas
+été accordée. Une intention locale de clôture ne suffit pas à interdire l’arrêt :
+l’intégration prépare l’effet, puis Council revalide source, mandat et preuves
+et arbitre sa permission contre l’arrêt par la révision de campagne. Une permission
+déjà accordée engage cette opération terminale ; elle est réconciliée sous son
+identité initiale, sans annulation concurrente contradictoire. Dès observation
+d’un arrêt accepté, aucun nouveau travail
 ni nouvelle fusion ; l’opération déjà envoyée atteint un point sûr et son résultat
 est réconcilié. Si arrêt et clôture se présentent ensemble, une transition
 révisionnée Council décide de l’état final sans deux résultats terminaux.
+
+Le diagnostic d’une divergence reste retenu après restauration de la source,
+y compris si sa première notification est perdue. La disponibilité retrouvée
+permet à l’opérateur de demander la reprise ; elle ne vaut pas reprise elle-même.
 
 La reprise réutilise campagne, mandat, budget consommé, preuves et intentions.
 Elle revient à l’étape interrompue : une pause pendant la préparation ne permet

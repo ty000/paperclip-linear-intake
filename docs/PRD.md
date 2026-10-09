@@ -105,6 +105,11 @@ restant ; ses PR encore ouvertes ne sont pas réutilisées implicitement. Une
 nouvelle campagne requiert un nouvel engagement explicite et une éligibilité
 complète, sans réexécuter aveuglément des résultats historiques.
 
+L’attente de publication finale reste annulable tant que cette publication n’a
+pas été engagée. Une fois engagée, Paperclip l’indique et réconcilie son résultat ;
+il n’accepte pas une annulation concurrente qui produirait un second résultat
+terminal. Rétablir une source modifiée ne déclenche jamais une reprise automatique.
+
 L’utilisateur voit dans Paperclip l’état réel si la publication Linear est en
 attente. Les demandes ultérieures de pause/reprise/annulation depuis les statuts
 Linear ne sont pas prises en charge en V1 ; un changement inattendu est signalé
