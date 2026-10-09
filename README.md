@@ -9,10 +9,11 @@ admission, accounting and implementation dispatch.
 continuity now has a durable comment/status journal, exact readback and restart
 reconciliation. It remains disabled by default. Synthetic SDK and isolated
 PostgreSQL checks are complemented by the [complete installed isolated
-campaign](https://github.com/ty000/paperclip-council/blob/ecb8032bdc8f5608265b87c2317c7b979a835794/docs/LINEAR-CAMPAIGN-V1.md): two serial integrations, global review, terminal readback and
+campaign](https://github.com/ty000/paperclip-council/blob/d12c1a1df5afcb4719273729a62d7bf662b04a5d/docs/linear-v1-audit-native.json): two serial integrations, global review, terminal permission/readback and
 repository release. Linear/GitHub/model responses and usage remain fixtures;
 real Linear publication and recette activation are not qualified. See
-[campaign publication](docs/qualification/CAMPAIGN-PUBLICATION.md).
+[campaign publication](docs/qualification/CAMPAIGN-PUBLICATION.md) and
+[the PRD/TAD correction ledger](docs/qualification/V1-AUDIT-CORRECTIONS.md).
 
 **Current state:** Lot 1 is qualified against SDK `2026.1005.0`. The disabled
 plugin has read two enrolled leaves and one complete native Content Assistant

@@ -1,7 +1,7 @@
 # Pilote réel V1 — Hitza
 
 Statut : proposition de recette sans effet. Le parcours L5 a passé sa
-[qualification installée isolée](https://github.com/ty000/paperclip-council/blob/ecb8032bdc8f5608265b87c2317c7b979a835794/docs/linear-v1-campaign-native.json) ; le pilote réel reste différé. Ce document
+[qualification installée isolée après corrections](https://github.com/ty000/paperclip-council/blob/d12c1a1df5afcb4719273729a62d7bf662b04a5d/docs/linear-v1-audit-native.json) ; le pilote réel reste différé. Ce document
 n’autorise aucune installation, activation, écriture Linear, exécution fournisseur, création
 de branche distante, PR ou fusion.
 
@@ -157,8 +157,26 @@ niveau avant effet. Ce relevé temporaire n'est pas une garantie de disponibilit
 
 ## Inconnues qui changent les effets
 
-Les sources qualifiées sont Council `0.7.31` et intake `0.6.0`, aux commits exacts
-du reçu L5. Restent à relever en lecture seule avant mise à niveau : versions
+Complément d'inventaire du **9 octobre 2026, 21:45–21:46 UTC**, par GET Paperclip
+uniquement : Council `0.7.26` et intake `0.1.4` restent installés ; intake est
+désactivé et aucun run actif n'est observé dans la société cible. La période
+partagée citée plus haut est terminée. Ces observations ne réservent ni fenêtre
+de mise à niveau ni budget et ne garantissent pas l'absence d'activité ailleurs.
+
+Le profil lecteur prévu existe, mais le gateway historique configuré utilise un
+autre profil, sans les lectures milestone/commentaires nécessaires, et son client
+de qualification est expiré. Aucun publisher Linear distinct à privilèges
+minimaux n'a été identifié. La configuration installée ne porte ni enrollment
+campagne, ni lecteur de source, ni publisher. Le catalogue stocké a été inspecté
+sans appel gateway : il ne vaut pas Q-LR ou Q-LW. La mise en service exige donc,
+outre HTTPS, la mise à niveau autorisée des plugins, les deux accès réellement
+qualifiés, le mandat, les acteurs et le budget du pilote.
+
+La paire corrigée qualifiée en isolation est Council `0.7.41` au commit
+`60905259ef43af2edbafd2d2588abd991dd60db0` et intake `0.6.1` au commit
+`3bae49255651fddc37e0c66b016ea73e8940d660`, aux empreintes du reçu lié en tête.
+Les reçus L5 antérieurs de Council `0.7.31` / intake `0.6.0` sont conservés.
+Restent à relever en lecture seule avant mise à niveau : versions
 réellement installées, IDs du nouveau projet/milestone/
 tickets/acteurs/états, références de secrets disponibles, schémas et pagination gateway réels,
 droits du profil publisher, état de la connexion, disponibilité de la branche distante et
