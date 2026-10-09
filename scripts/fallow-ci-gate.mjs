@@ -40,6 +40,8 @@ function validateAttribution(report) {
   exactKeys(attribution, attributionKeys, "Unknown or incomplete finding attribution");
   require(attribution.gate === "new-only", "Only a new-only audit can use this gate");
   require(attributionKeys.filter(key => key !== "gate").every(key => integer(attribution[key])), "Invalid attribution counts");
+  exactKeys(report.complexity, ["findings", "summary", "vital_signs"], "Unknown or incomplete complexity report");
+  require(record(report.complexity.summary) && record(report.complexity.vital_signs), "Incomplete complexity metadata");
   const findings = report.complexity?.findings;
   require(Array.isArray(findings), "Missing complexity findings");
   require(findings.every(item => record(item) && typeof item.introduced === "boolean"
@@ -60,7 +62,13 @@ function validateCounts(report) {
   require(report.dead_code.total_issues === summary.dead_code_issues, "Dead-code detail mismatch");
   require(typeof summary.dead_code_has_errors === "boolean", "Missing dead-code error status");
   require(summary.complexity_findings === report.complexity.findings.length, "Complexity summary mismatch");
-  require(Array.isArray(report.duplication?.clone_groups), "Missing duplication findings");
+  exactKeys(report.duplication, ["clone_groups", "clone_families", "stats"], "Unknown or incomplete duplication report");
+  require(Array.isArray(report.duplication.clone_families) && record(report.duplication.stats), "Incomplete duplication metadata");
+  require(Array.isArray(report.duplication.clone_groups), "Missing duplication findings");
+  require(report.duplication.clone_groups.every(group => record(group) && typeof group.introduced === "boolean"), "Unknown duplication classification");
+  const introducedClones = report.duplication.clone_groups.filter(group => group.introduced).length;
+  require(introducedClones === a.duplication_introduced, "Introduced duplication count mismatch");
+  require(report.duplication.clone_groups.length - introducedClones === a.duplication_inherited, "Inherited duplication count mismatch");
   require(summary.duplication_clone_groups === report.duplication.clone_groups.length, "Duplication detail mismatch");
   require(summary.duplication_clone_groups === a.duplication_introduced + a.duplication_inherited, "Duplication count mismatch");
 }

@@ -21,9 +21,9 @@ function report() {
     attribution: { gate: "new-only", dead_code_introduced: 0, dead_code_inherited: 0, complexity_introduced: 1,
       complexity_inherited: 1, duplication_introduced: 0, duplication_inherited: 0, styling_introduced: 0, styling_inherited: 0, duplication_demoted: 0 },
     dead_code: { schema_version: 9, version: "3.23.0", elapsed_ms: 1, total_issues: 0, entry_points: {}, summary: {},
-      ...Object.fromEntries(deadCodeLists.map(key => [key, []])) }, duplication: { clone_groups: [] },
+      ...Object.fromEntries(deadCodeLists.map(key => [key, []])) }, duplication: { clone_groups: [], clone_families: [], stats: {} },
     complexity: { findings: [{ path: "src/new.ts", name: "bounded", introduced: true, severity: "moderate", exceeded: "crap", coverage_source: "estimated", coverage_tier: "none" },
-      { path: "src/old.ts", name: "inherited", introduced: false, severity: "critical", exceeded: "crap" }] }, next_steps: [], _meta: {} };
+      { path: "src/old.ts", name: "inherited", introduced: false, severity: "critical", exceeded: "crap" }], summary: {}, vital_signs: {} }, next_steps: [], _meta: {} };
 }
 const evaluate = value => evaluateAudit(value, 1, base, head);
 
@@ -61,6 +61,18 @@ test("blocks introduced duplication", () => {
   const value = report(); value.attribution.duplication_introduced = 1; value.summary.duplication_clone_groups = 1;
   value.duplication.clone_groups.push({ introduced: true }); assert.equal(evaluate(value).status, "fail");
 });
+test("does not accept an introduced clone mislabeled as inherited by counters", () => {
+  const value = report(); value.attribution.duplication_inherited = 1; value.summary.duplication_clone_groups = 1;
+  value.duplication.clone_groups.push({ introduced: true }); assert.throws(() => evaluate(value), /Introduced duplication count mismatch/);
+});
+test("retains the moderate CRAP warning with a genuinely inherited clone", () => {
+  const value = report(); value.attribution.duplication_inherited = 1; value.summary.duplication_clone_groups = 1;
+  value.duplication.clone_groups.push({ introduced: false }); assert.equal(evaluate(value).status, "warn");
+});
+for (const introduced of [undefined, null, "false"]) test(`requires a boolean clone attribution instead of ${introduced}`, () => {
+  const value = report(); value.attribution.duplication_inherited = 1; value.summary.duplication_clone_groups = 1;
+  value.duplication.clone_groups.push({ introduced }); assert.throws(() => evaluate(value), /Unknown duplication classification/);
+});
 for (const key of ["styling_introduced", "duplication_demoted"]) test(`retains blocking ${key}`, () => {
   const value = report(); value.attribution[key] = 1; assert.equal(evaluate(value).status, "fail");
 });
@@ -77,6 +89,12 @@ const invalid = {
   "unknown severity": value => { value.complexity.findings[0].severity = "unknown"; },
   "missing introduced flag": value => { delete value.complexity.findings[0].introduced; },
   "new report field": value => { value.security = {}; },
+  "new complexity section": value => { value.complexity.unknown_findings = [{ introduced: true }]; },
+  "new duplication section": value => { value.duplication.unknown_findings = [{ introduced: true }]; },
+  "missing complexity section": value => { delete value.complexity.summary; },
+  "invalid complexity metadata": value => { value.complexity.vital_signs = null; },
+  "missing duplication section": value => { delete value.duplication.clone_families; },
+  "invalid duplication metadata": value => { value.duplication.stats = null; },
   "unsupported schema": value => { value.schema_version = 11; },
   "unsupported version": value => { value.version = "3.24.0"; },
   "different base": value => { value.base_ref = head; },
