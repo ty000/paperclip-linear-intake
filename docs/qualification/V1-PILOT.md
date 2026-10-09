@@ -15,6 +15,36 @@ de branche distante, PR ou fusion.
 - Le projet Paperclip `f71bdbe1-0940-4d19-8d49-2e08737508a0` et son workspace primaire
   occupé restent inchangés et hors pilote.
 
+## Entrée HTTPS du webhook
+
+Le VPS n'est pas un prérequis technique : Linear exige une URL HTTPS publique,
+qui peut aboutir au VPS ou à un tunnel vers la recette WSL. Au 9 octobre 2026,
+la recette écoute sur `127.0.0.1:3210` et aucun processus/service de tunnel ou
+proxy courant n'a été trouvé dans WSL. Cela ne prouve pas l'absence d'une entrée
+côté Windows ou d'un proxy externe. L'utilisateur ne connaît pas d'URL existante.
+
+Vérification opérateur : dans **Linear → Settings → API → Webhooks**, relever
+seulement URL, état et équipe d'un éventuel webhook Paperclip. Ce relevé nécessite
+un administrateur Linear ; ne pas copier le secret. Puis identifier le routage
+correspondant côté hébergement, DNS ou tunnel, sans créer de nouveau webhook.
+
+Si le VPS arrive prochainement, qualifier son URL HTTPS stable au lancement du
+pilote. Pour un pilote avant ce déploiement, préparer un tunnel HTTPS limité à
+`/api/plugins/2c0e40e8-a0f3-4333-acc0-046f1f4b063e/webhooks/linear-todo`
+(ID installé à relire avant configuration), avec refus des autres routes. Le
+proxy doit préserver le corps et les en-têtes signés Linear ; le hostname reçu
+par Paperclip doit être compatible avec sa configuration privée. L'endpoint
+webhook n'utilise pas une connexion Board interactive : la signature est vérifiée
+par le plugin. Le PC et WSL doivent rester disponibles pendant le pilote.
+
+Ne pas ajouter un second mécanisme de polling pour contourner cette entrée.
+Le tunnel, son exposition et l'enregistrement du webhook sont des effets à
+inclure dans l'autorisation du pilote, pas dans la livraison du code. Aucun de
+ces effets n'a été réalisé. La qualification isolée utilise son propre serveur.
+
+Références : [webhooks Linear](https://linear.app/developers/webhooks),
+[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/).
+
 ## Objets isolés proposés
 
 Créer un nouveau projet Paperclip **Hitza · qualification campagne V1** dont le workspace
