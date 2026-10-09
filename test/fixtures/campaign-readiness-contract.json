@@ -1,0 +1,44 @@
+{
+  "schema": "linear-milestone-campaign-readiness.v1",
+  "mode": "milestone-fixed-v1",
+  "projectId": "10000000-0000-4000-8000-000000000001",
+  "ticketSourceId": "10000000-0000-4000-8000-000000000002",
+  "milestoneId": "10000000-0000-4000-8000-000000000003",
+  "references": {
+    "prd": {
+      "url": "https://example.invalid/prd",
+      "version": "0.3",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "tad": {
+      "url": "https://example.invalid/tad",
+      "version": "0.2",
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }
+  },
+  "materialSourceSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "stateCompatibility": {
+    "status": "compatible",
+    "observationSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "nativeMapping": [
+    {
+      "sourceId": "10000000-0000-4000-8000-000000000002",
+      "sourceParentId": null,
+      "nativeParentSourceId": null,
+      "role": "campaign-root"
+    },
+    {
+      "sourceId": "10000000-0000-4000-8000-000000000004",
+      "sourceParentId": null,
+      "nativeParentSourceId": "10000000-0000-4000-8000-000000000002",
+      "role": "milestone-root"
+    },
+    {
+      "sourceId": "10000000-0000-4000-8000-000000000005",
+      "sourceParentId": "ENG-4",
+      "nativeParentSourceId": "10000000-0000-4000-8000-000000000004",
+      "role": "milestone-node"
+    }
+  ]
+}

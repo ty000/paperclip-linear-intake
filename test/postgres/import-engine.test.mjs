@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { after, before, beforeEach, test } from 'node:test';
 import { createIntakeStore } from '../../dist/intake-store.js';
 import { createImportStore } from '../../dist/import-store.js';
@@ -8,6 +8,7 @@ import { reconcileNativeEffects } from '../../dist/import-effects.js';
 import { buildImportPlan, IMPORT_ORIGIN } from '../../dist/import-plan.js';
 import { issueOperation } from '../../dist/import-native.js';
 import { contentDigest } from '../../dist/content-digest.js';
+import { campaignMaterialSourceSha256, campaignStateObservationSha256 } from '../../dist/campaign-contract.js';
 import { ImportStoreError } from '../../dist/import-state.js';
 import { intakeFixture, intakeIds, webhookInput, deferred } from '../helpers/intake-fixture.mjs';
 import { sourceIds } from '../helpers/source-fixture.mjs';
@@ -96,14 +97,54 @@ function prepareSource(fixture) {
   fixture.issues.get(sourceIds.child).relations.blocks = [];
 }
 
-async function engineFixture() {
+function campaignSnapshot(original) {
+  const milestoneId = '30000000-0000-4000-8000-000000000002';
+  const content = { prd: '# PRD\nTwo leaves.', tad: '# TAD\nBounded native import.' };
+  const references = { prd: { url: 'https://example.invalid/prd', version: '0.3', sha256: createHash('sha256').update(content.prd).digest('hex') },
+    tad: { url: 'https://example.invalid/tad', version: '0.2', sha256: createHash('sha256').update(content.tad).digest('hex') } };
+  const issues = structuredClone(original.issues), ticket = issues.find(issue => issue.uuid === original.rootIssueId);
+  const selected = issues.filter(issue => issue.uuid !== original.rootIssueId);
+  ticket.parentId = null; ticket.projectMilestone = null;
+  ticket.description = `\`\`\`paperclip-campaign\n${JSON.stringify({ schema: 'linear-milestone-campaign.v1', milestoneId, ...references })}\n\`\`\``;
+  ticket.relations = { blocks: [], blockedBy: [], relatedTo: [], duplicateOf: null };
+  for (const issue of selected) { issue.parentId = null; issue.projectMilestone = { id: milestoneId };
+    issue.relations = { blocks: [], blockedBy: [], relatedTo: [], duplicateOf: null }; }
+  const nativeMapping = [{ sourceId: ticket.uuid, sourceParentId: null, nativeParentSourceId: null, role: 'campaign-root' },
+    ...selected.sort((a, b) => a.uuid.localeCompare(b.uuid)).map(issue => ({ sourceId: issue.uuid, sourceParentId: null,
+      nativeParentSourceId: ticket.uuid, role: 'milestone-root' }))];
+  const extension = { schema: 'linear-milestone-campaign-readiness.v1', mode: 'milestone-fixed-v1',
+    projectId: original.projectId, ticketSourceId: ticket.uuid, milestoneId, references,
+    materialSourceSha256: '', stateCompatibility: { status: 'compatible', observationSha256: '' }, nativeMapping,
+    marker: { schema: 'linear-milestone-campaign.v1', milestoneId, ...references },
+    milestone: { id: milestoneId, name: 'V1', description: 'Shared criterion' },
+    referenceContents: { prd: { ...references.prd, content: content.prd }, tad: { ...references.tad, content: content.tad } } };
+  extension.materialSourceSha256 = campaignMaterialSourceSha256(ticket, selected, extension);
+  extension.stateCompatibility.observationSha256 = campaignStateObservationSha256([ticket, ...selected]);
+  const body = { schema: 'linear-milestone-source.v1', organizationId: original.organizationId, teamId: original.teamId,
+    projectId: original.projectId, rootIssueId: ticket.uuid, todoStateId: original.todoStateId,
+    catalogSha256: original.catalogSha256, campaign: extension, issues: [ticket, ...selected],
+    childInventory: selected.map(issue => ({ parentId: issue.uuid, children: [] })), externalBlockers: [], cycleAffectedIssueIds: [],
+    projectScan: { pageCount: 1, issueCount: issues.length, milestoneMemberIds: selected.map(issue => issue.uuid),
+      adapter: { adapter: 'linear-get-project-milestones.v1', catalogSha256: original.catalogSha256, observedShapeSha256: 'a'.repeat(64) } },
+    selectedRootInTodo: true, selectedRootArchived: false };
+  return { ...body, sourceSha256: contentDigest(body) };
+}
+
+async function engineFixture(options = {}) {
   const fixture = await intakeFixture(database, { prepare: prepareSource });
   await fixture.activate();
   await fixture.receive();
   await fixture.drain();
   const intake = createIntakeStore(database.db), store = createImportStore(database.db);
-  const binding = await intake.getBinding(sourceIds.company), [request] = await intake.listRequests(sourceIds.company);
+  const binding = await intake.getBinding(sourceIds.company); let [request] = await intake.listRequests(sourceIds.company);
   assert.equal(request.status, 'source_observed');
+  if (options.campaign) {
+    const snapshot = campaignSnapshot(request.snapshot);
+    await database.db.execute(`UPDATE plugin_linear_intake_e8c339297d.intake_requests
+      SET snapshot = $3::jsonb, snapshot_sha256 = $4 WHERE company_id = $1 AND intake_id = $2`,
+    [sourceIds.company, request.intakeId, JSON.stringify(snapshot), snapshot.sourceSha256]);
+    request = await intake.getRequest(sourceIds.company, request.intakeId);
+  }
   const native = nativeState(), ctx = fixture.harness.ctx;
   Object.assign(ctx.issues, issueService(native));
   ctx.projects.get = async (id, companyId) => nativeRead(native, 'project_get', { id, companyId }, {
@@ -179,6 +220,33 @@ test('the complete parent family preserves descriptions, history and dependency 
   assert.equal(f.native.calls.at(-1).kind, 'readiness');
   assert.equal((await durablePlan(f)).state, 'prepared');
   assert.deepEqual(f.request.snapshot, before);
+  assertNoWake(f);
+});
+
+test('a milestone campaign imports under its native ticket root, reads every effect back and publishes bound readiness without wakes', async () => {
+  const f = await engineFixture({ campaign: true });
+  const result = await f.prepare();
+  assert.equal(result.status, 'prepared');
+  assert.equal(f.plan.campaign.mode, 'milestone-fixed-v1');
+  assert.equal(f.native.issues.size, f.plan.nodes.length);
+  const root = [...f.native.issues.values()].find(issue => issue.originId.endsWith(f.plan.rootSourceId));
+  assert.equal(root.parentId, null);
+  for (const node of f.plan.nodes.slice(1)) {
+    const issue = [...f.native.issues.values()].find(value => value.originId.endsWith(node.sourceId));
+    assert.equal(issue.parentId, root.id);
+    assert.equal(node.source.parentId, null);
+  }
+  const rootSource = JSON.parse(f.native.documents.get(`${root.id}:linear-source-v1`).body);
+  assert.deepEqual(rootSource.source, f.plan.nodes[0].source);
+  assert.deepEqual(rootSource.campaign, f.request.snapshot.campaign);
+  const readiness = JSON.parse(readinessDocuments(f)[0].body);
+  assert.deepEqual(readiness.campaign, f.plan.campaign);
+  assert.equal(readiness.sourceSha256, f.request.snapshotSha256);
+  assert.equal(readiness.effects.length, f.plan.nodes.length * 3);
+  assert.equal(readiness.correspondence.length, f.plan.nodes.length);
+  const effects = await f.store.listEffects(f.plan);
+  assert.ok(effects.every(effect => effect.state === 'observed' && effect.dispatchCount <= 1));
+  assert.equal(new Set(effects.map(effect => effect.effectKey)).size, effects.length);
   assertNoWake(f);
 });
 

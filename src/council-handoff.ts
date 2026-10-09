@@ -4,6 +4,7 @@ import { fingerprint } from "./intake-authority.js";
 import { openHandoff, guardHandoff, verifyHandoffReadiness } from "./council-handoff-ledger.js";
 import { COUNCIL_REQUEST_EVENT, COUNCIL_RESULT_NAME, HandoffError, handoffResult,
   parseCouncilChallenge, requireFreshChallenge, requireHandoff, type CouncilChallenge } from "./council-handoff-contract.js";
+import { CAMPAIGN_SOURCE_SCHEMA } from "./campaign-source.js";
 
 async function revalidate(ctx: PluginContext, challenge: CouncilChallenge) {
   const session = await openHandoff(ctx, challenge);
@@ -14,7 +15,16 @@ async function revalidate(ctx: PluginContext, challenge: CouncilChallenge) {
     await guardHandoff(session);
   });
   requireHandoff(result.status === "source_observed", "handoff_source_withdrawn");
-  requireHandoff(result.family.sourceSha256 === challenge.sourceSha256, "handoff_source_changed");
+  const campaign = session.plan.plan.campaign as Record<string, unknown> | undefined;
+  if (campaign) {
+    requireHandoff(result.family.schema === CAMPAIGN_SOURCE_SCHEMA, "handoff_source_changed");
+    if (result.family.schema === CAMPAIGN_SOURCE_SCHEMA) {
+      requireHandoff(result.family.campaign.materialSourceSha256 === campaign.materialSourceSha256,
+        "handoff_source_changed");
+      requireHandoff(result.family.campaign.stateCompatibility.status === "compatible",
+        "handoff_source_state_incompatible");
+    }
+  } else requireHandoff(result.family.sourceSha256 === challenge.sourceSha256, "handoff_source_changed");
   await verifyHandoffReadiness(session);
 }
 

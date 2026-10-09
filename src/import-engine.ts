@@ -80,6 +80,7 @@ async function readinessBody(session: Session) {
     externalBlockers: plan.externalBlockers, importStatus: "prepared", admissionAllowed: false,
     implementationStarted: false, receivingContract: "unqualified",
     requiresCurrentSourceAndMandateRevalidation: true,
+    ...(plan.campaign ? { campaign: plan.campaign } : {}),
   };
 }
 

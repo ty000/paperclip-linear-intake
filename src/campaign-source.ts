@@ -1,0 +1,316 @@
+import { z, type PluginContext } from "@paperclipai/plugin-sdk";
+import { CAMPAIGN_MODE, CampaignContractError, campaignMaterialSourceSha256, campaignStateObservationSha256,
+  parseCampaignMarker, resolveCampaignReference, type CampaignNativeMapping,
+  type CampaignSourceExtension } from "./campaign-contract.js";
+import { parseConfig } from "./config.js";
+import { contentDigest as digest } from "./content-digest.js";
+import { openSourceClient, SourceReadError, type SourceClient } from "./source-client.js";
+import { familyBlockers } from "./source-graph.js";
+import { parseDetail, parseStatuses } from "./source-payload.js";
+import { readTeamStates } from "./source-family.js";
+
+export const CAMPAIGN_SOURCE_SCHEMA = "linear-milestone-source.v1" as const;
+const detailFields = ["id", "uuid", "title", "description", "parentId", "teamId", "projectId", "projectMilestone",
+  "status", "statusType", "createdAt", "updatedAt", "completedAt", "canceledAt", "archivedAt", "relations", "stateHistory"];
+const inventoryFields = ["id", "uuid", "parentId", "teamId", "projectId", "projectMilestone", "updatedAt"];
+const milestoneSchema = z.object({ id: z.uuid(), name: z.string().min(1), description: z.string().nullable().optional() }).passthrough();
+const projectSchema = z.object({ uuid: z.uuid(), milestones: z.array(milestoneSchema).max(500) }).passthrough();
+const issueMilestoneSchema = z.object({ id: z.uuid() }).passthrough().nullable();
+const inventorySchema = z.object({ id: z.string().min(1), uuid: z.uuid(), parentId: z.string().nullable(),
+  teamId: z.uuid(), projectId: z.uuid(), updatedAt: z.iso.datetime({ offset: true }), projectMilestone: issueMilestoneSchema }).passthrough();
+const pageSchema = z.object({ issues: z.array(inventorySchema), hasNextPage: z.boolean(),
+  cursor: z.string().min(1).nullable().optional() }).passthrough();
+
+type Detail = ReturnType<typeof parseDetail> & { projectMilestone?: unknown };
+type Inventory = z.infer<typeof inventorySchema>;
+type States = ReturnType<typeof parseStatuses>;
+type CampaignConfig = NonNullable<ReturnType<typeof parseConfig>["campaignSource"]>;
+type CampaignClient = SourceClient & { campaign: CampaignConfig };
+type Collected = Awaited<ReturnType<typeof collectCampaign>>;
+
+function fail(code: string): never { throw new SourceReadError(code); }
+function contract<T>(read: () => T): T {
+  try { return read(); }
+  catch (error) { if (error instanceof CampaignContractError) return fail(error.code); throw error; }
+}
+function same(actual: unknown, expected: unknown, code: string) {
+  if (digest(actual) !== digest(expected)) fail(code);
+}
+function parsed<T>(schema: z.ZodType<T>, value: unknown): T {
+  const result = schema.safeParse(value);
+  if (!result.success) fail("campaign_milestone_shape_unqualified");
+  return result.data;
+}
+function issueMilestone(value: { projectMilestone?: unknown }) {
+  return parsed(issueMilestoneSchema, value.projectMilestone)?.id ?? null;
+}
+function parsePage(value: unknown) {
+  const page = parsed(pageSchema, value);
+  if (page.hasNextPage && (!page.cursor || page.issues.length === 0)) fail("source_page_incomplete");
+  return page;
+}
+
+async function openCampaignClient(ctx: PluginContext, companyId: string, ticketId: string,
+  qualificationOnly: boolean, guard?: import("./gateway.js").GatewayReadGuard): Promise<CampaignClient> {
+  const client = await openSourceClient(ctx, companyId, ticketId, qualificationOnly, guard);
+  const campaign = parseConfig(await ctx.config.get(companyId)).campaignSource;
+  if (!campaign || campaign.projectMetadataScope !== "enrolled") fail("campaign_source_disabled");
+  if (campaign.adapterQualification.catalogSha256 !== client.catalogSha256) fail("campaign_adapter_unqualified");
+  return Object.assign(client, { campaign });
+}
+
+function verifyScope(client: CampaignClient, issue: { teamId: string; projectId: string | null }) {
+  if (issue.teamId !== client.scope.teamId || issue.projectId !== client.scope.projectId) fail("source_issue_outside_scope");
+}
+function verifyState(states: States, issue: Detail) {
+  const state = states.find(item => item.id === issue.currentStateId);
+  if (!state) fail("source_state_unknown");
+  same({ name: state.name, type: state.type }, { name: issue.status, type: issue.statusType }, "source_state_changed");
+}
+async function readDetail(client: CampaignClient, states: States, id: string) {
+  const detail = parseDetail(await client.call("getIssue", { id, fields: detailFields, includeRelations: true })) as Detail;
+  if (detail.uuid !== id) fail("source_issue_identity_mismatch");
+  parsed(issueMilestoneSchema, detail.projectMilestone);
+  verifyScope(client, detail); verifyState(states, detail);
+  return detail;
+}
+
+async function readMetadata(client: CampaignClient) {
+  const workspace = parsed(z.object({ id: z.uuid() }), await client.call("getWorkspace", {}));
+  same(workspace.id, client.scope.organizationId, "source_organization_mismatch");
+  const project = parsed(projectSchema, await client.call("getProject", { query: client.scope.projectId, includeMilestones: true }));
+  same(project.uuid, client.scope.projectId, "source_project_mismatch");
+  const states = await readTeamStates(client);
+  return { project, states };
+}
+
+function nextCursor(page: ReturnType<typeof parsePage>, cursors: Set<string>) {
+  const cursor = page.cursor!;
+  if (cursors.has(cursor)) fail("source_cursor_repeated");
+  cursors.add(cursor);
+  return cursor;
+}
+
+function appendProjectPage(client: CampaignClient, rows: Inventory[], ids: Set<string>, page: ReturnType<typeof parsePage>) {
+  for (const issue of page.issues) {
+    if (ids.has(issue.uuid)) fail("source_duplicate_issue");
+    ids.add(issue.uuid); rows.push(issue);
+  }
+  if (rows.length > client.scope.maxIssues * 20) fail("source_project_inventory_bound_exceeded");
+}
+
+async function projectInventory(client: CampaignClient) {
+  const rows: Inventory[] = [], ids = new Set<string>(), cursors = new Set<string>();
+  let cursor: string | undefined;
+  for (let pageNumber = 0; pageNumber < client.campaign.maxProjectPages; pageNumber++) {
+    const page = parsePage(await client.call("listIssues", { project: client.scope.projectId, fields: inventoryFields,
+      includeArchived: true, orderBy: "createdAt", limit: client.scope.pageSize, ...(cursor ? { cursor } : {}) }));
+    appendProjectPage(client, rows, ids, page);
+    if (!page.hasNextPage) return { rows, pageCount: pageNumber + 1 };
+    cursor = nextCursor(page, cursors);
+  }
+  return fail("source_page_bound_exceeded");
+}
+
+function appendChildPage(client: CampaignClient, parent: Detail, rows: Inventory[], ids: Set<string>,
+  page: ReturnType<typeof parsePage>) {
+  for (const child of page.issues) {
+    verifyScope(client, child);
+    if (![parent.id, parent.uuid].some(id => id === child.parentId)) fail("source_parent_mismatch");
+    if (ids.has(child.uuid)) fail("source_duplicate_child");
+    ids.add(child.uuid); rows.push(child);
+  }
+}
+
+async function listChildren(client: CampaignClient, parent: Detail) {
+  const rows: Inventory[] = [], ids = new Set<string>(), cursors = new Set<string>();
+  let cursor: string | undefined;
+  for (let pageNumber = 0; pageNumber < client.scope.maxPagesPerParent; pageNumber++) {
+    const page = parsePage(await client.call("listIssues", { parentId: parent.id, fields: inventoryFields,
+      includeArchived: true, orderBy: "createdAt", limit: client.scope.pageSize, ...(cursor ? { cursor } : {}) }));
+    appendChildPage(client, parent, rows, ids, page);
+    if (!page.hasNextPage) return rows.sort((a, b) => a.uuid.localeCompare(b.uuid));
+    cursor = nextCursor(page, cursors);
+  }
+  return fail("source_page_bound_exceeded");
+}
+
+function inventoryIdentity(issue: Inventory | Detail) {
+  return { id: issue.id, uuid: issue.uuid, parentId: issue.parentId, teamId: issue.teamId,
+    projectId: issue.projectId, projectMilestone: issueMilestone(issue), updatedAt: issue.updatedAt };
+}
+
+async function loadDirectIssue(client: CampaignClient, states: States, issues: Map<string, Detail>, queue: Detail[], item: Inventory) {
+  if (issues.has(item.uuid)) fail("source_duplicate_issue");
+  const detail = await readDetail(client, states, item.uuid);
+  same(inventoryIdentity(detail), inventoryIdentity(item), "source_inventory_changed");
+  issues.set(detail.uuid, detail); queue.push(detail);
+}
+
+async function loadChildIssue(client: CampaignClient, states: States, issues: Map<string, Detail>, queue: Detail[], child: Inventory) {
+  const existing = issues.get(child.uuid);
+  if (existing) return same(inventoryIdentity(existing), inventoryIdentity(child), "source_inventory_changed");
+  if (issues.size >= Math.min(client.scope.maxIssues, 32)) fail("source_issue_bound_exceeded");
+  const detail = await readDetail(client, states, child.uuid);
+  same(inventoryIdentity(detail), inventoryIdentity(child), "source_inventory_changed");
+  issues.set(detail.uuid, detail); queue.push(detail);
+}
+
+function recordChildOwner(childOwner: Map<string, string>, child: Inventory, parent: Detail) {
+  const owner = childOwner.get(child.uuid);
+  if (owner && owner !== parent.uuid) fail("source_hierarchy_repeated");
+  childOwner.set(child.uuid, parent.uuid);
+}
+
+async function expandMilestone(client: CampaignClient, states: States, direct: Inventory[]) {
+  const issues = new Map<string, Detail>(), queue: Detail[] = [], childInventory = new Map<string, Inventory[]>(), childOwner = new Map<string, string>();
+  for (const item of direct.sort((a, b) => a.uuid.localeCompare(b.uuid))) await loadDirectIssue(client, states, issues, queue, item);
+  for (const parent of queue) {
+    const children = await listChildren(client, parent);
+    childInventory.set(parent.uuid, children);
+    for (const child of children) {
+      recordChildOwner(childOwner, child, parent);
+      await loadChildIssue(client, states, issues, queue, child);
+    }
+  }
+  return { issues, childInventory, childOwner };
+}
+
+function compatibleTicket(client: CampaignClient, ticket: Detail) {
+  return [ticket.archivedAt === null, !["started", "completed", "canceled"].includes(ticket.statusType),
+    client.campaign.compatibleCampaignStateIds.includes(ticket.currentStateId)].every(Boolean);
+}
+
+function compatibleSelectedIssue(issue: Detail) {
+  return [["backlog", "unstarted", "completed", "canceled"].includes(issue.statusType),
+    issue.archivedAt === null || ["completed", "canceled"].includes(issue.statusType)].every(Boolean);
+}
+
+function requireCompatibleState(client: CampaignClient, ticket: Detail, issues: Detail[]) {
+  if (!compatibleTicket(client, ticket)) fail("campaign_state_incompatible");
+  issues.forEach(requireCompatibleIssue);
+}
+
+function requireCompatibleIssue(issue: Detail) {
+  if (issue.statusType === "started") fail("campaign_work_already_started");
+  if (!compatibleSelectedIssue(issue)) fail("campaign_state_incompatible");
+}
+
+function childGroups(childOwner: Map<string, string>) {
+  const children = new Map<string, string[]>();
+  for (const [child, parent] of childOwner) children.set(parent, [...(children.get(parent) ?? []), child]);
+  return children;
+}
+
+function appendOrderedChild(ordered: string[], seen: Set<string>, child: string) {
+  if (seen.has(child)) fail("campaign_parent_cycle");
+  seen.add(child); ordered.push(child);
+}
+
+function hierarchyOrder(issues: Map<string, Detail>, childOwner: Map<string, string>) {
+  const roots = [...issues.keys()].filter(id => !childOwner.has(id)).sort();
+  if (roots.length === 0) fail("campaign_parent_cycle");
+  const ordered = [...roots], seen = new Set(roots), children = childGroups(childOwner);
+  for (const parent of ordered) appendOrderedChildren(ordered, seen, children.get(parent));
+  if (seen.size !== issues.size) fail("campaign_parent_cycle");
+  return ordered;
+}
+
+function appendOrderedChildren(ordered: string[], seen: Set<string>, children: string[] = []) {
+  for (const child of children.sort()) appendOrderedChild(ordered, seen, child);
+}
+
+function mappingEntry(ticket: Detail, issues: Map<string, Detail>, childOwner: Map<string, string>, sourceId: string) {
+  const issue = issues.get(sourceId)!, owner = childOwner.get(sourceId);
+  return { sourceId, sourceParentId: issue.parentId, nativeParentSourceId: owner ?? ticket.uuid,
+    role: owner ? "milestone-node" as const : "milestone-root" as const };
+}
+
+function nativeMapping(ticket: Detail, issues: Map<string, Detail>, childOwner: Map<string, string>): CampaignNativeMapping[] {
+  return [{ sourceId: ticket.uuid, sourceParentId: ticket.parentId, nativeParentSourceId: null, role: "campaign-root" },
+    ...hierarchyOrder(issues, childOwner).map(sourceId => mappingEntry(ticket, issues, childOwner, sourceId))];
+}
+
+function selectedMilestone(project: z.infer<typeof projectSchema>, ticket: Detail) {
+  const marker = contract(() => parseCampaignMarker(ticket.description));
+  if (!marker) fail("campaign_marker_missing");
+  if (issueMilestone(ticket) !== null) fail("campaign_ticket_in_milestone");
+  const matches = project.milestones.filter(value => value.id === marker.milestoneId);
+  if (matches.length !== 1) fail("campaign_milestone_missing");
+  const observed = matches[0]!;
+  return { marker, milestone: milestoneDescription(observed) };
+}
+
+function milestoneDescription(observed: z.infer<typeof milestoneSchema>) {
+  return { id: observed.id, name: observed.name, description: observed.description ?? null };
+}
+
+function directMembers(inventory: Awaited<ReturnType<typeof projectInventory>>, milestoneId: string) {
+  const direct = inventory.rows.filter(issue => issueMilestone(issue) === milestoneId);
+  if (direct.length === 0) fail("campaign_milestone_empty");
+  if (direct.length > 32) fail("source_issue_bound_exceeded");
+  return direct;
+}
+
+function requireCampaignBlockers(selected: Detail[]) {
+  const blockers = familyBlockers(selected);
+  if (blockers.cycleAffectedIssueIds.length) fail("campaign_blocker_cycle");
+  if (blockers.externalBlockers.length) fail("campaign_external_blocker");
+  return blockers;
+}
+
+async function collectCampaign(client: CampaignClient, ticketId: string) {
+  const { project, states } = await readMetadata(client);
+  const ticket = await readDetail(client, states, ticketId);
+  const { marker, milestone } = selectedMilestone(project, ticket);
+  const references = { prd: contract(() => resolveCampaignReference(marker.prd, client.campaign.referenceDocuments)),
+    tad: contract(() => resolveCampaignReference(marker.tad, client.campaign.referenceDocuments)) };
+  const inventory = await projectInventory(client);
+  const direct = directMembers(inventory, marker.milestoneId);
+  const expanded = await expandMilestone(client, states, direct);
+  const selected = [...expanded.issues.values()].sort((a, b) => a.uuid.localeCompare(b.uuid));
+  requireCompatibleState(client, ticket, selected);
+  const blockers = requireCampaignBlockers(selected);
+  const mapping = nativeMapping(ticket, expanded.issues, expanded.childOwner);
+  const digestInput = { milestone, referenceContents: references, nativeMapping: mapping };
+  const materialSourceSha256 = campaignMaterialSourceSha256(ticket, selected, digestInput);
+  const campaign: CampaignSourceExtension = {
+    schema: "linear-milestone-campaign-readiness.v1", mode: CAMPAIGN_MODE,
+    projectId: client.scope.projectId, ticketSourceId: ticket.uuid, milestoneId: milestone.id,
+    references: { prd: marker.prd, tad: marker.tad }, materialSourceSha256,
+    stateCompatibility: { status: "compatible", observationSha256: campaignStateObservationSha256([ticket, ...selected]) }, nativeMapping: mapping,
+    marker, milestone, referenceContents: references,
+  };
+  return { ticket, selected, childInventory: expanded.childInventory, blockers, campaign,
+    projectScan: { pageCount: inventory.pageCount, issueCount: inventory.rows.length,
+      milestoneMemberIds: direct.map(issue => issue.uuid).sort(), adapter: client.campaign.adapterQualification } };
+}
+
+function snapshot(client: CampaignClient, collected: Collected) {
+  const data = { schema: CAMPAIGN_SOURCE_SCHEMA, organizationId: client.scope.organizationId,
+    teamId: client.scope.teamId, projectId: client.scope.projectId, todoStateId: client.scope.todoStateId,
+    rootIssueId: collected.ticket.uuid, catalogSha256: client.catalogSha256, campaign: collected.campaign,
+    issues: [collected.ticket, ...collected.selected],
+    childInventory: [...collected.childInventory].map(([parentId, children]) => ({ parentId, children })),
+    externalBlockers: collected.blockers.externalBlockers,
+    cycleAffectedIssueIds: collected.blockers.cycleAffectedIssueIds,
+    projectScan: collected.projectScan,
+    selectedRootInTodo: collected.ticket.currentStateId === client.scope.todoStateId,
+    selectedRootArchived: collected.ticket.archivedAt !== null };
+  if (Buffer.byteLength(JSON.stringify(data)) > 2 * 1024 * 1024) fail("source_size_bound_exceeded");
+  return { ...data, sourceSha256: digest(data) };
+}
+
+export async function readCampaignSource(ctx: PluginContext, companyId: string, ticketId: string,
+  qualificationOnly = true, guard?: import("./gateway.js").GatewayReadGuard) {
+  const client = await openCampaignClient(ctx, companyId, ticketId, qualificationOnly, guard);
+  const startedAt = new Date().toISOString();
+  const first = await collectCampaign(client, ticketId), second = await collectCampaign(client, ticketId);
+  same(second.campaign.materialSourceSha256, first.campaign.materialSourceSha256, "campaign_material_source_changed");
+  const current = parseConfig(await ctx.config.get(companyId));
+  same(current.sourceReader, client.scope, "source_configuration_changed");
+  same(current.campaignSource, client.campaign, "source_configuration_changed");
+  return { status: "campaign_source_observed" as const, importPerformed: false, family: snapshot(client, second),
+    startedAt, completedAt: new Date().toISOString(), consistency: "repeated_material_and_state_compatible" as const,
+    requests: client.requests() };
+}

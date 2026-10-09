@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { sourceFixture, sourceIds } from './source-fixture.mjs';
 import { readSourceFamily } from '../../dist/source-family.js';
 import { buildImportPlan } from '../../dist/import-plan.js';
@@ -11,6 +12,37 @@ import { COUNCIL_REQUEST_EVENT, COUNCIL_RESULT_NAME } from '../../dist/council-h
 export const uuid = n => `90000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const time = '2026-10-07T12:00:00.000Z';
 const activation = '2026-10-07T11:00:00.000Z';
+const campaignPrd = '# Campaign PRD\nExact source family.';
+const campaignTad = '# Campaign TAD\nFixed native grouping.';
+const sha256 = value => createHash('sha256').update(value).digest('hex');
+const campaignReferences = {
+  prd: { url: 'https://example.invalid/campaign-prd', version: '1', sha256: sha256(campaignPrd) },
+  tad: { url: 'https://example.invalid/campaign-tad', version: '1', sha256: sha256(campaignTad) },
+};
+
+function campaignSource(catalogSha256) {
+  return { projectMetadataScope: 'enrolled', adapterQualification: {
+    adapter: 'linear-get-project-milestones.v1', catalogSha256, observedShapeSha256: 'a'.repeat(64) },
+    referenceDocuments: [{ ...campaignReferences.prd, content: campaignPrd },
+      { ...campaignReferences.tad, content: campaignTad }],
+    compatibleCampaignStateIds: [sourceIds.todo, sourceIds.backlog], maxProjectPages: 10 };
+}
+
+function configureCampaign(f) {
+  f.milestones = [{ id: sourceIds.milestone, name: 'V1', description: 'Campaign criterion' }];
+  const ticket = f.issues.get(sourceIds.root), parent = f.issues.get(sourceIds.child);
+  const leaf = f.issues.get(sourceIds.grandchild);
+  ticket.description = `Human context\n\n\`\`\`paperclip-campaign\n${JSON.stringify({
+    schema: 'linear-milestone-campaign.v1', milestoneId: sourceIds.milestone, ...campaignReferences,
+  })}\n\`\`\``;
+  ticket.parentId = null; ticket.projectMilestone = null;
+  ticket.relations = { blocks: [], blockedBy: [], relatedTo: [], duplicateOf: null };
+  parent.parentId = null; parent.projectMilestone = { id: sourceIds.milestone };
+  parent.relations = { blocks: [], blockedBy: [], relatedTo: [], duplicateOf: null };
+  leaf.parentId = parent.id; leaf.projectMilestone = { id: sourceIds.milestone };
+  leaf.relations = { blocks: [], blockedBy: [], relatedTo: [], duplicateOf: null };
+  for (const issueId of [sourceIds.completed, sourceIds.canceledIssue]) f.issues.delete(issueId);
+}
 
 function configure(f) {
   Object.assign(f.config, { enabled: true, nativeImportEnabled: true, councilHandoffEnabled: true,
@@ -49,6 +81,7 @@ function readinessBody(plan, effects) {
     originKind: plan.originKind, nativeRootId: uuid(7), sourceRootId: plan.rootSourceId,
     importStatus: 'prepared', admissionAllowed: false, implementationStarted: false, receivingContract: 'unqualified',
     requiresCurrentSourceAndMandateRevalidation: true,
+    ...(plan.campaign ? { campaign: plan.campaign } : {}),
     effects: effects.map(({ effectKey, intentSha256, result, resultSha256 }) => ({ effectKey, intentSha256, result, resultSha256 })) };
 }
 
@@ -109,9 +142,11 @@ export function challenge(f, stage = 'preparation') {
 }
 
 export async function handoffFixture(options = {}) {
-  const f = await sourceFixture({ prepare: configure,
+  const f = await sourceFixture({ campaignSource: options.campaign ? campaignSource : undefined,
+    prepare(current) { configure(current); if (options.campaign) configureCampaign(current); },
     beforeCall: async (call, current) => { if (current.armed) await options.beforeCall?.(call, current); } });
-  const observed = await readSourceFamily(f.harness.ctx, sourceIds.company, sourceIds.root, false);
+  const observed = options.campaign ? await f.runCampaign()
+    : await readSourceFamily(f.harness.ctx, sourceIds.company, sourceIds.root, false);
   options.configure?.(f.config);
   retained(f, observed.family); prepared(f); connectLedger(f, options);
   f.results = [];

@@ -13,12 +13,14 @@ export const sourceIds = {
   backlog: '10000000-0000-4000-8000-000000000006',
   done: '10000000-0000-4000-8000-000000000007',
   canceled: '10000000-0000-4000-8000-000000000008',
+  started: '10000000-0000-4000-8000-000000000009',
   root: '20000000-0000-4000-8000-000000000001',
   child: '20000000-0000-4000-8000-000000000002',
   completed: '20000000-0000-4000-8000-000000000003',
   canceledIssue: '20000000-0000-4000-8000-000000000004',
   grandchild: '20000000-0000-4000-8000-000000000005',
   outside: '30000000-0000-4000-8000-000000000001',
+  milestone: '30000000-0000-4000-8000-000000000002',
 };
 const token = 'synthetic-source-fixture-credential';
 const timestamp = '2026-10-07T12:00:00.000Z';
@@ -27,6 +29,7 @@ const states = [
   { id: sourceIds.backlog, name: 'Backlog', type: 'backlog' },
   { id: sourceIds.done, name: 'Done', type: 'completed' },
   { id: sourceIds.canceled, name: 'Canceled', type: 'canceled' },
+  { id: sourceIds.started, name: 'In Progress', type: 'started' },
 ];
 const roleSuffixes = {
   getWorkspace: 'get-workspace', getProject: 'get-project', getTeam: 'get-team',
@@ -68,7 +71,7 @@ function sourceIssues() {
   return new Map([root, child, completed, canceled, grandchild].map(value => [value.uuid, value]));
 }
 
-function sourceConfig(reader) {
+function sourceConfig(reader, campaignSource) {
   return {
     gatewayDiscoveryEnabled: true,
     gatewayUrl: 'https://gateway.example.test/mcp/gateways/synthetic-reader',
@@ -79,12 +82,14 @@ function sourceConfig(reader) {
       tools: structuredClone(pins), maxIssues: 20, maxPagesPerParent: 10, pageSize: 2,
       maxRequests: 100, deadlineMs: 60_000, ...reader,
     },
+    ...(campaignSource ? { campaignSource } : {}),
   };
 }
 
 function inventory(value) {
   const { id, uuid, parentId, teamId, projectId, updatedAt } = value;
-  return { id, uuid, parentId, teamId, projectId, updatedAt };
+  return { id, uuid, parentId, teamId, projectId, updatedAt,
+    ...(Object.hasOwn(value, 'projectMilestone') ? { projectMilestone: value.projectMilestone } : {}) };
 }
 
 function cursorOffset(cursor) {
@@ -94,7 +99,8 @@ function cursorOffset(cursor) {
 }
 
 function issuePage(fixture, args) {
-  const children = [...fixture.issues.values()].filter(value => value.parentId === args.parentId);
+  const children = [...fixture.issues.values()].filter(value => args.project
+    ? value.projectId === args.project : value.parentId === args.parentId);
   const offset = cursorOffset(args.cursor);
   const issues = children.slice(offset, offset + args.limit).map(inventory);
   const hasNextPage = offset + issues.length < children.length;
@@ -117,7 +123,8 @@ function managedResult(payload) {
 function sourceHandlers(fixture) {
   return new Map([
     ['getWorkspace', () => ({ id: sourceIds.organization, name: 'Synthetic workspace' })],
-    ['getProject', () => ({ uuid: sourceIds.project, id: 'P-SYN-1', name: 'Synthetic project' })],
+    ['getProject', args => ({ uuid: sourceIds.project, id: 'P-SYN-1', name: 'Synthetic project',
+      ...(args.includeMilestones ? { milestones: structuredClone(fixture.milestones) } : {}) })],
     ['getTeam', () => ({ id: sourceIds.team, key: 'SYN' })],
     ['listStatuses', () => structuredClone(states)],
     ['listIssues', args => issuePage(fixture, args)],
@@ -179,14 +186,20 @@ function connectNativeServices(fixture, options) {
 }
 
 export async function sourceFixture(options = {}) {
-  const config = structuredClone(options.config ?? sourceConfig(options.reader));
+  const catalog = structuredClone(tools);
+  const catalogSha256 = createHash('sha256').update(JSON.stringify(catalog)).digest('hex');
+  const config = structuredClone(options.config ?? sourceConfig(options.reader,
+    typeof options.campaignSource === 'function' ? options.campaignSource(catalogSha256) : options.campaignSource));
   const harness = createTestHarness({ manifest, config });
   const fixture = {
-    harness, config, issues: sourceIssues(), catalog: structuredClone(tools),
+    harness, config, issues: sourceIssues(), catalog, milestones: [],
     requests: [], sourceCalls: [], configReads: [], secretReads: [], counts: new Map(),
     run: (params = { issueId: sourceIds.root }, context = {
       companyId: sourceIds.company, actor: { type: 'user', userId: 'synthetic-operator' },
     }) => harness.performAction('read-source-family', params, context),
+    runCampaign: (params = { issueId: sourceIds.root }, context = {
+      companyId: sourceIds.company, actor: { type: 'user', userId: 'synthetic-operator' },
+    }) => harness.performAction('read-campaign-source', params, context),
   };
   options.prepare?.(fixture);
   connectNativeServices(fixture, options);
