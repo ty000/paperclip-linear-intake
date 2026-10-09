@@ -3,16 +3,20 @@ import { contentDigest } from "./content-digest.js";
 import { publicationText, emptyPresentation } from "./publication-text.js";
 import { requirePublication } from "./continuity-contract.js";
 
-const pageSchema = z.object({ comments: z.array(z.object({ id: z.uuid(), body: z.string(), issueId: z.uuid().optional() }).passthrough()).max(250),
+const pageSchema = z.object({ comments: z.array(z.object({ id: z.uuid(), body: z.string(), url: z.url().optional(), issueId: z.uuid().optional() }).passthrough()).max(250),
   hasNextPage: z.boolean(), cursor: z.string().min(1).nullable().optional() }).passthrough();
 type Page = z.infer<typeof pageSchema>;
-type Comment = { id: string; body: string };
+type Comment = { id: string; body: string; url?: string };
 
 function appendPage(issueId: string, page: Page, comments: Comment[], seen: Set<string>) {
   for (const comment of page.comments) {
     requirePublication(!seen.has(comment.id), "publication_comments_ambiguous");
     requirePublication(!comment.issueId || comment.issueId === issueId, "publication_comments_ambiguous");
-    seen.add(comment.id); comments.push({ id: comment.id, body: comment.body });
+    if (comment.url) {
+      const url = new URL(comment.url);
+      requirePublication(url.protocol === "https:" && ![url.username, url.password].some(Boolean), "publication_comments_unqualified");
+    }
+    seen.add(comment.id); comments.push({ id: comment.id, body: comment.body, ...(comment.url ? { url: comment.url } : {}) });
   }
 }
 

@@ -12,10 +12,10 @@ let database;
 before(async()=>{database=await isolatedDatabase();});after(async()=>database?.close());beforeEach(async()=>database.reset());
 const state=(id,value)=>({sourceId:id,state:value});
 test('authenticated native request publishes comment then members then terminal root with exact receipts',async()=>{
- const f=await publicationFixture(database.db);f.addIntent([state(ids.root,'completed'),state(ids.child,'completed')]);await f.sendContinuity();
+ const f=await publicationFixture(database.db);f.addIntent([state(ids.root,'completed'),state(ids.child,'completed')],uuid(40),'closure');f.grantTerminal();await f.sendContinuity();
  assert.equal(f.continuityResults.at(-1)?.availability,'available');assert.equal(f.continuityResults.at(-1).acknowledgements.length,1);
  assert.deepEqual(f.writes.map(w=>[w.role,w.args.id??w.args.issueId]),[['saveComment',ids.root],['saveIssue',ids.child],['saveIssue',ids.root]]);
- assert.deepEqual(f.continuityResults.at(-1).capabilities,['fixed-source','publication-readback']);assert.deepEqual(f.continuityResults.at(-1).changes,[]);
+ assert.deepEqual(f.continuityResults.at(-1).capabilities,['fixed-source','publication-readback','terminal-publication-claim']);assert.deepEqual(f.continuityResults.at(-1).changes,[]);
  assert.equal(f.continuityReferences.at(-1).key,contentDigest(f.continuityResults.at(-1)));
  assert.equal(f.continuityReferences.at(-1).key.length,64);
  assert.equal(f.continuityResults.at(-1).acknowledgements[0].publicationReceipt.key,`linear-publication-${uuid(40)}`);
@@ -88,4 +88,48 @@ test('control comment can publish after prior comment readback while its started
  f.harness.ctx.db.execute=execute;f.config.publisher.enabled=true;f.requestWire.control='paused';f.addIntent([],uuid(41),'decision');await f.sendContinuity();
  assert.equal(f.comments.length,2);assert.equal(f.writes.filter(w=>w.role==='saveIssue').length,0);assert.deepEqual(f.continuityResults.at(-1)?.acknowledgements.map(a=>a.intentId),[uuid(41)]);
  f.requestWire.control='running';await f.sendContinuity();assert.equal(f.writes.filter(w=>w.role==='saveIssue').length,1);assert.equal(f.continuityResults.at(-1)?.acknowledgements.length,2);
+});
+
+test('receipt retains observed comment identity and URL while replay keeps the same pinned receipt',async()=>{
+ const f=await publicationFixture(database.db,{afterCall(current,role){if(role==='saveComment')current.comments.at(-1).url='https://linear.app/example/comment/observed';}});
+ f.addIntent();await f.sendContinuity();const ack=f.continuityResults.at(-1).acknowledgements[0];
+ const body=JSON.parse(f.documents.get(ack.publicationReceipt.key).body),comment=body.effects[0];
+ assert.equal(comment.commentId,f.comments[0].id);assert.equal(comment.commentUrl,f.comments[0].url);
+ await f.sendContinuity();assert.deepEqual(f.continuityResults.at(-1).acknowledgements[0].publicationReceipt,ack.publicationReceipt);assert.equal(f.writes.length,1);
+});
+
+for(const orphan of [false,true]) {
+ test(`historical ${orphan?'orphan document':'pinned receipt'} is read without adding fields or rewriting`,async()=>{
+  const {publicationReceipt}=await import('../../dist/publication-receipt.js');
+  const f=await publicationFixture(database.db);const {intentId}=f.addIntent();await f.sendContinuity();
+  const store=createPublicationStore(database.db);let row=await store.get(ids.company,intentId);
+  const doc=f.documents.get(row.receipt.key),payload=JSON.parse(doc.body);
+  for(const effect of payload.effects){delete effect.commentId;delete effect.commentUrl;}
+  doc.body=JSON.stringify(payload);const reference={...row.receipt,bodySha256:contentDigest(doc.body)};
+  row=await store.save(row,row.effects,orphan?null:reference);
+  const before=structuredClone(doc);let writes=0;
+  f.harness.ctx.issues.documents.upsert=async()=>{writes++;assert.fail('historical document rewrite');};
+  const out=await publicationReceipt(f.harness.ctx,store,row);
+  assert.deepEqual(out.publicationReceipt,reference);assert.deepEqual(f.documents.get(doc.key),before);assert.equal(writes,0);
+ });
+}
+
+test('renderer upgrade reconciles retained old comment bytes under its original intent without another send',async()=>{
+ const f=await publicationFixture(database.db),{intentId}=f.addIntent();await f.sendContinuity();
+ const store=createPublicationStore(database.db),row=await store.get(ids.company,intentId);
+ const marker=row.effects[0].body.slice(row.effects[0].body.indexOf('<!--'));
+ const original='Original retained legacy presentation\n\n'+marker;
+ f.comments[0].body=original;f.documents.delete(row.receipt.key);
+ await store.save(row,[{...row.effects[0],body:original,state:'claimed',readback:undefined}],null);
+ await f.sendContinuity();assert.equal(f.writes.length,1);
+ const observed=await store.get(ids.company,intentId);assert.equal(observed.effects[0].state,'confirmed');assert.equal(observed.effects[0].body,original);
+ assert.equal(observed.effects[0].readback.bodySha256,contentDigest(original));assert.equal(f.continuityResults.at(-1).acknowledgements.length,1);
+});
+
+test('preserving an old body does not accept altered effect scope or identity',async()=>{
+ const f=await publicationFixture(database.db),{intentId,payload}=f.addIntent();await f.sendContinuity();
+ const store=createPublicationStore(database.db),row=await store.get(ids.company,intentId);
+ await assert.rejects(store.ensure(f.requestWire,intentId,payload,[{...row.effects[0],sourceId:ids.child}]),/publication_effect_changed/);
+ await store.save(row,[{...row.effects[0],body:'unbound legacy comment'}]);
+ await assert.rejects(store.ensure(f.requestWire,intentId,payload,row.effects),/publication_effect_changed/);
 });

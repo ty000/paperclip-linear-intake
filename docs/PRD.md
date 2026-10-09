@@ -138,6 +138,7 @@ des prérequis de livraison de la V1.
 
 | Évolution ultérieure | Coût évité pour la V1 | Comportement présent |
 | --- | --- | --- |
+| Investigations sans modification du dépôt | Parcours de livraison et preuve spécifiques sans PR | Préparer leurs résultats avant engagement ; les feuilles exécutables V1 livrent une modification du dépôt vérifiée par PR. |
 | Adaptation automatique des membres, critères et versions | Analyse sémantique, invalidation ciblée et replanification | Périmètre fixé, suspension expliquée. |
 | Absorption d’un ticket déjà engagé | Transfert concurrent de propriété, preuves et comptabilité | Engagement recouvrant retenu. |
 | Création automatique de prérequis | Qualification de nécessité, créations et nouvelles dépendances | Intervention humaine. |

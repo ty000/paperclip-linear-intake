@@ -10,12 +10,16 @@ export type IntakeBinding = {
 };
 
 export type IntakeStatus = "received" | "fetching" | "source_observed" | "withdrawn" | "blocked";
+export const MAX_SOURCE_ATTEMPTS = 3;
+export type SourceReadRetry = { requestVersion: number; attempts: number; errorCode: string;
+  requestedAt: string; actorUserId: string };
 export type IntakeRequest = {
   companyId: string; organizationId: string; issueId: string; intakeId: string;
   activationId: string; accepted: boolean; status: IntakeStatus; version: number;
   revision: string; eventAt: string; classification: NormalizedWebhookEvent["classification"];
   deliveryId: string; acceptedAt: string | null; attempts: number;
   leaseOwner: string | null; leaseUntil: string | null;
+  sourceRetryHistory?: SourceReadRetry[];
   snapshot: Record<string, unknown> | null; snapshotSha256: string | null; errorCode: string | null;
 };
 

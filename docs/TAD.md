@@ -199,8 +199,10 @@ publication ; on ne refait pas la revue ou le travail pour cette seule raison.
 Council réutilise les tâches/agents et politiques d’exécution natives pour les
 livraisons. La V1 ajoute uniquement l’ordre et les contrôles de campagne manquants.
 Chaque feuille de code possède sa PR ; la suivante commence après revue,
-contrôles, fusion du candidat exact et vérification intégrée. Une investigation
-sans code produit une preuve adaptée, pas une PR fictive.
+contrôles, fusion du candidat exact et vérification intégrée. Les investigations
+sans modification du dépôt sont reportées après la V1 : leurs résultats doivent
+être préparés avant engagement. La V1 ne leur crée pas de PR fictive et ne
+revendique pas de parcours de livraison sans PR.
 
 Les états de campagne sont simples ; les étapes courantes et motifs d’attente sont
 conservés comme données, pas comme une seconde machine d’orchestration complète :

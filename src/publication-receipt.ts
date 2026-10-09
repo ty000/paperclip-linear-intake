@@ -12,10 +12,32 @@ export async function publicationReceipt(ctx: PluginContext, store: PublicationS
     effects: row.effects.map(e => ({ sourceId: e.sourceId, kind: e.kind, readbackSha256: contentDigest(e.readback) })) };
   if (row.receipt) {
     const existing = await readContinuityDocument(ctx,row.companyId,row.payload.binding.nativeRootId,row.receipt);
-    requirePublication(contentDigest(existing) === contentDigest(payload), "publication_receipt_changed");
+    requireReceipt(existing, payload, enrichedPayload(row, payload));
   } else {
-    const receipt = await ensureContinuityDocument(ctx,row.companyId,row.payload.binding.nativeRootId,`linear-publication-${row.intentId}`,payload);
+    const key = `linear-publication-${row.intentId}`;
+    const existing = await ctx.issues.documents.get(row.payload.binding.nativeRootId, key, row.companyId);
+    let selected: unknown = enrichedPayload(row, payload);
+    if (existing) {
+      try { selected = JSON.parse(existing.body); } catch { throw new Error("publication_receipt_changed"); }
+      requireReceipt(selected, payload, enrichedPayload(row, payload));
+    }
+    const receipt = await ensureContinuityDocument(ctx,row.companyId,row.payload.binding.nativeRootId,key,selected);
     row = await store.save(row,row.effects,receipt);
   }
   return { intentId: row.intentId, payloadSha256: row.payloadSha256, status: "confirmed" as const, publicationReceipt: row.receipt! };
+}
+
+function enrichedPayload(row: PublicationRecord, legacy: { effects: Array<Record<string, unknown>> }) {
+  return { ...legacy, effects: legacy.effects.map((effect, index) => {
+    const saved = row.effects[index]!;
+    if (saved.kind !== "comment") return effect;
+    requirePublication(typeof saved.readback?.commentId === "string", "publication_comment_identity_missing");
+    return { ...effect, commentId: saved.readback.commentId,
+      ...(typeof saved.readback.commentUrl === "string" ? { commentUrl: saved.readback.commentUrl } : {}) };
+  }) };
+}
+
+function requireReceipt(existing: unknown, legacy: unknown, enriched: unknown) {
+  const digest = contentDigest(existing);
+  requirePublication(digest === contentDigest(legacy) || digest === contentDigest(enriched), "publication_receipt_changed");
 }

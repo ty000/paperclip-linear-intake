@@ -3,8 +3,9 @@ import type { PluginContext, PluginWebhookInput } from "@paperclipai/plugin-sdk"
 import { parseConfig } from "./config.js";
 import { fingerprint, currentConfig, sourceGuard } from "./intake-authority.js";
 import { createIntakeStore } from "./intake-store.js";
-import { IntakeStoreError, type IntakeBinding, type IntakeRequest } from "./intake-state.js";
+import { MAX_SOURCE_ATTEMPTS, IntakeStoreError, type IntakeBinding, type IntakeRequest } from "./intake-state.js";
 import { verifyLinearEvent } from "./webhook-event.js";
+import { retrySourceRead, sourceRecoveryStatus } from "./intake-recovery.js";
 import { readRetainedFamily } from "./intake-source.js";
 
 type Config = ReturnType<typeof parseConfig>;
@@ -67,10 +68,10 @@ function completion(binding: IntakeBinding, request: IntakeRequest, owner: strin
 
 async function fetchRequest(ctx: PluginContext, store: Store, binding: IntakeBinding, request: IntakeRequest) {
   const owner = randomUUID();
-  const claimed = await store.claimRequest({ ...completion(binding, request, owner), leaseMs: 240_000, maxAttempts: 3 });
+  const claimed = await store.claimRequest({ ...completion(binding, request, owner), leaseMs: 240_000, maxAttempts: MAX_SOURCE_ATTEMPTS });
   if (!claimed) return;
-  // Read failures are terminal for this retained request. A lost worker can
-  // reclaim the original request after its lease, without replacing its ID.
+  // Read failures wait for an explicit bounded operator retry. A lost worker
+  // reclaims the original request after its lease, without replacing its ID.
   let result: Awaited<ReturnType<typeof readRetainedFamily>>;
   try { result = await readRetainedFamily(ctx, binding.companyId, claimed, sourceGuard(ctx, store, binding)); }
   catch {
@@ -120,12 +121,13 @@ export function createIntakeRuntime(ctx: PluginContext) {
   return {
     activate: (companyId: string) => activate(ctx, store(), companyId),
     deactivate: (companyId: string) => deactivate(store(), companyId),
+    retrySourceRead: (companyId: string, actorUserId: string, params: unknown) => retrySourceRead(ctx, companyId, actorUserId, params),
     async status(companyId: string) {
       const ledger = store();
       const binding = await ledger.getBinding(companyId);
       const requests = await ledger.listRequests(companyId, 20);
       return { ...bindingSummary(binding), importPerformed: false,
-        requests: requests.map(row => ({ intakeId: row.intakeId, status: row.status, attempts: row.attempts })) };
+        requests: requests.map(sourceRecoveryStatus) };
     },
     receive: (input: PluginWebhookInput) => receive(ctx, store(), input),
     drain: () => drain(ctx, store()),
