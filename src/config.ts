@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import { intakeConfigSchema, validateIntakeSettings } from "./intake-config.js";
 import { z } from "@paperclipai/plugin-sdk";
+import { campaignReferenceContentSchema } from "./campaign-contract.js";
 
 const toolPin = z.strictObject({
   name: z.string().min(1).max(256),
@@ -41,6 +42,17 @@ export const configSchema = z.strictObject({
     pageSize: z.number().int().min(1).max(100).default(50),
     maxRequests: z.number().int().min(1).max(500).default(250),
     deadlineMs: z.number().int().min(1000).max(120_000).default(60_000),
+  }).optional(),
+  campaignSource: z.strictObject({
+    projectMetadataScope: z.literal("enrolled"),
+    adapterQualification: z.strictObject({
+      adapter: z.literal("linear-get-project-milestones.v1"),
+      catalogSha256: z.string().regex(/^[a-f0-9]{64}$/),
+      observedShapeSha256: z.string().regex(/^[a-f0-9]{64}$/),
+    }),
+    referenceDocuments: z.array(campaignReferenceContentSchema).min(2).max(20),
+    compatibleCampaignStateIds: z.array(z.uuid()).min(1).max(20),
+    maxProjectPages: z.number().int().min(1).max(20).default(10),
   }).optional(),
   gatewayUrl: z.string().max(2048).optional(),
   localGatewayTimeoutMs: z.number().int().min(100).max(10_000).optional(),
@@ -116,6 +128,20 @@ function validateReaderEnrollment(config: Config) {
   if (new Set(ids).size !== ids.length) throw new Error("invalid_configuration");
 }
 
+function validateCampaignEnrollment(config: Config) {
+  const campaign = config.campaignSource;
+  if (!campaign) return;
+  if (!config.sourceReader || !config.gatewayDiscoveryEnabled) throw new Error("campaign_configuration_missing");
+  if (!campaign.compatibleCampaignStateIds.includes(config.sourceReader.todoStateId)) {
+    throw new Error("campaign_configuration_invalid");
+  }
+  if (new Set(campaign.compatibleCampaignStateIds).size !== campaign.compatibleCampaignStateIds.length) {
+    throw new Error("campaign_configuration_invalid");
+  }
+  const references = campaign.referenceDocuments.map(reference => `${reference.url}\u0000${reference.version}\u0000${reference.sha256}`);
+  if (new Set(references).size !== references.length) throw new Error("campaign_configuration_invalid");
+}
+
 function validateToolCallMode(config: Config) {
   if (config.gatewayToolCallMode === "native_rest") return;
   if (config.nativeToolTimeoutMs !== undefined) throw new Error("invalid_configuration");
@@ -139,6 +165,7 @@ export function parseConfig(raw: unknown) {
   validateToolCallMode(config);
   validateProbeEnrollment(config);
   validateReaderEnrollment(config);
+  validateCampaignEnrollment(config);
   validateGatewayDiscovery(config);
   validateIntakeSettings(config);
   validateNativeImport(config);
