@@ -2,8 +2,16 @@
 
 9 octobre 2026 · Sources : [PRD v0.3](PRD.md), [TAD draft v0.2](TAD.md).
 
-**Statut : découpage accepté ; L0 statique terminé**, voir le
-[raccordement V1](V1-CONNECTION.md). Les lots de code et le pilote restent à livrer.
+**Statut au 9 octobre 2026 : L0 et les lots source L1–L4 sont proposés en PR ;
+L5 est en qualification intégrée isolée. L6 est préparé, non exécuté.**
+Voir le [raccordement V1](V1-CONNECTION.md) et le [pilote proposé](qualification/V1-PILOT.md).
+Les PR restent à fusionner dans leur ordre de dépendance ; leur publication ne vaut
+ni mise à niveau de recette ni qualification du gateway réel.
+
+| Livraison proposée | PR dépendantes, dans l'ordre |
+| --- | --- |
+| Intake : raccordement, import milestone, publication/revalidation | [#11](https://github.com/ty000/paperclip-linear-intake/pull/11) → [#12](https://github.com/ty000/paperclip-linear-intake/pull/12) → [#13](https://github.com/ty000/paperclip-linear-intake/pull/13) |
+| Council : contrôles, occupation du dépôt, réception, livraisons sérielles | [#79](https://github.com/ty000/paperclip-council/pull/79) → [#80](https://github.com/ty000/paperclip-council/pull/80) → [#81](https://github.com/ty000/paperclip-council/pull/81) → [#82](https://github.com/ty000/paperclip-council/pull/82) |
 Ce plan précise la réalisation
 de la V1 ; il ne rouvre pas son périmètre et ne transforme pas les fonctions
 reportées en prérequis. Le [plan historique](IMPLEMENTATION-PLAN.md) reste inchangé.
