@@ -256,6 +256,10 @@ ou réelle pour les effets de cette couche effectivement revendiqués.
 
 ## 9. Qualification et réalisation progressive
 
+Le [plan d’implémentation V1](V1-IMPLEMENTATION-PLAN.md) détaille l’ordre des lots,
+leurs propriétaires, dépendances et critères de fin. Il tient compte des sources
+Council inspectées après ce draft sans modifier le périmètre produit.
+
 | Travail | Propriétaire | Preuve proportionnée |
 | --- | --- | --- |
 | Vérifications de capacité ciblées | Intégration et Council, chacun dans son dépôt | Réponses aux quatre points du §2 à partir des sources ; catalogue réel seulement avec cible, société, profil et portée autorisés. Une lecture ne prouve pas une écriture. |
