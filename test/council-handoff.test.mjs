@@ -38,6 +38,24 @@ for (const stage of ['preparation', 'admission']) test(`${stage}: full source is
   assert.deepEqual(f.harness.logs, []);
 });
 
+for (const stage of ['preparation', 'admission']) test(`${stage}: campaign revalidation accepts enrolled state-only publication drift`, async t => {
+  fixedClock(t); const f = await handoffFixture({ campaign: true });
+  const root = f.issues.get(sourceIds.root);
+  root.updatedAt = '2026-10-07T12:04:00.000Z'; root.status = 'Backlog'; root.statusType = 'backlog';
+  root.stateHistory = [{ state: { id: sourceIds.backlog, name: 'Backlog', type: 'backlog' },
+    startedAt: '2026-10-07T12:03:00.000Z', endedAt: null }];
+  await f.send(challenge(f, stage));
+  assert.equal(f.results.length, 1); assert.equal(f.results[0].status, 'confirmed');
+  assert.equal(f.plan.plan.campaign.materialSourceSha256, f.request.snapshot.campaign.materialSourceSha256);
+  assert.deepEqual(f.harness.logs, []);
+});
+
+test('campaign revalidation rejects material source drift while readiness remains unchanged', async t => {
+  fixedClock(t); const f = await handoffFixture({ campaign: true });
+  f.issues.get(sourceIds.child).description += ' changed material';
+  await f.send(); blocked(f, 'handoff_source_changed');
+});
+
 const badEnvelopes = [
   ['wrong actor', { actorId: 'another.plugin' }], ['user actor', { actorType: 'user' }],
   ['missing actor', { actorId: undefined }], ['wrong company', { companyId: uuid(90) }],

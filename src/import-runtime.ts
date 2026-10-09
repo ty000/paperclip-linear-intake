@@ -3,11 +3,12 @@ import { currentConfig, sourceGuard, activeEpoch } from "./intake-authority.js";
 import { createIntakeStore } from "./intake-store.js";
 import type { IntakeBinding, IntakeRequest } from "./intake-state.js";
 import { readRetainedFamily } from "./intake-source.js";
+import { CAMPAIGN_SOURCE_SCHEMA } from "./campaign-source.js";
 import { buildImportPlan, ImportPlanError } from "./import-plan.js";
 import { prepareNativeFamily } from "./import-engine.js";
 import { reconcileNativeEffects } from "./import-effects.js";
 import { createImportStore } from "./import-store.js";
-import { assertImport, type ImportCandidate, type ImportEffect, type StoredImportPlan } from "./import-state.js";
+import { assertImport, ImportStoreError, type ImportCandidate, type ImportEffect, type StoredImportPlan } from "./import-state.js";
 
 type Store = ReturnType<typeof createImportStore>;
 type Candidate = Omit<ImportCandidate, "snapshot">;
@@ -35,7 +36,17 @@ function sourceVerifier(ctx: PluginContext, binding: IntakeBinding, request: Int
       await guard();
     });
     assertImport(observed.status === "source_observed", "import_source_withdrawn");
-    assertImport(observed.family!.sourceSha256 === request.snapshotSha256, "import_source_changed");
+    const expected = request.snapshot;
+    if (expected?.schema === CAMPAIGN_SOURCE_SCHEMA) {
+      const current = observed.family!;
+      if (current.schema !== CAMPAIGN_SOURCE_SCHEMA) throw new ImportStoreError("import_source_changed");
+      const expectedCampaign = expected.campaign as Record<string, unknown> | undefined;
+      assertImport(current.campaign.materialSourceSha256 === expectedCampaign?.materialSourceSha256,
+        "import_source_changed");
+      assertImport(current.campaign.stateCompatibility.status === "compatible", "import_source_state_incompatible");
+    } else {
+      assertImport(observed.family!.sourceSha256 === request.snapshotSha256, "import_source_changed");
+    }
     await guard();
   };
 }

@@ -1,6 +1,7 @@
 import { z, type PluginContext } from "@paperclipai/plugin-sdk";
-import { CAMPAIGN_MODE, CampaignContractError, parseCampaignMarker, resolveCampaignReference, type CampaignNativeMapping,
-  type CampaignReadiness } from "./campaign-contract.js";
+import { CAMPAIGN_MODE, CampaignContractError, campaignMaterialSourceSha256, campaignStateObservationSha256,
+  parseCampaignMarker, resolveCampaignReference, type CampaignNativeMapping,
+  type CampaignSourceExtension } from "./campaign-contract.js";
 import { parseConfig } from "./config.js";
 import { contentDigest as digest } from "./content-digest.js";
 import { openSourceClient, SourceReadError, type SourceClient } from "./source-client.js";
@@ -158,15 +159,6 @@ async function expandMilestone(client: CampaignClient, states: States, direct: I
   return { issues, childInventory, childOwner };
 }
 
-function materialIssue(issue: Detail) {
-  return { id: issue.id, uuid: issue.uuid, title: issue.title, description: issue.description,
-    parentId: issue.parentId, teamId: issue.teamId, projectId: issue.projectId,
-    projectMilestoneId: issueMilestone(issue), relations: issue.relations };
-}
-function stateObservation(issue: Detail) {
-  return { sourceId: issue.uuid, currentStateId: issue.currentStateId, statusType: issue.statusType,
-    archived: issue.archivedAt !== null, completed: issue.completedAt !== null, canceled: issue.canceledAt !== null };
-}
 function requireCompatibleState(client: CampaignClient, ticket: Detail, issues: Detail[]) {
   if (ticket.archivedAt || ["started", "completed", "canceled"].includes(ticket.statusType)
       || !client.campaign.compatibleCampaignStateIds.includes(ticket.currentStateId)) fail("campaign_state_incompatible");
@@ -202,7 +194,8 @@ async function collectCampaign(client: CampaignClient, ticketId: string) {
   if (issueMilestone(ticket) !== null) fail("campaign_ticket_in_milestone");
   const milestoneMatches = project.milestones.filter(value => value.id === marker.milestoneId);
   if (milestoneMatches.length !== 1) fail("campaign_milestone_missing");
-  const milestone = milestoneMatches[0]!;
+  const observedMilestone = milestoneMatches[0]!;
+  const milestone = { id: observedMilestone.id, name: observedMilestone.name, description: observedMilestone.description ?? null };
   const references = { prd: contract(() => resolveCampaignReference(marker.prd, client.campaign.referenceDocuments)),
     tad: contract(() => resolveCampaignReference(marker.tad, client.campaign.referenceDocuments)) };
   const inventory = await projectInventory(client);
@@ -216,16 +209,13 @@ async function collectCampaign(client: CampaignClient, ticketId: string) {
   if (blockers.cycleAffectedIssueIds.length) fail("campaign_blocker_cycle");
   if (blockers.externalBlockers.length) fail("campaign_external_blocker");
   const mapping = nativeMapping(ticket, expanded.issues, expanded.childOwner);
-  const material = { ticket: materialIssue(ticket), milestone: { id: milestone.id, name: milestone.name,
-      description: milestone.description ?? null }, references, issues: selected.map(materialIssue), nativeMapping: mapping };
-  const materialSourceSha256 = digest(material);
-  const observations = [ticket, ...selected].map(stateObservation).sort((a, b) => a.sourceId.localeCompare(b.sourceId));
-  const campaign: CampaignReadiness & { marker: typeof marker; milestone: typeof milestone;
-    referenceContents: typeof references } = {
+  const digestInput = { milestone, referenceContents: references, nativeMapping: mapping };
+  const materialSourceSha256 = campaignMaterialSourceSha256(ticket, selected, digestInput);
+  const campaign: CampaignSourceExtension = {
     schema: "linear-milestone-campaign-readiness.v1", mode: CAMPAIGN_MODE,
     projectId: client.scope.projectId, ticketSourceId: ticket.uuid, milestoneId: milestone.id,
     references: { prd: marker.prd, tad: marker.tad }, materialSourceSha256,
-    stateCompatibility: { status: "compatible", observationSha256: digest(observations) }, nativeMapping: mapping,
+    stateCompatibility: { status: "compatible", observationSha256: campaignStateObservationSha256([ticket, ...selected]) }, nativeMapping: mapping,
     marker, milestone, referenceContents: references,
   };
   return { ticket, selected, childInventory: expanded.childInventory, blockers, campaign,

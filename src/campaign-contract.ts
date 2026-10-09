@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "@paperclipai/plugin-sdk";
+import { contentDigest } from "./content-digest.js";
 
 export const CAMPAIGN_MODE = "milestone-fixed-v1" as const;
 export const CAMPAIGN_MARKER_SCHEMA = "linear-milestone-campaign.v1" as const;
@@ -52,10 +53,20 @@ export const campaignReadinessSchema = z.strictObject({
   nativeMapping: z.array(campaignNativeMappingSchema).min(2).max(33),
 });
 
+export const campaignSourceExtensionSchema = campaignReadinessSchema.extend({
+  marker: campaignMarkerSchema,
+  milestone: z.strictObject({ id: uuid, name: z.string().min(1), description: z.string().nullable() }),
+  referenceContents: z.strictObject({
+    prd: campaignReferenceContentSchema,
+    tad: campaignReferenceContentSchema,
+  }),
+}).strict();
+
 export type CampaignReference = z.infer<typeof campaignReferenceSchema>;
 export type CampaignReferenceContent = z.infer<typeof campaignReferenceContentSchema>;
 export type CampaignMarker = z.infer<typeof campaignMarkerSchema>;
 export type CampaignReadiness = z.infer<typeof campaignReadinessSchema>;
+export type CampaignSourceExtension = z.infer<typeof campaignSourceExtensionSchema>;
 export type CampaignNativeMapping = z.infer<typeof campaignNativeMappingSchema>;
 
 export class CampaignContractError extends Error {
@@ -84,6 +95,43 @@ export function parseCampaignMarker(description: string | null): CampaignMarker 
 
 export function textSha256(content: string): string {
   return createHash("sha256").update(content, "utf8").digest("hex");
+}
+
+type MaterialIssue = {
+  id: string; uuid: string; title: string; description: string | null; parentId: string | null;
+  teamId: string; projectId: string | null; projectMilestone?: unknown; relations: unknown;
+};
+type StateIssue = MaterialIssue & {
+  currentStateId: string; statusType: string; archivedAt: string | null;
+  completedAt: string | null; canceledAt: string | null;
+};
+
+function milestoneId(issue: MaterialIssue) {
+  const parsed = z.object({ id: uuid }).passthrough().nullable().safeParse(issue.projectMilestone);
+  if (!parsed.success) return campaignError("campaign_milestone_shape_unqualified");
+  return parsed.data?.id ?? null;
+}
+
+function materialIssue(issue: MaterialIssue) {
+  return { id: issue.id, uuid: issue.uuid, title: issue.title, description: issue.description,
+    parentId: issue.parentId, teamId: issue.teamId, projectId: issue.projectId,
+    projectMilestoneId: milestoneId(issue), relations: issue.relations };
+}
+
+export function campaignMaterialSourceSha256(ticket: MaterialIssue, issues: MaterialIssue[],
+  campaign: Pick<CampaignSourceExtension, "milestone" | "referenceContents" | "nativeMapping">): string {
+  return contentDigest({ ticket: materialIssue(ticket), milestone: campaign.milestone,
+    references: campaign.referenceContents,
+    issues: issues.map(materialIssue).sort((a, b) => a.uuid.localeCompare(b.uuid)),
+    nativeMapping: campaign.nativeMapping });
+}
+
+export function campaignStateObservationSha256(issues: StateIssue[]): string {
+  const observation = issues.map(issue => ({ sourceId: issue.uuid, currentStateId: issue.currentStateId,
+    statusType: issue.statusType, archived: issue.archivedAt !== null,
+    completed: issue.completedAt !== null, canceled: issue.canceledAt !== null }))
+    .sort((a, b) => a.sourceId.localeCompare(b.sourceId));
+  return contentDigest(observation);
 }
 
 export function resolveCampaignReference(reference: CampaignReference,
