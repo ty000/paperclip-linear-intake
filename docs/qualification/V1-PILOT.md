@@ -40,6 +40,12 @@ milestone et ces références explicites : PRD `docs/01-product/PRD.md`, version
 `5e158560e7efbae13a67455998da2a0953a0ad87f733b397bcfe882f806222d4` ; TAD
 `docs/02-architecture/TAD.md`, même version, SHA-256
 `f6995af0205d1f977e99e5b90468e0f0fa6c8377eb953042a7a61cf7c4c3dd8a`.
+URLs exactes :
+- PRD : `https://github.com/pezzoslabs/content-assistant/blob/8677031484a7eb7d84dfcd28d137e093e50d7bad/docs/01-product/PRD.md` ;
+- TAD : `https://github.com/pezzoslabs/content-assistant/blob/8677031484a7eb7d84dfcd28d137e093e50d7bad/docs/02-architecture/TAD.md`.
+
+Leurs contenus complets doivent être configurés dans `campaignSource.referenceDocuments`
+avec ces URLs, versions et hashes ; un lien seul ne remplace pas les octets vérifiés.
 Les descriptions du parent et des feuilles reprennent leurs critères, chemins possédés et
 commande du check. Les descriptions humaines et relations restent ensuite en lecture seule.
 
@@ -73,25 +79,36 @@ identités, consommations et intentions originales.
 - créer la milestone et les quatre tickets Linear ci-dessus, leurs parenté/dépendance initiales,
   puis autoriser au plugin seulement commentaires et statuts des objets gérés ;
 - configurer la connexion `8a672ba5-d93c-41e6-a196-78147924cf6c` seulement après readback,
-  le profil lecture `9f222f37-9e0c-46e6-9030-5ba33c879820`, un nouveau client gateway et
-  des références natives de secrets ; ne pas réutiliser le client gateway expiré ;
+  le profil lecture `9f222f37-9e0c-46e6-9030-5ba33c879820`, deux clients/gateways distincts
+  reader et publisher, chacun avec sa référence native de secret ; ne pas réutiliser le client expiré ;
 - créer et qualifier séparément un profil publisher à privilèges minimaux ; son existence,
   ses schémas, sa portée commentaires/statuts et son readback sont encore non vérifiés ;
-- configurer une enveloppe native proposée de `12 000 000` unités par période et des
-  réservations de `2 000 000` par run, **à confirmer par l’utilisateur avant effet**.
+- autoriser explicitement la consommation du pilote dans une période native identifiée,
+  après lecture du solde, des réservations et des autres mandats. Ne pas remplacer ni remettre
+  à zéro le profil partagé de la société pour isoler artificiellement ce pilote.
 
 Une unité vaut un token natif observé : `inputTokens + outputTokens`; `cachedInputTokens` est
 déjà inclus dans l’entrée et n’est pas ajouté deux fois. Les réservations retiennent une
-exposition, sans garantir un coût fournisseur maximal. Ces montants sont une hypothèse d'admission à confirmer après le comptage des runs du test
-installé ; ils ne démontrent pas que toutes les étapes tiendront dans l'enveloppe. G4 retient
-l'exposition avant chaque nouveau run, puis règle la consommation observée à sa fin. Un run
-peut dépasser sa réservation : ce mécanisme ne garantit donc pas un plafond monétaire ou
-un plafond absolu de tokens. Aucun retry ni cycle de correction fournisseur supplémentaire
-n'est inclus. Une consommation insuffisamment connue suspend le départ suivant.
+exposition, sans garantir un coût fournisseur maximal. La proposition initiale de 12 M par période / 2 M par run n'est pas retenue comme
+configuration : `n1OperatingProfile` est partagé entre tous les mandats de la société.
+Lecture du 9 octobre 2026 à 14:51 UTC : période
+`content-assistant-closure-843798ae-d791-4052-8913-272d0088e289`, du
+`2026-10-09T13:33:32.654Z` au `2026-10-09T21:33:32.654Z`, enveloppe 44 M,
+réservation 4 M par run, consommation connue 14 490 953, sept réservations existantes.
+Cette observation n'autorise pas à consommer le budget d'une autre mission. Le solde
+admissible et l'absence d'occupation doivent être relus avant l'autorisation finale.
 
-L'autorisation finale fixe également une seule `periodKey`, ses dates de début/fin, les profils
-réellement disponibles et le nombre prévisionnel de runs issu de L5. Ces valeurs ne sont pas
-créées pendant la préparation.
+G4 retient l'exposition avant chaque nouveau run, puis règle la consommation observée
+à sa fin. Un run peut dépasser sa réservation : ce mécanisme ne garantit pas un plafond
+monétaire ou un plafond absolu de tokens. Aucun retry ni cycle de correction fournisseur
+supplémentaire n'est inclus. L'autorisation finale fixe période, nombre prévisionnel de
+runs issu de L5 et profils réellement disponibles. Une consommation insuffisamment connue
+suspend le départ suivant.
+
+Le même relevé voit Council `0.7.26` et intake `0.1.4` installés, sans run actif parmi les
+207 runs renvoyés. Une mise à niveau recharge le plugin de l'instance, pas seulement le
+nouveau projet : vérifier les autres mandats et obtenir l'autorisation de cette mise à
+niveau avant effet. Ce relevé temporaire n'est pas une garantie de disponibilité future.
 
 ## Inconnues qui changent les effets
 
