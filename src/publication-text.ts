@@ -25,6 +25,14 @@ function sourceLabel(id: string, context: PublicationPresentation) {
 function statusLines(payload: PublicationPayload, context: PublicationPresentation) {
   return (payload.statusUpdates ?? []).map(update => `- ${label(sourceLabel(update.sourceId, context))} : ${status(update.state)}`);
 }
+function campaignReview(payload: PublicationPayload) { return record(payload.campaignClosure ?? payload.campaignReview); }
+function plannedDeliveries(payload: PublicationPayload, context: PublicationPresentation) {
+  const leaves = list(record(payload.campaignPlan).leaves);
+  if (!leaves.length) return [];
+  return ["### Ordre des livraisons", ...leaves.map((leaf, index) =>
+    `${index + 1}. ${label(sourceLabel(text(record(leaf).sourceId), context))}`),
+    "Chaque livraison attend la revue, la fusion, la vérification et la publication confirmées de la précédente."];
+}
 function progress(payload: PublicationPayload) {
   const observation = record(payload.observation), campaign = record(payload.campaign);
   const lines = [text(payload.text), text(payload.message), text(payload.reason), text(observation.nextAction)].filter(Boolean);
@@ -39,7 +47,7 @@ function links(result: unknown) {
     .map(https).filter(Boolean).map(url => `- [Pull request](${url})`);
 }
 function deliveryLinks(payload: PublicationPayload) {
-  const delivery = record(payload.campaignDelivery), closure = record(payload.campaignClosure);
+  const delivery = record(payload.campaignDelivery), closure = campaignReview(payload);
   return [...new Set([...links(payload.result), ...links(delivery.result),
     ...list(closure.results).flatMap(result => links(record(result).integratedResult))])];
 }
@@ -51,11 +59,12 @@ function coverageLine(value: unknown, index: number, labels: Map<unknown, unknow
   return [result, method, text(row.remainder)].filter(Boolean).join(" — ");
 }
 function coverage(payload: PublicationPayload) {
-  const closure = record(payload.campaignClosure), report = record(closure.report), rows = list(report.rows);
-  if (!rows.length) return [];
+  const closure = campaignReview(payload), report = record(closure.report), rows = list(report.rows);
+  const explanation = payload.campaignReview ? ["La revue globale bloque la clôture. Consultez la couverture ci-dessous et le rapport Council avant de décider de la suite."] : [];
+  if (!rows.length) return explanation;
   const labels = new Map(list(closure.coverage).map(value => { const item = record(value); return [item.criterionId, item.label]; }));
   const satisfied = rows.filter(value => record(value).result === "satisfied").length;
-  return [`### Couverture\n\n${satisfied}/${rows.length} critères satisfaits. Verdict : ${status(report.verdict)}.`,
+  return [...explanation, `### Couverture\n\n${satisfied}/${rows.length} critères satisfaits. Verdict : ${status(report.verdict)}.`,
     ...rows.map((row, index) => coverageLine(row, index, labels))];
 }
 function scope(context: PublicationPresentation) {
@@ -65,7 +74,7 @@ function scope(context: PublicationPresentation) {
 }
 export function publicationText(payload: PublicationPayload, context: PublicationPresentation) {
   const statusChanges = statusLines(payload, context), scopeLines = scope(context);
-  const parts = [`## Council — ${kinds[payload.kind]}`, ...progress(payload), ...coverage(payload), ...deliveryLinks(payload)];
+  const parts = [`## Council — ${kinds[payload.kind]}`, ...plannedDeliveries(payload, context), ...progress(payload), ...coverage(payload), ...deliveryLinks(payload)];
   if (statusChanges.length) parts.push(`### Statuts à confirmer\n\n${statusChanges.join("\n")}`);
   if (scopeLines.length) parts.push(`### Périmètre fixé\n\n${scopeLines.join("\n")}`);
   if (parts.length === 1) parts.push("Le suivi de la campagne a été actualisé. Les preuves détaillées sont conservées dans Council.");
