@@ -202,7 +202,7 @@ test('failed emit never retries reads or leaks delivery errors', async t => {
 
 test('off flag preserves the exact 0.3.0 fingerprint while opt-in requires new enrollment', async () => {
   const f = await handoffFixture(), off = parseConfig({ ...f.config, councilHandoffEnabled: false });
-  const { councilHandoffEnabled: _off, ...legacy } = off;
+  const { councilHandoffEnabled: _off, councilContinuityEnabled: _continuity, ...legacy } = off;
   assert.equal(fingerprint(off), contentDigest({ ...legacy, enabled: false }));
   assert.notEqual(fingerprint(parseConfig(f.config)), fingerprint(off));
   assert.equal(parseConfig({}).councilHandoffEnabled, false);

@@ -14,17 +14,19 @@ const mcpTimeoutSchema = z.number().int().min(100).max(10_000);
 /** Only called with a parsed config and a natively resolved, request-local token. */
 export async function postGateway(
   ctx: PluginContext, config: GatewayConfig, token: string, body: string,
+  purpose: "read" | "publication" = "read",
 ): Promise<GatewayReply> {
-  return postRequest(ctx, config, token, body, false);
+  return postRequest(ctx, config, token, body, false, purpose);
 }
 
 /** The original named gateway is still validated; the REST endpoint is fixed. */
 export async function postNativeGatewayCall(
   ctx: PluginContext, config: GatewayConfig, token: string, body: string,
+  purpose: "read" | "publication" = "read",
 ): Promise<GatewayReply> {
   const validated = parseConfig(config);
   if (validated.gatewayToolCallMode !== "native_rest") throw new Error("invalid_configuration");
-  return postRequest(ctx, validated, token, body, true);
+  return postRequest(ctx, validated, token, body, true, purpose);
 }
 
 function requestHeaders(token: string, nativeCall: boolean) {
@@ -41,12 +43,14 @@ function requestHeaders(token: string, nativeCall: boolean) {
 
 async function postRequest(
   ctx: PluginContext, config: GatewayConfig, token: string, body: string, nativeCall: boolean,
+  purpose: "read" | "publication",
 ): Promise<GatewayReply> {
   const headers = requestHeaders(token, nativeCall);
   if (config.gatewayTransport === "local_loopback") {
-    return postLoopback(ctx, config, headers, body, nativeCall);
+    return postLoopback(ctx, config, headers, body, nativeCall, purpose);
   }
-  const url = nativeCall ? new URL(NATIVE_CALL_PATH, config.gatewayUrl).href : config.gatewayUrl!;
+  const gatewayUrl = purpose === "publication" ? config.publisher!.gatewayUrl : config.gatewayUrl!;
+  const url = nativeCall ? new URL(NATIVE_CALL_PATH, gatewayUrl).href : gatewayUrl;
   return postHostRequest(ctx, url, headers, body);
 }
 
@@ -70,10 +74,10 @@ async function readHostResponse(response: Response): Promise<GatewayReply> {
   return { contentType: response.headers.get("content-type"), body: raw };
 }
 
-function loopbackTarget(config: GatewayConfig, nativeCall: boolean) {
+function loopbackTarget(config: GatewayConfig, nativeCall: boolean, purpose: "read" | "publication") {
   // Recheck at the effect boundary as well as during config parsing. A caller
   // cannot accidentally use this transport with a normalized/remote URL.
-  const target = parseLocalGatewayUrl(config.gatewayUrl);
+  const target = parseLocalGatewayUrl(purpose === "publication" ? config.publisher!.gatewayUrl : config.gatewayUrl);
   if (nativeCall) {
     return { port: target.port, path: NATIVE_CALL_PATH, timeoutMs: (config.nativeToolTimeoutMs ?? 20_000) + 2000 };
   }
@@ -88,8 +92,9 @@ function mcpLocalTimeout(config: GatewayConfig) {
 
 function postLoopback(
   ctx: PluginContext, config: GatewayConfig, headers: Record<string, string>, body: string, nativeCall: boolean,
+  purpose: "read" | "publication",
 ): Promise<GatewayReply> {
-  const target = loopbackTarget(config, nativeCall);
+  const target = loopbackTarget(config, nativeCall, purpose);
   return new Promise((resolve, reject) => {
     const started = performance.now();
     let settled = false;

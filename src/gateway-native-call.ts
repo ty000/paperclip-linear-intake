@@ -39,12 +39,13 @@ function requireJson(contentType: string | null) {
 export async function callNativeGateway(
   ctx: PluginContext, config: ReturnType<typeof parseConfig>, token: string,
   params: Record<string, unknown>, assertCredentialAbsent: AssertCredentialAbsent,
+  purpose: "read" | "publication" = "read",
 ) {
   const call = callSchema.safeParse(params);
   if (!call.success) throw new Error("gateway_native_call_invalid");
   const response = await postNativeGatewayCall(ctx, config, token, JSON.stringify({
     tool: call.data.name, parameters: call.data.arguments, timeoutMs: config.nativeToolTimeoutMs ?? 20_000,
-  }));
+  }), purpose);
   requireJson(response.contentType);
   const completed = parseResponse(response.body, assertCredentialAbsent);
   if (completed.tool !== call.data.name) throw new Error("gateway_native_tool_mismatch");

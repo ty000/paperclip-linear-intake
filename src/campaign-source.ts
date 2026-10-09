@@ -26,6 +26,8 @@ type Inventory = z.infer<typeof inventorySchema>;
 type States = ReturnType<typeof parseStatuses>;
 type CampaignConfig = NonNullable<ReturnType<typeof parseConfig>["campaignSource"]>;
 type CampaignClient = SourceClient & { campaign: CampaignConfig };
+type ContinuationOptions = { trustedContinuationStateIds?: ReadonlyMap<string, string>;
+  publisherStateIds?: { started: string; completed: string; cancelled: string } };
 type Collected = Awaited<ReturnType<typeof collectCampaign>>;
 
 function fail(code: string): never { throw new SourceReadError(code); }
@@ -75,12 +77,21 @@ async function readDetail(client: CampaignClient, states: States, id: string) {
   return detail;
 }
 
-async function readMetadata(client: CampaignClient) {
+function verifyPublisherStates(states: States, configured?: ContinuationOptions["publisherStateIds"]) {
+  if (!configured) return;
+  for (const [meaning, id] of Object.entries(configured)) {
+    const expected = ({ started: "started", completed: "completed", cancelled: "canceled" } as Record<string, string>)[meaning];
+    if (!states.some(state => state.id === id && state.type === expected)) fail("publication_state_mapping_invalid");
+  }
+}
+
+async function readMetadata(client: CampaignClient, options?: ContinuationOptions) {
   const workspace = parsed(z.object({ id: z.uuid() }), await client.call("getWorkspace", {}));
   same(workspace.id, client.scope.organizationId, "source_organization_mismatch");
   const project = parsed(projectSchema, await client.call("getProject", { query: client.scope.projectId, includeMilestones: true }));
   same(project.uuid, client.scope.projectId, "source_project_mismatch");
   const states = await readTeamStates(client);
+  verifyPublisherStates(states, options?.publisherStateIds);
   return { project, states };
 }
 
@@ -186,12 +197,17 @@ function compatibleSelectedIssue(issue: Detail) {
     issue.archivedAt === null || ["completed", "canceled"].includes(issue.statusType)].every(Boolean);
 }
 
-function requireCompatibleState(client: CampaignClient, ticket: Detail, issues: Detail[]) {
-  if (!compatibleTicket(client, ticket)) fail("campaign_state_incompatible");
-  issues.forEach(requireCompatibleIssue);
+function trustedState(issue: Detail, trusted: ReadonlyMap<string, string>) {
+  return issue.archivedAt === null && trusted.get(issue.uuid) === issue.currentStateId;
 }
 
-function requireCompatibleIssue(issue: Detail) {
+function requireCompatibleState(client: CampaignClient, ticket: Detail, issues: Detail[], trusted: ReadonlyMap<string, string>) {
+  if (![trustedState(ticket, trusted), compatibleTicket(client, ticket)].some(Boolean)) fail("campaign_state_incompatible");
+  issues.forEach(issue => requireCompatibleIssue(issue, trusted));
+}
+
+function requireCompatibleIssue(issue: Detail, trusted: ReadonlyMap<string, string>) {
+  if (trustedState(issue, trusted)) return;
   if (issue.statusType === "started") fail("campaign_work_already_started");
   if (!compatibleSelectedIssue(issue)) fail("campaign_state_incompatible");
 }
@@ -259,8 +275,8 @@ function requireCampaignBlockers(selected: Detail[]) {
   return blockers;
 }
 
-async function collectCampaign(client: CampaignClient, ticketId: string) {
-  const { project, states } = await readMetadata(client);
+async function collectCampaign(client: CampaignClient, ticketId: string, trusted: ReadonlyMap<string, string>, options?: ContinuationOptions) {
+  const { project, states } = await readMetadata(client, options);
   const ticket = await readDetail(client, states, ticketId);
   const { marker, milestone } = selectedMilestone(project, ticket);
   const references = { prd: contract(() => resolveCampaignReference(marker.prd, client.campaign.referenceDocuments)),
@@ -269,7 +285,7 @@ async function collectCampaign(client: CampaignClient, ticketId: string) {
   const direct = directMembers(inventory, marker.milestoneId);
   const expanded = await expandMilestone(client, states, direct);
   const selected = [...expanded.issues.values()].sort((a, b) => a.uuid.localeCompare(b.uuid));
-  requireCompatibleState(client, ticket, selected);
+  requireCompatibleState(client, ticket, selected, trusted);
   const blockers = requireCampaignBlockers(selected);
   const mapping = nativeMapping(ticket, expanded.issues, expanded.childOwner);
   const digestInput = { milestone, referenceContents: references, nativeMapping: mapping };
@@ -302,10 +318,12 @@ function snapshot(client: CampaignClient, collected: Collected) {
 }
 
 export async function readCampaignSource(ctx: PluginContext, companyId: string, ticketId: string,
-  qualificationOnly = true, guard?: import("./gateway.js").GatewayReadGuard) {
+  qualificationOnly = true, guard?: import("./gateway.js").GatewayReadGuard,
+  options?: ContinuationOptions) {
   const client = await openCampaignClient(ctx, companyId, ticketId, qualificationOnly, guard);
   const startedAt = new Date().toISOString();
-  const first = await collectCampaign(client, ticketId), second = await collectCampaign(client, ticketId);
+  const trusted = options?.trustedContinuationStateIds ?? new Map<string, string>();
+  const first = await collectCampaign(client, ticketId, trusted, options), second = await collectCampaign(client, ticketId, trusted, options);
   same(second.campaign.materialSourceSha256, first.campaign.materialSourceSha256, "campaign_material_source_changed");
   const current = parseConfig(await ctx.config.get(companyId));
   same(current.sourceReader, client.scope, "source_configuration_changed");

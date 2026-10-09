@@ -27,7 +27,7 @@ export function requireHandoff(condition: unknown, code: string): asserts condit
   if (!condition) throw new HandoffError(code);
 }
 
-export function requireFreshChallenge(request: CouncilChallenge, now = Date.now()) {
+export function requireFreshChallenge(request: Pick<CouncilChallenge, "requestedAt" | "expiresAt">, now = Date.now()) {
   const start = Date.parse(request.requestedAt), end = Date.parse(request.expiresAt);
   requireHandoff(start <= now && now < end, "handoff_request_expired");
   requireHandoff(end - start <= 300_000, "handoff_request_expired");

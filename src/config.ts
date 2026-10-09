@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import { intakeConfigSchema, validateIntakeSettings } from "./intake-config.js";
 import { z } from "@paperclipai/plugin-sdk";
+import { publisherSchema } from "./publication-config.js";
 import { campaignReferenceContentSchema } from "./campaign-contract.js";
 
 const toolPin = z.strictObject({
@@ -14,6 +15,8 @@ export const configSchema = z.strictObject({
   nativeImportEnabled: z.boolean().default(false),
   // Changing this opt-in changes the enrollment fingerprint; an old binding is never silently upgraded.
   councilHandoffEnabled: z.boolean().default(false),
+  councilContinuityEnabled: z.boolean().default(false),
+  publisher: publisherSchema.optional(),
   intake: intakeConfigSchema.optional(),
   gatewayDiscoveryEnabled: z.boolean().default(false),
   gatewayTransport: z.enum(["host_http", "local_loopback"]).default("host_http"),
@@ -153,6 +156,32 @@ function validateCouncilHandoff(config: Config) {
   if (!config.nativeImportEnabled) throw new Error("handoff_configuration_missing");
 }
 
+function samePublisherSecret(config: Config) {
+  return config.publisher!.gatewayTokenRef.secretId === config.gatewayTokenRef?.secretId;
+}
+
+function validatePublisherProfile(config: Config) {
+  const publisher = config.publisher!;
+  if ([publisher.gatewayUrl === config.gatewayUrl,
+    samePublisherSecret(config)].some(Boolean)) throw new Error("publication_profile_not_separate");
+  if (config.gatewayTransport === "local_loopback") parseLocalGatewayUrl(publisher.gatewayUrl);
+  else validateHostGatewayUrl(publisher.gatewayUrl);
+  if (new Set(Object.values(publisher.states)).size !== 3) throw new Error("publication_states_invalid");
+}
+
+function validatePublisher(config: Config) {
+  if (config.councilContinuityEnabled) {
+    if (![config.councilHandoffEnabled, config.publisher].every(Boolean)) throw new Error("publication_configuration_missing");
+  }
+  if (!config.publisher) return;
+  validatePublisherEnabled(config);
+  validatePublisherProfile(config);
+}
+
+function validatePublisherEnabled(config: Config) {
+  if (config.publisher!.enabled && !config.councilContinuityEnabled) throw new Error("publication_configuration_missing");
+}
+
 export function parseConfig(raw: unknown) {
   const result = configSchema.safeParse(raw);
   // Never forward validation errors: they can quote untrusted config values.
@@ -167,5 +196,6 @@ export function parseConfig(raw: unknown) {
   validateIntakeSettings(config);
   validateNativeImport(config);
   validateCouncilHandoff(config);
+  validatePublisher(config);
   return config;
 }

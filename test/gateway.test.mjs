@@ -49,7 +49,7 @@ async function fixture(options = {}) {
 
 test('manifest passes native validation; retention needs scoped configuration and explicit enrollment', async () => {
   assert.equal(pluginManifestV1Schema.safeParse(manifest).success, true);
-  assert.deepEqual(parseConfig({}), { enabled: false, nativeImportEnabled: false, councilHandoffEnabled: false,
+  assert.deepEqual(parseConfig({}), { enabled: false, nativeImportEnabled: false, councilHandoffEnabled: false, councilContinuityEnabled: false,
     gatewayDiscoveryEnabled: false, gatewayTransport: 'host_http', gatewayToolCallMode: 'mcp' });
   assert.equal((await plugin.definition.onValidateConfig({ enabled: true })).ok, false);
   assert.deepEqual(manifest.webhooks.map(hook => hook.endpointKey), ['linear-todo']);
