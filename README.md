@@ -75,12 +75,17 @@ Requires Node 24.20.0 and npm 11.19.0 (CI pins both).
 ```bash
 npm ci --ignore-scripts --no-audit --no-fund
 npm run check
-npm pack --dry-run --json
+npm run test:package
 ```
 
 `npm run check` typechecks, builds and runs the SDK harness and actual worker
 RPC tests with synthetic host services. Dependencies come from the public npm
 registry and the committed lockfile; no adjacent checkout is needed.
+`npm run test:package` validates the controlled archive, installs the resulting
+`.tgz` in a temporary production-only consumer with lifecycle scripts disabled,
+and starts the packaged manifest and worker through their real SDK JSON-RPC path.
+See the [npm release runbook](RELEASE.md) for trusted-publisher setup, exact-version
+installation, compatibility and database-safe rollback.
 
 The separate `npm run test:postgres` check requires an isolated PostgreSQL 18.1
 database via `INTAKE_TEST_DATABASE_URL`, with database and user both `intake_test`.

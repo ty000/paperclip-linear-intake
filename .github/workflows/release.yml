@@ -1,0 +1,199 @@
+name: npm release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Build, test and pack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check out tagged candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Pin npm
+        run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - name: Match tag to package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node --input-type=module <<'NODE'
+          import packageJson from './package.json' with { type: 'json' };
+          const expected = `v${packageJson.version}`;
+          if (process.env.RELEASE_TAG !== expected) {
+            throw new Error(`release tag ${process.env.RELEASE_TAG} does not match ${expected}`);
+          }
+          NODE
+      - name: Install from lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Typecheck, build and test
+        run: npm run check
+      - name: Test the exact package archive
+        run: npm run test:package
+      - name: Record archive checksum
+        run: cd artifacts/package && sha256sum *.tgz > package.sha256
+      - name: Upload exact npm package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-package
+          path: artifacts/package/
+          if-no-files-found: error
+
+  postgres:
+    name: PostgreSQL durability checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:18.1@sha256:1090bc3a8ccfb0b55f78a494d76f8d603434f7e4553543d6e807bc7bd6bbd17f
+        env:
+          POSTGRES_USER: intake_test
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: intake_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U intake_test -d intake_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      INTAKE_TEST_DATABASE_URL: postgresql://intake_test:synthetic_ci_only@127.0.0.1:5432/intake_test
+    steps:
+      - name: Check out tagged candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Pin npm
+        run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - name: Install from lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify durable SQL and restart boundaries
+        run: npm run test:postgres
+
+  fallow:
+    name: Fallow introduced-findings gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      FALLOW_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - name: Check out tagged candidate with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          package-manager-cache: false
+      - name: Pin npm
+        run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - name: Install from lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify pinned Fallow and audit the release diff
+        shell: bash
+        run: |
+          test "$(node_modules/.bin/fallow --version | head -n 1)" = 'fallow 3.23.0'
+          npm run build
+          audit_base=$(git rev-parse HEAD^)
+          mkdir -p artifacts/fallow-release
+          set +e
+          npm run audit:static -- --base "$audit_base" --output-file artifacts/fallow-release/audit.json
+          audit_exit=$?
+          set -e
+          node scripts/fallow-ci-gate.mjs artifacts/fallow-release/audit.json "$audit_exit" \
+            "$audit_base" "$(git rev-parse HEAD)" > artifacts/fallow-release/gate.json
+
+  publish:
+    name: Publish verified archive
+    needs: [package, postgres, fallow]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: npm-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Check out tagged package metadata
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+      - name: Set up Node and npm registry
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24.20.0'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Pin npm
+        run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - name: Download verified archive
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
+        with:
+          name: npm-package
+          path: artifacts/package
+      - name: Revalidate exact archive and select npm channel
+        id: release
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          cd artifacts/package
+          sha256sum --check package.sha256
+          mapfile -t archives < <(printf '%s\n' *.tgz)
+          test "${#archives[@]}" -eq 1
+          archive="${archives[0]}"
+          node --input-type=module - "$archive" "$RELEASE_TAG" <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          import packageJson from '../../package.json' with { type: 'json' };
+          const [archive, tag] = process.argv.slice(2);
+          const packed = JSON.parse(execFileSync('tar', ['-xOf', archive, 'package/package.json'], { encoding: 'utf8' }));
+          if (packed.name !== packageJson.name || packed.version !== packageJson.version || tag !== `v${packed.version}`) {
+            throw new Error('tag, checkout manifest and packed manifest must match exactly');
+          }
+          NODE
+          version=$(node -p "require('../../package.json').version")
+          if [[ "$version" == *-* ]]; then dist_tag=next; else dist_tag=latest; fi
+          echo "archive=artifacts/package/$archive" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$dist_tag" >> "$GITHUB_OUTPUT"
+      - name: Publish and verify registry integrity
+        shell: bash
+        run: |
+          archive="${{ steps.release.outputs.archive }}"
+          dist_tag="${{ steps.release.outputs.dist_tag }}"
+          package_name=$(node -p "require('./package.json').name")
+          package_version=$(node -p "require('./package.json').version")
+          npm publish "$archive" --provenance --access public --tag "$dist_tag"
+          expected_integrity="sha512-$(openssl dgst -sha512 -binary "$archive" | openssl base64 -A)"
+          published_integrity=""
+          published_tag=""
+          for attempt in 1 2 3 4 5; do
+            published_integrity=$(npm view "$package_name@$package_version" dist.integrity 2>/dev/null || true)
+            published_tag=$(npm view "$package_name" "dist-tags.$dist_tag" 2>/dev/null || true)
+            if [[ -n "$published_integrity" && -n "$published_tag" ]]; then break; fi
+            sleep 3
+          done
+          test "$published_integrity" = "$expected_integrity"
+          test "$published_tag" = "$package_version"
