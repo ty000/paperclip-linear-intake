@@ -1,10 +1,20 @@
 {
   "name": "@ty000/paperclip-linear-intake",
   "version": "0.6.2",
-  "private": true,
   "description": "Disabled-by-default Linear Todo retention and native family preparation for Paperclip",
   "type": "module",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ty000/paperclip-linear-intake.git"
+  },
+  "homepage": "https://github.com/ty000/paperclip-linear-intake#readme",
+  "bugs": {
+    "url": "https://github.com/ty000/paperclip-linear-intake/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=24.11.0"
   },
@@ -12,7 +22,8 @@
   "files": [
     "dist",
     "migrations",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "paperclipPlugin": {
     "manifest": "./dist/manifest.js",
@@ -22,6 +33,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json && node scripts/build-manifest.mjs",
     "test": "npm run build && node --test test/*.test.mjs",
+    "test:package": "npm run build && node scripts/package-smoke.mjs",
     "test:postgres": "npm run build && node --test --test-concurrency=1 test/postgres/*.test.mjs",
     "check": "npm run typecheck && npm test",
     "audit:static": "FALLOW_TELEMETRY_DISABLED=1 DO_NOT_TRACK=1 fallow audit --format json --quiet --no-cache --no-type-aware --gate new-only"
