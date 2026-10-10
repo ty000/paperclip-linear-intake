@@ -1,8 +1,8 @@
 # TAD — Première version utilisable Linear / Paperclip / Council
 
-Version proposée : 0.2 · 9 octobre 2026 · Europe/Paris.
+Version proposée : 0.3 · 10 octobre 2026 · Europe/Paris.
 
-**Statut : draft révisé, dérivé du [PRD v0.3](PRD.md).** Il remplace le draft
+**Statut : draft révisé, dérivé du [PRD v0.4](PRD.md).** Il remplace le draft
 v0.1 fourni dans le chat. Il décrit une V1 à réaliser et qualifier ; aucune
 installation, activation ou exécution réelle n’est revendiquée par ce document.
 Les comportements reportés sont ceux du PRD, pas des prérequis techniques cachés.
@@ -216,7 +216,8 @@ conservés comme données, pas comme une seconde machine d’orchestration compl
 | annulée | Travail restant arrêté, effets envoyés réconciliés ; aucun succès global. |
 
 Une demande d’arrêt est persistée séparément avant son achèvement. Pause et
-annulation sont possibles depuis tout état non terminal, y compris préparation,
+annulation sont possibles dès qu’une mission existe avec sa campagne fixée,
+depuis tout état non terminal de cette mission, y compris sa préparation,
 revue globale et attente de publication tant que la permission terminale n’a pas
 été accordée. Une intention locale de clôture ne suffit pas à interdire l’arrêt :
 l’intégration prépare l’effet, puis Council revalide source, mandat et preuves
@@ -227,6 +228,12 @@ d’un arrêt accepté, aucun nouveau travail
 ni nouvelle fusion ; l’opération déjà envoyée atteint un point sûr et son résultat
 est réconcilié. Si arrêt et clôture se présentent ensemble, une transition
 révisionnée Council décide de l’état final sans deux résultats terminaux.
+
+Avant cette fixation, l’arrêt individuel d’une demande d’entrée est reporté.
+Une demande retenue pour dépôt occupé ne reprend pas automatiquement :
+l’opérateur peut la laisser retenue sans envoyer de commande de reprise.
+Désactiver un mandat ou l’intake reste une action globale, pas une preuve
+d’annulation individuelle de cette demande.
 
 Le diagnostic d’une divergence reste retenu après restauration de la source,
 y compris si sa première notification est perdue. La disponibilité retrouvée
@@ -241,12 +248,16 @@ et ne ferme pas automatiquement les PR ; son bilan les liste pour traitement
 humain. Après arrêt et réconciliation, Council libère l’occupation du dépôt ;
 une publication terminale encore incertaine reste suivie et visible séparément.
 
-Une panne Linear retient nouveaux départs, fusions et clôtures. Un échec après
-fusion retient la suite et demande un rétablissement humain. Une reprise exige
+Une panne Linear retient nouveaux départs, fusions et clôtures. Sa reprise exige
 une base saine, le candidat actuel vérifié, le périmètre engagé et les effets
-antérieurs déterminés. Un revert humain ne satisfait pas à lui seul les critères
-de la livraison. Les corrections ordinaires avant fusion restent autonomes dans
-les limites du mandat.
+antérieurs déterminés. Un échec après fusion conserve l’arrêt et les preuves ;
+la reprise de la même campagne après réparation est reportée. Le mécanisme de
+récupération existant ne constitue pas un parcours pris en charge pour une
+campagne à occupation exclusive. Un correctif ou revert externe ne lève pas
+cet arrêt et ne satisfait pas à lui seul les critères de la livraison. Une
+annulation reste soumise aux points sûrs et à la réconciliation ; aucune nouvelle
+campagne ne reprend implicitement le travail antérieur. Les corrections
+ordinaires avant fusion restent autonomes dans les limites du mandat.
 
 ## 8. Bilan et clôture
 
@@ -294,7 +305,7 @@ Traçabilité des exigences :
 | M05 | §6 : commentaires et statuts bornés | A01, A03, A04, A08 |
 | M06 | §§4, 7 : source fixe et arrêt explicite | A04, A06 |
 | M07 | §§3, 5–7 : persistance et reprise | A03, A05, A06 |
-| M08 | §7 : arrêts depuis tout état non terminal | A05 |
+| M08 | §7 : arrêts après fixation de la campagne dans une mission Council | A05 |
 | M09 | §8 : couverture et confirmation finale | A01, A04, A07 |
 | M10 | §§3, 10 : permissions et activation explicite | A02, A08 |
 
@@ -322,6 +333,7 @@ sur un dépôt, d’absorption, de replanification automatique ou de remédiatio
 fusion dans cette version. Les bornes de volume et tentatives existantes restent
 appliquées et doivent produire un blocage lisible si elles sont atteintes.
 
-Ce TAD est une proposition documentaire. La révision n’a modifié ni code, ni
-configuration, ni dépôt voisin ; elle n’a exécuté aucun gateway ni qualification
-native. L’implémentation Council relève d’un lot explicitement borné à son dépôt.
+Ce TAD décrit le contrat de la V1 ; sa révision ne constitue pas une preuve
+d’exécution. Le [lot correctif borné](qualification/V1-BOUNDED-CORRECTIONS.md)
+identifie les changements de code dans chaque dépôt, les tests et leurs limites.
+Les qualifications réelles et l’activation restent des étapes distinctes.

@@ -1,6 +1,6 @@
 import { z } from "@paperclipai/plugin-sdk";
 import { readCampaignSource } from "./campaign-source.js";
-import { campaignReadinessSchema } from "./campaign-contract.js";
+import { campaignReadinessSchema, campaignSourceExtensionSchema } from "./campaign-contract.js";
 import { requirePublication, type ContinuityRequest } from "./continuity-contract.js";
 import { guardHandoff, type HandoffSession } from "./council-handoff-ledger.js";
 import { currentConfig, fingerprint } from "./intake-authority.js";
@@ -16,9 +16,11 @@ export function campaignSourceIdentity(session: HandoffSession, request: Continu
     && campaign.ticketSourceId === request.binding.sourceRootId && session.request.issueId === campaign.ticketSourceId,
   "continuity_source_binding_changed");
   const original = z.array(issueSchema).min(1).max(33).parse(session.request.snapshot?.issues);
+  const { milestone } = campaignSourceExtensionSchema.parse(session.request.snapshot?.campaign);
   const active = original.filter(i => i.archivedAt === null && !["completed", "canceled"].includes(i.statusType));
   const presentation = { sources: original.map(issue => ({ sourceId: issue.uuid, label: `${issue.id} — ${issue.title}` })),
     references: [{ label: "PRD", ...campaign.references.prd }, { label: "TAD", ...campaign.references.tad }],
+    objective: { title: milestone.name, description: milestone.description },
     sourceSha256: request.sourceSha256,
     ...(paperclipBaseUrl ? { campaignUrl: new URL(`/issues/${request.binding.nativeRootId}`, paperclipBaseUrl).href } : {}) };
   return { campaign, original, presentation, activeSourceIds: new Set(active.map(i => i.uuid)) };

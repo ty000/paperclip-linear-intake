@@ -34,13 +34,40 @@ async function observeStatus(client: PublicationClient, effect: PublicationEffec
 
 async function observe(client: PublicationClient, effect: PublicationEffect, intentId: string, payloadSha256: string) {
   if (effect.kind === "status") return observeStatus(client, effect);
+  return observeComment(await client.comments(effect.sourceId), effect, intentId, payloadSha256);
+}
+
+function observeComment(comments: Awaited<ReturnType<PublicationClient["comments"]>>, effect: PublicationEffect, intentId: string, payloadSha256: string) {
   const marker = `<!-- paperclip-linear:${intentId}:${payloadSha256} -->`;
-  const matches = (await client.comments(effect.sourceId)).filter(c => c.body.includes(marker));
+  const matches = comments.filter(c => c.body.includes(marker));
   requirePublication(matches.length <= 1, "publication_comment_ambiguous");
   if (matches.length === 0) return undefined;
   const comment = matches[0]!;
   requirePublication(comment.body === effect.body, "publication_comment_changed");
   return { sourceId: effect.sourceId, commentId: comment.id, ...(comment.url ? { commentUrl: comment.url } : {}), bodySha256: contentDigest(comment.body) };
+}
+
+type CommentPages = Map<string, Awaited<ReturnType<PublicationClient["comments"]>>>;
+
+async function verifyCommentReadback(client: PublicationClient, pages: CommentPages, saved: PublicationRecord, effect: PublicationEffect) {
+  if (!pages.has(effect.sourceId)) pages.set(effect.sourceId, await client.comments(effect.sourceId));
+  const observed = observeComment(pages.get(effect.sourceId)!, effect, saved.intentId, saved.payloadSha256);
+  requirePublication(observed && observed.commentId === effect.readback?.commentId, "publication_comment_proof_changed");
+}
+
+/** A historical receipt records a readback, not permanent remote immutability. */
+export async function verifyConfirmedComments(store: PublicationStore, client: PublicationClient, row: PublicationRecord) {
+  const history = row.payload.kind === "closure" ? await store.list(row.companyId, row.missionId) : [row];
+  const rows = history.filter(saved => requiredComment(saved, row.intentId));
+  const proofs = rows.flatMap(saved => saved.effects.filter(e => e.kind === "comment" && e.state === "confirmed")
+    .map(effect => ({ saved, effect })));
+  const pages: CommentPages = new Map();
+  for (const { saved, effect } of proofs) await verifyCommentReadback(client, pages, saved, effect);
+}
+
+function requiredComment(row: PublicationRecord, currentIntentId: string) {
+  return [row.intentId === currentIntentId, ["closure", "decision"].includes(row.payload.kind),
+    row.payload.campaignPlan, row.payload.campaignDelivery].some(Boolean);
 }
 
 async function confirm(store: PublicationStore, row: PublicationRecord, index: number, readback: Record<string, unknown>) {
@@ -108,12 +135,14 @@ async function acquirePublication(store: PublicationStore, row: PublicationRecor
 export async function dispatchPublication(store: PublicationStore, client: PublicationClient, initial: PublicationRecord,
   guardWrite: () => Promise<void>) {
   let row = await reconcilePublication(store, client, initial);
+  await verifyConfirmedComments(store, client, row);
   // A control comment has no status effect and cannot settle or release an older intent.
   await acquirePublication(store, row);
   for (let i = 0; i < row.effects.length; i++) {
     const effect = row.effects[i]!;
     if (effect.state === "confirmed") continue;
     requirePublication(effect.state === "pending", "publication_readback_pending");
+    if (row.payload.kind === "closure" && effect.kind === "status") await verifyConfirmedComments(store, client, row);
     row = await dispatchEffect(store, client, row, i, guardWrite);
     if (row.effects[i]!.state !== "confirmed") break;
   }

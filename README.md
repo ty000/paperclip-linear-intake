@@ -5,7 +5,14 @@ A separate Paperclip plugin that retains an authorized Linear transition to
 source attestations to an explicitly enabled Council receiver. Council owns
 admission, accounting and implementation dispatch.
 
-**Fixed campaign publisher (source 0.6.1):** optional authenticated Council
+**Bounded correction candidate (source 0.6.2):** see the
+[follow-up ledger](docs/qualification/V1-BOUNDED-CORRECTIONS.md) for engagement,
+publication-proof, diagnostic and final-summary corrections. Early individual
+stop before a fixed Council mission and recovery of the same campaign after a
+failed integration are explicitly deferred in the PRD/TAD. This source change
+does not install, configure or activate either plugin.
+
+**Fixed campaign publisher (qualified candidate 0.6.1):** optional authenticated Council
 continuity now has a durable comment/status journal, exact readback and restart
 reconciliation. It remains disabled by default. Synthetic SDK and isolated
 PostgreSQL checks are complemented by the [complete installed isolated
@@ -15,20 +22,20 @@ real Linear publication and recette activation are not qualified. See
 [campaign publication](docs/qualification/CAMPAIGN-PUBLICATION.md) and
 [the PRD/TAD correction ledger](docs/qualification/V1-AUDIT-CORRECTIONS.md).
 
-**Current state:** Lot 1 is qualified against SDK `2026.1005.0`. The disabled
+**Historical Lot 1 qualification:** Lot 1 is qualified against SDK `2026.1005.0`. The disabled
 plugin has read two enrolled leaves and one complete native Content Assistant
 family: parent plus three children, full descriptions, two internal blocking
 edges, eight unresolved external blocker references, and repeated paginated
 inventories. See the [criterion ledger and proof](docs/qualification/SOURCE-READER.md).
 
-Version `0.1.4` from candidate `6747347` is installed in recipe. Its eleven
+At the Lot 1 checkpoint, version `0.1.4` from candidate `6747347` was installed in recipe. Its eleven
 runtime files match the exact-candidate CI build. Temporary source probe/reader
 enrollment was removed, the original disabled configuration restored, and the
 managed connection verified healthy. No webhook, import or Council admission
 is active. **Lot 2 is complete** in source version `0.2.0`: 383 package/worker
 tests, 79 isolated PostgreSQL tests, independent review, Fallow and four CI checks
-pass. It adds request retention and a scheduled source reader, and is not
-installed in recipe. **Lot 3 is complete** in source version `0.3.0`: 594 tests, independent review,
+pass. It adds request retention and a scheduled source reader, and was not
+installed in recipe by that lot. **Lot 3 is complete** in source version `0.3.0`: 594 tests, independent review,
 the Fallow gate and four CI checks pass. Native families and uncertainty
 recovery are qualified with real core services and an isolated database.
 See the [import criterion ledger](docs/qualification/NATIVE-IMPORT.md).

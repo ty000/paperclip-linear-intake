@@ -2,6 +2,8 @@ import type { PublicationPayload } from "./continuity-contract.js";
 
 export type PublicationPresentation = { sources: Array<{ sourceId: string; label: string }>;
   references: Array<{ label: string; url: string; version?: string; sha256?: string }>;
+  objective?: { title: string; description: string | null };
+  previousComments?: Array<{ kind: PublicationPayload["kind"]; commentId: string; url?: string }>;
   sourceSha256?: string; campaignUrl?: string };
 export const emptyPresentation: PublicationPresentation = { sources: [], references: [] };
 const kinds = { progress: "Progression", blocker: "Blocage", question: "Question", decision: "Décision", closure: "Bilan", cancellation: "Annulation" };
@@ -114,9 +116,20 @@ function cancellation(payload: PublicationPayload, context: PublicationPresentat
     ...rows("openPullRequests").map(item => `- ${label(sourceLabel(text(item.sourceId), context))} : PR ouverte, traitement humain requis` + cancellationPr(item)),
     `Travail restant : ${remaining.length}.`, ...remaining.map(item => `- ${label(sourceLabel(text(item.sourceId), context))}`)];
 }
+function closureContext(payload: PublicationPayload, context: PublicationPresentation) {
+  if (payload.kind !== "closure") return [];
+  const objective = context.objective;
+  const lines = objective ? [`### Objectif fixé — ${label(objective.title)}`, text(objective.description)] : [];
+  const comments = context.previousComments ?? [];
+  if (comments.length) lines.push("### Commentaires précédents", ...comments.map(comment => {
+    const name = `${kinds[comment.kind]} — ${label(comment.commentId)}`, url = https(comment.url);
+    return url ? `- [${name}](${url})` : `- ${name} (lien non fourni par Linear)`;
+  }));
+  return lines.filter(Boolean);
+}
 export function publicationText(payload: PublicationPayload, context: PublicationPresentation) {
   const statusChanges = statusLines(payload, context), scopeLines = scope(context);
-  const parts = [`## Council — ${kinds[payload.kind]}`, campaignLink(context), ...plannedDeliveries(payload, context), ...progress(payload), ...coverage(payload), ...deliveryLinks(payload), ...cancellation(payload, context)];
+  const parts = [`## Council — ${kinds[payload.kind]}`, campaignLink(context), ...closureContext(payload, context), ...plannedDeliveries(payload, context), ...progress(payload), ...coverage(payload), ...deliveryLinks(payload), ...cancellation(payload, context)];
   if (statusChanges.length) parts.push(`### Statuts à confirmer\n\n${statusChanges.join("\n")}`);
   if (scopeLines.length) parts.push(`### Périmètre fixé\n\n${scopeLines.join("\n")}`);
   if (parts.length === 2) parts.push("Le suivi de la campagne a été actualisé. Les preuves détaillées sont conservées dans Council.");

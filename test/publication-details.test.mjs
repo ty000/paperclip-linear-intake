@@ -34,8 +34,22 @@ test('source presentation uses pinned PRD/TAD versions and actual native UUID ro
   assert.equal(original.presentation.campaignUrl,undefined);
   assert.deepEqual(original.presentation.references[0],{label:'PRD',...f.plan.plan.campaign.references.prd});
   assert.equal(original.presentation.sourceSha256,f.requestWire.sourceSha256);
+  assert.deepEqual(original.presentation.objective,{title:f.request.snapshot.campaign.milestone.name,
+    description:f.request.snapshot.campaign.milestone.description});
   const present=campaignSourceIdentity(session,f.requestWire,'https://paperclip.example.test');
   assert.equal(present.presentation.campaignUrl,`https://paperclip.example.test/issues/${uuid(7)}`);
+});
+
+test('closure preserves an observed comment ID without inventing an absent or unsafe link', async () => {
+  const f=await publicationFixture(noDb),{payload,intentId}=f.addIntent([],uuid(40),'closure');
+  for (const url of [undefined,'javascript:alert(1)','https://user:private@example.test/']) {
+    const body=renderPublicationComment(payload,intentId,{sources:[],references:[],
+      objective:{title:'Pinned objective',description:'Deliver the prepared milestone'},
+      previousComments:[{kind:'progress',commentId:uuid(80),...(url?{url}:{})}]});
+    assert.ok(body.includes(uuid(80))); assert.ok(body.includes('Deliver the prepared milestone'));
+    assert.match(body,/lien non fourni par Linear/);
+    assert.equal(body.includes('private'),false); assert.equal(body.includes('javascript:'),false);
+  }
 });
 
 for (const value of ['https://paperclip.example.test','http://127.0.0.1:3210','http://localhost:3210','http://[::1]:3210']) {

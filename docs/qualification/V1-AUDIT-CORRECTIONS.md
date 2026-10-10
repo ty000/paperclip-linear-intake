@@ -1,5 +1,11 @@
 # V1 audit corrections
 
+Historical first correction lot, intake 0.6.1 / Council 0.7.41. The fresh
+10 October review found additional gaps; this coverage table is not a claim
+of complete compliance. See [the bounded follow-up](V1-BOUNDED-CORRECTIONS.md)
+for R01–R07 and the explicit current V1 limits. Original receipts below retain
+their original candidates and scope.
+
 These corrections address the PRD/TAD review after the campaign implementation.
 They keep the initial milestone scope and use the existing native commands,
 publication journal and continuity exchange.

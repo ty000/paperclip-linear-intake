@@ -9,7 +9,7 @@ import { openHandoff, verifyHandoffReadiness, type HandoffSession } from "./coun
 import { campaignSourceIdentity, guardContinuity, observeCampaign } from "./continuity-source.js";
 import { createPublicationStore, type PublicationStore } from "./publication-store.js";
 import { openPublicationClient, type PublicationClient } from "./publication-client.js";
-import { publicationEffects, validatePublicationScope, controlComment, reconcilePublication, dispatchPublication } from "./publication-engine.js";
+import { publicationEffects, validatePublicationScope, controlComment, reconcilePublication, dispatchPublication, verifyConfirmedComments } from "./publication-engine.js";
 import { publicationReceipt } from "./publication-receipt.js";
 import { ContinuitySourceError, continuityDiagnostic, type SourceDiagnostic } from "./continuity-diagnostic.js";
 
@@ -32,6 +32,7 @@ function statusControlAllows(request: ContinuityRequest, states: Array<{ state: 
 
 async function journalIntents(session: HandoffSession, request: ContinuityRequest, store: PublicationStore, client: PublicationClient) {
   const { activeSourceIds, presentation } = campaignSourceIdentity(session, request, client.publisher.paperclipBaseUrl), rows = [];
+  const history = await store.list(request.binding.companyId, request.binding.missionId);
   for (const reference of request.publications.slice(0, 32)) {
     const value = await readContinuityDocument(session.ctx, request.binding.companyId, request.binding.nativeRootId, reference.document);
     const document = publicationDocumentSchema.parse(value);
@@ -40,10 +41,18 @@ async function journalIntents(session: HandoffSession, request: ContinuityReques
     validatePublicationScope(request, document.payload, activeSourceIds);
     // Rendering evolves; original journal effects remain the only retry identity.
     const existing = await store.get(request.binding.companyId, reference.intentId);
-    const effects = existing?.effects ?? publicationEffects(request, reference.intentId, document.payload, activeSourceIds, client.publisher.states, presentation);
+    const context = { ...presentation, previousComments: previousComments(history, reference.intentId) };
+    const effects = existing?.effects ?? publicationEffects(request, reference.intentId, document.payload, activeSourceIds, client.publisher.states, context);
     rows.push(await store.ensure(request, reference.intentId, document.payload, effects));
   }
   return rows;
+}
+
+function previousComments(rows: import("./publication-store.js").PublicationRecord[], currentIntentId: string) {
+  return rows.filter(row => row.intentId !== currentIntentId).flatMap(row => row.effects
+    .filter(effect => effect.kind === "comment" && effect.state === "confirmed" && typeof effect.readback?.commentId === "string")
+    .map(effect => ({ kind: row.payload.kind, commentId: effect.readback!.commentId as string,
+      ...(typeof effect.readback!.commentUrl === "string" ? { url: effect.readback!.commentUrl } : {}) })));
 }
 
 async function dispatchIfEnabled(session: HandoffSession, store: PublicationStore, client: PublicationClient,
@@ -53,11 +62,22 @@ async function dispatchIfEnabled(session: HandoffSession, store: PublicationStor
   return config.publisher!.enabled ? dispatchPublication(store, client, row, guardWrite) : row;
 }
 
-async function sourceObservation(session: HandoffSession, request: ContinuityRequest, store: PublicationStore) {
+function isUnreconciledStatusDiagnostic(diagnostic: SourceDiagnostic, unreconciledStatusIds: ReadonlySet<string>) {
+  return unreconciledStatusIds.size > 0 && diagnostic.code === "source_state_changed"
+    && diagnostic.changedFields.length === 1 && diagnostic.changedFields[0] === "status"
+    && diagnostic.changedSourceIds.every(id => unreconciledStatusIds.has(id));
+}
+
+async function sourceObservation(session: HandoffSession, request: ContinuityRequest, store: PublicationStore,
+  unreconciledStatusIds: ReadonlySet<string> = new Set()) {
   try { await observeCampaign(session, request, store); }
   catch (error) {
     // The original source remains pinned, including when it is later restored.
     const diagnostic = continuityDiagnostic(error, request);
+    // A lost own write is still unknown while the writer cannot reconcile it.
+    if (isUnreconciledStatusDiagnostic(diagnostic, unreconciledStatusIds)) {
+      return continuityDiagnostic(new Error("publication_status_unreconciled"), request);
+    }
     await store.holdSource(request, diagnostic);
     return diagnostic;
   }
@@ -91,6 +111,7 @@ async function requestTerminalClaim(session: HandoffSession, request: Continuity
   client: PublicationClient, row: import("./publication-store.js").PublicationRecord): Promise<ClaimRequest | undefined> {
   if (request.control !== "running" || !client.publisher.enabled) return undefined;
   await publicationGuard(session, request, store, client, false);
+  await verifyConfirmedComments(store, client, row);
   return { intentId: row.intentId, payloadSha256: row.payloadSha256 };
 }
 
@@ -104,8 +125,9 @@ async function publishRow(session: HandoffSession, request: ContinuityRequest, s
   }
   const guardWrite = () => publicationGuard(session, request, store, client, commentOnly);
   const current = await dispatchIfEnabled(session, store, client, row, guardWrite, request);
-  return current.effects.every(effect => effect.state === "confirmed")
-    ? { acknowledgement: await publicationReceipt(session.ctx, store, current) } : {};
+  if (!current.effects.every(effect => effect.state === "confirmed")) return {};
+  await verifyConfirmedComments(store, client, current);
+  return { acknowledgement: await publicationReceipt(session.ctx, store, current) };
 }
 
 async function publishRows(session: HandoffSession, request: ContinuityRequest, store: PublicationStore, client: PublicationClient) {
@@ -122,7 +144,16 @@ async function publishRows(session: HandoffSession, request: ContinuityRequest, 
 }
 
 async function publish(session: HandoffSession, request: ContinuityRequest, store: PublicationStore) {
-  const client = await openPublicationClient(session.ctx, request.binding.companyId, async () => { await guardContinuity(session); });
+  const client = await openPublicationClient(session.ctx, request.binding.companyId, async () => { await guardContinuity(session); })
+    .catch(async error => {
+      // A revoked writer must not prevent the independently authorized reader.
+      const history = await store.list(request.binding.companyId, request.binding.missionId);
+      const claimed = new Set(history.flatMap(row => row.effects
+        .filter(effect => effect.kind === "status" && effect.state === "claimed").map(effect => effect.sourceId)));
+      const diagnostic = await sourceObservation(session, request, store, claimed);
+      if (diagnostic) throw new ContinuitySourceError(diagnostic);
+      throw error;
+    });
   // A lost status response must be reconciled before the ongoing state check can trust it.
   for (const row of await store.list(request.binding.companyId, request.binding.missionId)) {
     await reconcilePublication(store, client, row);
