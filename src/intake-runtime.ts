@@ -4,7 +4,8 @@ import { parseConfig } from "./config.js";
 import { fingerprint, currentConfig, sourceGuard } from "./intake-authority.js";
 import { createIntakeStore } from "./intake-store.js";
 import { MAX_SOURCE_ATTEMPTS, IntakeStoreError, type IntakeBinding, type IntakeRequest } from "./intake-state.js";
-import { verifyLinearEvent } from "./webhook-event.js";
+import { verifyLinearEvent, verifyCampaignChange } from "./webhook-event.js";
+import { retainCampaignChange, projectCampaignChanges } from "./source-invalidation.js";
 import { retrySourceRead, sourceRecoveryStatus } from "./intake-recovery.js";
 import { readRetainedFamily } from "./intake-source.js";
 
@@ -47,6 +48,8 @@ async function receive(ctx: PluginContext, store: Store, input: PluginWebhookInp
   const config = await currentConfig(ctx, binding);
   const secret = await webhookSecret(ctx, binding.companyId, config);
   const event = verifyLinearEvent(input.rawBody, input.headers, secret, binding.authority, Date.now());
+  const change = verifyCampaignChange(input.rawBody, input.headers, secret, binding.authority, Date.now());
+  if (change && config.councilContinuityEnabled) await retainCampaignChange(ctx.db, binding, change);
   if (event.classification === "ignored") return;
   await currentConfig(ctx, binding);
   // Receipt and request projection finish before resolving the native webhook.
@@ -91,6 +94,7 @@ async function fetchRequest(ctx: PluginContext, store: Store, binding: IntakeBin
 async function drain(ctx: PluginContext, store: Store) {
   const binding = await processingBinding(ctx, store);
   if (!binding) return;
+  await projectCampaignChanges(ctx, binding);
   await store.replayPending(binding.companyId, binding.activationId, 20);
   const pending = await store.listPendingRequests(binding.companyId, binding.activationId, new Date().toISOString(), 1);
   for (const request of pending) {

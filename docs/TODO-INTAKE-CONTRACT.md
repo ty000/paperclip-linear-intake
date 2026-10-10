@@ -38,6 +38,16 @@ Duplicate deliveries refer to the same retained intake. A later transition back
 into Todo does not automatically create a second attempt for already-managed
 work. Any new-attempt policy must retain history and receive explicit authority.
 
+For an already enrolled fixed campaign, source `0.6.6` additionally retains
+signed Issue changes to titles, descriptions, status, archive, membership,
+hierarchy and dependency fields. This separate invalidation path does not require
+a new Todo transition or an initiating actor; it grants no new intake authority.
+Known members remain relevant when removed or moved out of scope. A new issue
+whose signed milestone/parent identity joins the selected scope also invalidates
+the fixed campaign. Retention and semantic deduplication precede webhook ACK;
+the handler performs no source HTTP, native hint emission or agent wake.
+See [event/action continuity](COUNCIL-HANDOFF-V1.md#eventaction-continuity-source-066).
+
 ## Source selection
 
 - A selected parent authorizes its remaining descendant work even when those
@@ -109,8 +119,12 @@ an admitted mission; Council retains native-source, mandate and budget gates.
 
 ## Recovery and operator visibility
 
-Use a native scheduled job to resume retained requests and reconcile missing
-events. Initial activation and any catch-up selection must keep the configured
+Use a native scheduled job to resume retained requests and reconcile their local
+durable projections. Fixed campaigns do not get periodic Linear source scans for
+freshness: later observations require a retained relevant event or an explicit
+action/publication request. The scheduled job projects pending invalidations to
+native documents without source reads; Council reconciles those documents after
+lost native hints or restart. Initial activation and any catch-up selection must keep the configured
 boundary; recovery must not sweep all historical Todo tickets.
 
 Expose distinct states for received, fetching, importing, prepared,
@@ -124,6 +138,7 @@ or cross-plugin database ownership. A withdrawn request can retain a
 partially prepared historical plan; it cannot dispatch new effects or become
 prepared under the former request revision.
 
-No Slack integration, Linear status writeback, merge or deployment is introduced
-by this contract. The isolated handoff proof does not use or qualify a real model
-provider or real-ticket execution.
+The initial Todo handoff introduces no Slack integration, Linear status writeback,
+merge or deployment. Later fixed-campaign publication is separately governed by
+the versioned continuity contract. Neither isolated handoff nor continuity tests
+qualify a real model provider or real-ticket execution.

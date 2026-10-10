@@ -2,9 +2,9 @@ import type { PluginContext, PluginEvent } from "@paperclipai/plugin-sdk";
 import { parseConfig } from "./config.js";
 import { contentDigest } from "./content-digest.js";
 import { CONTINUITY_PROTOCOL, CONTINUITY_MODE, CONTINUITY_REQUEST_EVENT, CONTINUITY_RESULT_NAME,
-  parseContinuityNotice, validateContinuityRequest, publicationDocumentSchema, requirePublication,
+  parseContinuityNotice, validateContinuityRequest, requirePublication,
   type ContinuityRequest } from "./continuity-contract.js";
-import { ensureContinuityDocument, readContinuityDocument } from "./continuity-documents.js";
+import { ensureContinuityDocument, readContinuityDocument, readPublicationDocument } from "./continuity-documents.js";
 import { openHandoff, verifyHandoffReadiness, type HandoffSession } from "./council-handoff-ledger.js";
 import { campaignSourceIdentity, guardContinuity, observeCampaign } from "./continuity-source.js";
 import { createPublicationStore, type PublicationStore } from "./publication-store.js";
@@ -12,6 +12,8 @@ import { openPublicationClient, type PublicationClient } from "./publication-cli
 import { publicationEffects, validatePublicationScope, controlComment, reconcilePublication, dispatchPublication, verifyConfirmedComments, type PublicationGuards } from "./publication-engine.js";
 import { publicationReceipt } from "./publication-receipt.js";
 import { ContinuitySourceError, continuityDiagnostic, type SourceDiagnostic } from "./continuity-diagnostic.js";
+import { continuityResponseCache } from "./continuity-response-cache.js";
+import { readbackContinuity } from "./continuity-readback.js";
 
 async function openSession(ctx: PluginContext, request: ContinuityRequest, store: PublicationStore) {
   const retained = await store.retainedRequest(request);
@@ -34,10 +36,7 @@ async function journalIntents(session: HandoffSession, request: ContinuityReques
   const { activeSourceIds, presentation } = campaignSourceIdentity(session, request, client.publisher.paperclipBaseUrl), rows = [];
   const history = await store.list(request.binding.companyId, request.binding.missionId);
   for (const reference of request.publications.slice(0, 32)) {
-    const value = await readContinuityDocument(session.ctx, request.binding.companyId, request.binding.nativeRootId, reference.document);
-    const document = publicationDocumentSchema.parse(value);
-    requirePublication([document.intentId === reference.intentId, document.payloadSha256 === reference.payloadSha256,
-      contentDigest(document.payload) === reference.payloadSha256].every(Boolean), "publication_document_changed");
+    const document = await readPublicationDocument(session.ctx, request, reference);
     validatePublicationScope(request, document.payload, activeSourceIds);
     // Rendering evolves; original journal effects remain the only retry identity.
     const existing = await store.get(request.binding.companyId, reference.intentId);
@@ -183,12 +182,17 @@ async function publish(session: HandoffSession, request: ContinuityRequest, stor
 
 async function answer(ctx: PluginContext, request: ContinuityRequest) {
   const store = createPublicationStore(ctx.db), session = await openSession(ctx, request, store);
+  const cache = continuityResponseCache(ctx.db, request), retained = await cache.get();
+  if (retained) {
+    for (const reference of request.publications) await readPublicationDocument(ctx, request, reference);
+    await emitResponse(ctx, request, session, retained); return;
+  }
   let availability: "available" | "unavailable" = "unavailable";
   let acknowledgements: Awaited<ReturnType<typeof publish>>["acknowledgements"] = [];
   let diagnostic: SourceDiagnostic | undefined;
   let terminalClaimRequest: Awaited<ReturnType<typeof publish>>["terminalClaimRequest"];
   try {
-    const result = await publish(session, request, store);
+    const result = await processRequest(session, request, store);
     ({ acknowledgements, diagnostic, terminalClaimRequest } = result);
     availability = result.available ? "available" : "unavailable";
   } catch (error) { diagnostic = continuityDiagnostic(error, request); }
@@ -197,8 +201,23 @@ async function answer(ctx: PluginContext, request: ContinuityRequest) {
   const response = { protocol: CONTINUITY_PROTOCOL, mode: CONTINUITY_MODE, binding: request.binding,
     challengeId: request.challengeId, nonce: request.nonce, requestSha256: contentDigest(request),
     observedAt: new Date(now).toISOString(), validUntil: new Date(now + 120_000).toISOString(),
-    capabilities: ["fixed-source", "publication-readback", "terminal-publication-claim"], sourceSha256: request.sourceSha256,
+    capabilities: ["fixed-source", "publication-readback", "terminal-publication-claim",
+      ...(request.sourceObservationProtocol ? ["event-driven-source"] : [])], sourceSha256: request.sourceSha256,
+    ...(request.sourceObservationProtocol ? { sourceObservationProtocol: request.sourceObservationProtocol,
+      sourceInvalidationVersion: request.sourceInvalidationVersion, observationPurpose: request.observationPurpose } : {}),
     availability, changes: [], acknowledgements, ...(diagnostic ? { diagnostic } : {}), ...(terminalClaimRequest ? { terminalClaimRequest } : {}) };
+  await emitResponse(ctx, request, session, await cache.save(response));
+}
+
+async function processRequest(session: HandoffSession, request: ContinuityRequest, store: PublicationStore) {
+  if (request.observationPurpose === "readback") return readbackContinuity(session, request, store);
+  if (request.observationPurpose === "event" && request.control !== "running" && !request.publications.length) {
+    return { acknowledgements: [], diagnostic: undefined, available: false, terminalClaimRequest: undefined };
+  }
+  return publish(session, request, store);
+}
+
+async function emitResponse(ctx: PluginContext, request: ContinuityRequest, session: HandoffSession, response: Record<string, unknown>) {
   // The full digest includes challenge and binding; no truncated identity or oversized prefix.
   const proof = await ensureContinuityDocument(ctx, request.binding.companyId, request.binding.nativeRootId,
     contentDigest(response), response);

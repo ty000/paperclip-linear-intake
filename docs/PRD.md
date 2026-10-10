@@ -1,6 +1,6 @@
 # PRD — Première version utilisable de l’intégration Linear / Paperclip
 
-Version documentaire : 0.4 · 10 octobre 2026 · Europe/Paris.
+Version documentaire : 0.5 · 10 octobre 2026 · Europe/Paris.
 
 **Statut : cadrage révisé pour une livraison progressive.** La demande de
 simplification du 9 octobre remplace l’obligation de livrer toute l’autonomie de
@@ -9,6 +9,9 @@ comportements reportés. Elle ne prouve aucune capacité installée ou activée.
 La révision du 10 octobre précise deux limites opérationnelles : arrêt individuel
 avant mission et reprise après échec post-fusion reportés (§6). Elle ne constitue
 pas une autorisation d’activation ou d’écriture sur des tickets réels.
+Le choix B du 10 octobre remplace la surveillance périodique de Linear par les
+webhooks et les contrôles aux décisions utiles (§4). Les garanties de mandat,
+de persistance et de clôture restent requises.
 Le [TAD proposé](TAD.md) en décrit la réalisation ; les
 [vérifications restantes](TAD-QUESTIONS.md) portent sur cette V1 seulement.
 
@@ -90,6 +93,21 @@ supprimer la possibilité de lire et de diagnostiquer.
 5. Le bilan favorable et les statuts terminaux sont publiés puis relus. La campagne
    n’est déclarée terminée qu’après cette confirmation.
 
+Les lectures Linear sont déclenchées par l’engagement, un webhook pertinent ou
+une action qui exige une vérification : départ d’une tâche, reprise, fusion ou
+clôture. L’expiration d’une observation ne déclenche pas à elle seule de nouvelle
+lecture. Pendant l’attente et la pause, aucun balayage périodique de la campagne
+n’est requis. Les jobs locaux peuvent continuer à suivre les runs déjà admis.
+
+Les notifications rapprochées sont regroupées ; un événement invalide la lecture
+précédente sans constituer une preuve de l’état courant. Si un webhook est perdu
+ou ne couvre pas le changement, celui-ci sera détecté au prochain contrôle utile,
+sans promesse de détection immédiate. En pause, les changements sont conservés
+pour la reprise explicite. Une écriture au résultat incertain permet seulement
+des relectures ciblées et bornées de son identité initiale, puis un blocage visible
+si son résultat reste inconnu. Aucun appel à un modèle n’est nécessaire pour ces
+échanges.
+
 | Situation hors parcours nominal | Réponse attendue en V1 |
 | --- | --- |
 | Dépôt occupé ou ticket déjà engagé | Retenir la demande, donner le propriétaire courant et demander une reprise explicite après libération. Pas d’absorption ni de second départ. |
@@ -125,7 +143,7 @@ relance sa vérification explicitement, en conservant l’identité de la demand
 
 ## 5. Exigences de la V1
 
-Les IDs M01–M10 désignent ce périmètre. Les anciennes exigences R01–R17 et
+Les IDs M01–M11 désignent ce périmètre. Les anciennes exigences R01–R17 et
 scénarios V01–V18 restent consultables dans la v0.2 via Git ; ils ne sont pas tous
 des prérequis de livraison de la V1.
 
@@ -141,6 +159,7 @@ des prérequis de livraison de la V1.
 | M08 | Dès que la campagne est fixée dans une mission Council, pause, reprise et annulation dans Paperclip respectent les points sûrs ; l’annulation conserve les résultats et ne vaut jamais réussite. |
 | M09 | Le bilan couvre feuilles, obligations propres des parents et critères transversaux. Un reviewer indépendant donne un verdict global ; le ticket reste ouvert tant que critères, preuves ou publication finale manquent. |
 | M10 | Configuration désactivée par défaut, permissions limitées, références de secrets uniquement et absence d’adoption automatique des anciens travaux. Installation et qualification ne valent pas activation. |
+| M11 | Aucun polling de surveillance Linear au repos ou en pause. Les changements pertinents sont retenus et regroupés ; une décision dépendante exige une source vérifiée. La récupération d’un effet incertain est ciblée, bornée et conserve son identité. |
 
 ## 6. Ce qui est reporté et pourquoi
 
@@ -198,6 +217,7 @@ comme obligations cachées dans les lots d’implémentation.
 | A06 — Panne ou incident intégré | Pas de livraison suivante pendant panne Linear, publication inconnue ou échec après fusion ; reprise explicite après vérification pour les cas pris en charge, arrêt conservé après échec post-fusion. | M04, M06, M07 |
 | A07 — Clôture prématurée | Enfants seuls terminés, critère transversal manquant ou bilan non publié : campagne non terminée. | M09 |
 | A08 — Mise en service bornée | Installation sans activation, anciens travaux inchangés ; révocation d’écriture conservant le diagnostic en lecture. | M02, M05, M10 |
+| A09 — Échanges à la demande | Plusieurs passages de jobs sans événement ni action produisent zéro lecture Linear ; doublons et redémarrage ne perdent pas les changements ; une observation antérieure à un changement ne permet pas un départ ; les reprises d’effets incertains s’arrêtent à leur limite. | M06, M07, M08, M11 |
 
 Les règles et erreurs se vérifient avec des tests synthétiques ciblés. Un parcours
 représentatif doit aussi démontrer les effets natifs Paperclip, les écritures et
@@ -206,7 +226,7 @@ sur un périmètre de test autorisé. Une lecture seule ne prouve jamais une éc
 Il n’est pas nécessaire de répéter tous les tests avec un fournisseur réel.
 
 La V1 est utilisable lorsque A01 fonctionne de bout en bout et que les refus et
-reprises A02–A08 sont démontrés aux couches concernées. Une démonstration limitée à
+reprises A02–A09 sont démontrés aux couches concernées. Une démonstration limitée à
 l’import ou à l’admission n’est pas la V1. La lisibilité du suivi est vérifiée sur
 ce parcours ; il n’y a ni engagement de délai à la minute, ni programme UX séparé.
 Les améliorations de cadence, de volume et d’ergonomie viendront des usages.

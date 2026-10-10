@@ -5,6 +5,17 @@ A separate Paperclip plugin that retains an authorized Linear transition to
 source attestations to an explicitly enabled Council receiver. Council owns
 admission, accounting and implementation dispatch.
 
+**Event/action continuity candidate (source 0.6.6):** signed relevant Issue
+changes for enrolled fixed campaigns are retained before webhook acknowledgement,
+then coalesced into a native invalidation document. Council requests complete
+source observations only for a retained event or an actual action/publication.
+Idle and paused ticks perform no freshness source scans. Explicit resume checks
+the complete source; uncertain publications use bounded targeted readback under
+their original intent. Completed challenges replay their durable response without
+remote reads. See the [technical contract](docs/COUNCIL-HANDOFF-V1.md#eventaction-continuity-source-066).
+These are source and isolated test results; this lot does not install, activate,
+resume or prove behavior on the recipe instance or a real Linear campaign.
+
 **Idle observation reduction (source 0.6.5):** a Council request with no
 publications now makes one complete double source observation, after reconciling
 any previously claimed effects. The four-ticket fixture drops from 48 to 24
