@@ -5,6 +5,13 @@ A separate Paperclip plugin that retains an authorized Linear transition to
 source attestations to an explicitly enabled Council receiver. Council owns
 admission, accounting and implementation dispatch.
 
+**Idle observation reduction (source 0.6.5):** a Council request with no
+publications now makes one complete double source observation, after reconciling
+any previously claimed effects. The four-ticket fixture drops from 48 to 24
+source calls per request. Publication checks and freshness remain unchanged;
+Council owns request cadence. See the [qualification](docs/qualification/IDLE-SOURCE-READS.md).
+This source change does not update or resume the recipe instance.
+
 **Source-read reduction candidate (source 0.6.3):** publication keeps native
 checks before its durable claim and a complete source observation before send.
 The [isolated qualification](docs/qualification/PUBLICATION-SOURCE-READS.md)

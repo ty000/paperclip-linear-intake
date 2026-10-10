@@ -21,6 +21,52 @@ function representativeCampaign(f) {
   f.issues.set(sibling.uuid, sibling);
 }
 
+for (const control of ['running', 'paused', 'cancelled']) {
+  test(`a ${control} observation without publications collects the full source twice, not four times`, async () => {
+    const f = await publicationFixture(database.db, { prepareCampaign: representativeCampaign });
+    f.requestWire.control = control;
+    await f.sendContinuity();
+    assert.equal(last(f).availability, 'available');
+    assert.equal(f.sourceCalls.length, 24);
+    assert.equal(f.publisherReads.length, 0);
+    assert.equal(f.writes.length, 0);
+    assert.deepEqual(last(f).acknowledgements, []);
+    // Each new request observes the actual source; no cached positive verdict.
+    f.issues.get(ids.child).description += ' changed acceptance criterion';
+    f.requestWire.challengeId = uuid(32);
+    await f.sendContinuity();
+    assert.equal(last(f).availability, 'unavailable');
+    assert.equal(last(f).diagnostic.code, 'source_changed');
+    assert.equal(f.sourceCalls.length, 48);
+    assert.equal(f.writes.length, 0);
+  });
+}
+
+test('an observation without publications still reconciles a lost status response before reading source', async () => {
+  let lost = false;
+  const options = { prepareCampaign: representativeCampaign };
+  const f = await publicationFixture(database.db, { ...options,
+    afterCall(_current, role) { if (role === 'saveIssue' && !lost) { lost = true; throw Error('lost response'); } } });
+  f.addIntent([{ sourceId: ids.child, state: 'started' }]);
+  await f.sendContinuity();
+  const store = createPublicationStore(database.db), before = await store.get(ids.company, uuid(40));
+  assert.equal(before.effects[1].state, 'claimed');
+  assert.equal(f.writes.length, 2);
+  const restarted = await publicationFixture(database.db, options);
+  restarted.issues.set(ids.child, structuredClone(f.issues.get(ids.child)));
+  restarted.comments = structuredClone(f.comments);
+  await restarted.sendContinuity();
+  const after = await store.get(ids.company, uuid(40));
+  assert.equal(after.intentId, before.intentId);
+  assert.equal(after.payloadSha256, before.payloadSha256);
+  assert.deepEqual(after.effects.map(effect => effect.state), ['confirmed', 'confirmed']);
+  assert.equal(last(restarted).availability, 'available');
+  assert.equal(restarted.sourceCalls.length, 24);
+  assert.equal(restarted.publisherReads.length, 1);
+  assert.equal(restarted.writes.length, 0);
+  assert.deepEqual(last(restarted).acknowledgements, []);
+});
+
 function checkpointMatches(sql, args, stage, index) {
   if (stage === 'beforeClaim') return sql.includes('SET active_intent_id=$3');
   return sql.includes('SET effects=') && JSON.parse(args[0])[index]?.state === 'claimed';

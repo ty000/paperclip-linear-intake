@@ -174,7 +174,9 @@ async function publish(session: HandoffSession, request: ContinuityRequest, stor
   }
   let sourceDiagnostic = await sourceObservation(session, request, store);
   const { acknowledgements, terminalClaimRequest } = await publishRows(session, request, store, client);
-  sourceDiagnostic ??= await sourceObservation(session, request, store);
+  // Without requested publications there is no intervening send to observe.
+  // The first observation still reads the complete source twice, after recovery.
+  if (request.publications.length) sourceDiagnostic ??= await sourceObservation(session, request, store);
   const diagnostic = await store.heldDiagnostic(request);
   return { acknowledgements, diagnostic, available: !sourceDiagnostic, terminalClaimRequest: diagnostic ? undefined : terminalClaimRequest };
 }

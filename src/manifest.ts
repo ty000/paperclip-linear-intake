@@ -4,7 +4,7 @@ import { configSchema } from "./config.js";
 export default {
   id: "ty000.linear-intake",
   apiVersion: 1,
-  version: "0.6.4",
+  version: "0.6.5",
   displayName: "Linear Todo Intake",
   description: "Explicitly enrolled Todo or fixed-milestone retention, native family preparation and authenticated source revalidation for Council.",
   author: "ty000",
