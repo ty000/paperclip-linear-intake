@@ -3,7 +3,6 @@ import { openSourceClient, SourceReadError } from "./source-client.js";
 import { readSourceFamily } from "./source-family.js";
 import { readCampaignSource, CAMPAIGN_SOURCE_SCHEMA } from "./campaign-source.js";
 import { CampaignContractError, parseCampaignMarker } from "./campaign-contract.js";
-import { parseConfig } from "./config.js";
 import type { GatewayReadGuard } from "./gateway.js";
 
 const eligibilityFields = ["uuid", "teamId", "projectId", "archivedAt", "stateHistory"];
@@ -44,13 +43,6 @@ function marker(description: string | null) {
   }
 }
 
-function campaignEligible(payload: unknown, source: RetainedSource, scope: Scope, compatibleStateIds: string[]) {
-  const { root, current } = rootObservation(payload, source.issueId);
-  return [root.teamId === scope.teamId, root.projectId === scope.projectId, root.archivedAt === null,
-    compatibleStateIds.includes(current.state.id),
-    !["started", "completed", "canceled"].includes(current.state.type)].every(Boolean);
-}
-
 async function currentRoot(ctx: PluginContext, companyId: string, source: RetainedSource, guard: GatewayReadGuard) {
   const client = await openSourceClient(ctx, companyId, source.issueId, false, guard);
   const payload = await client.call("getIssue", { id: source.issueId, fields: eligibilityFields });
@@ -66,25 +58,10 @@ async function currentMarker(current: Awaited<ReturnType<typeof currentRoot>>, s
   return marker(parsed.data.description);
 }
 
-async function retainedCampaignEligible(ctx: PluginContext, companyId: string, source: RetainedSource,
-  current: Awaited<ReturnType<typeof currentRoot>>) {
-  const config = parseConfig(await ctx.config.get(companyId)).campaignSource;
-  if (!config) throw new SourceReadError("campaign_source_disabled");
-  return campaignEligible(current.payload, source, current.scope, config.compatibleCampaignStateIds);
-}
-
-function finalEligibility(campaign: boolean, retainedCampaign: boolean, family: Awaited<ReturnType<typeof readCampaignSource>>["family"]
+function finalEligibility(family: Awaited<ReturnType<typeof readCampaignSource>>["family"]
   | Awaited<ReturnType<typeof readSourceFamily>>["family"], source: RetainedSource) {
   const finalRoot = family.issues.find(issue => issue.uuid === source.issueId);
-  if (!campaign) return eligible(finalRoot, source, family);
-  if (!retainedCampaign) return family.selectedRootInTodo;
-  return true;
-}
-
-async function initialEligibility(ctx: PluginContext, companyId: string, source: RetainedSource,
-  current: Awaited<ReturnType<typeof currentRoot>>, retainedCampaign: boolean) {
-  return retainedCampaign ? retainedCampaignEligible(ctx, companyId, source, current)
-    : eligible(current.payload, source, current.scope);
+  return eligible(finalRoot, source, family);
 }
 
 async function markerObserved(current: Awaited<ReturnType<typeof currentRoot>>, source: RetainedSource) {
@@ -100,11 +77,13 @@ async function observeFamily(ctx: PluginContext, companyId: string, source: Reta
 export async function readRetainedFamily(ctx: PluginContext, companyId: string, source: RetainedSource, guard: GatewayReadGuard) {
   const current = await currentRoot(ctx, companyId, source, guard);
   const retainedCampaign = retainedCampaignSource(source);
-  if (!await initialEligibility(ctx, companyId, source, current, retainedCampaign)) return { status: "withdrawn" as const };
+  // This path serves import and pre-admission handoff only. Post-admission
+  // publication states are observed separately by observeCampaign.
+  if (!eligible(current.payload, source, current.scope)) return { status: "withdrawn" as const };
   const observedMarker = await markerObserved(current, source);
   const campaign = retainedCampaign || observedMarker !== undefined;
   const result = await observeFamily(ctx, companyId, source, guard, campaign);
-  if (!finalEligibility(campaign, retainedCampaign, result.family, source)) return { status: "withdrawn" as const };
+  if (!finalEligibility(result.family, source)) return { status: "withdrawn" as const };
   return { status: "source_observed" as const, family: result.family };
 }
 

@@ -1,6 +1,13 @@
 # Plan d’implémentation — V1 Linear / Paperclip
 
-9 octobre 2026 · Sources : [PRD v0.3](PRD.md), [TAD draft v0.2](TAD.md).
+10 octobre 2026 · Sources : [PRD v0.4](PRD.md), [TAD draft v0.3](TAD.md).
+
+**Lot courant :** [corrections bornées R01–R07](qualification/V1-BOUNDED-CORRECTIONS.md).
+Les sources L0–L5 et le premier lot de corrections sont fusionnés ; L6 réel
+reste à qualifier. Les états et candidats du 9 octobre ci-dessous restent
+historiques. Le PRD actuel reporte explicitement l’arrêt individuel avant mission
+et la reprise de campagne après échec post-fusion ; ces reports prévalent sur
+les formulations générales des lots initiaux.
 
 **Statut au 9 octobre 2026 : L0 et les lots source L1–L5 sont proposés en PR ;
 le parcours complet a passé la qualification intégrée isolée. L6 réel est préparé,
@@ -140,7 +147,7 @@ rapport affirmant que les quatre questions sont résolues sans accès aux faits.
   L’annulation conserve les PR ouvertes pour traitement humain. Ces limites V1
   ne changent pas les politiques des anciennes missions déjà configurées.
 - Réutiliser les contrôles avant départ/fusion/clôture, le budget et les points sûrs.
-  Une pause en préparation reprend en préparation ; un redémarrage ne libère pas
+  Une pause en préparation, après fixation dans une mission, reprend en préparation ; un redémarrage ne libère pas
   le dépôt et une réponse incertaine ne réinitialise pas les identités.
 - Consommer le contrat de publication proposé sans prétendre disposer déjà du
   publisher réel : tant que son reçu manque, le travail dépendant reste retenu.

@@ -1,6 +1,6 @@
 # Vérifications techniques restantes — V1 Linear / Paperclip
 
-9 octobre 2026 · Sources : [PRD v0.3](PRD.md), [TAD draft v0.2](TAD.md).
+10 octobre 2026 · Sources : [PRD v0.4](PRD.md), [TAD draft v0.3](TAD.md).
 
 Ce fichier remplace le questionnaire large T01–T13 de la v0.2 du PRD. La demande
 de simplification a reporté les cas avancés ; ils ne sont plus des conditions

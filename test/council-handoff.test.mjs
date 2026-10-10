@@ -38,16 +38,43 @@ for (const stage of ['preparation', 'admission']) test(`${stage}: full source is
   assert.deepEqual(f.harness.logs, []);
 });
 
-for (const stage of ['preparation', 'admission']) test(`${stage}: campaign revalidation accepts enrolled state-only publication drift`, async t => {
+for (const stage of ['preparation', 'admission']) test(`${stage}: campaign before admission cannot leave its authorized Todo interval`, async t => {
   fixedClock(t); const f = await handoffFixture({ campaign: true });
   const root = f.issues.get(sourceIds.root);
   root.updatedAt = '2026-10-07T12:04:00.000Z'; root.status = 'Backlog'; root.statusType = 'backlog';
   root.stateHistory = [{ state: { id: sourceIds.backlog, name: 'Backlog', type: 'backlog' },
     startedAt: '2026-10-07T12:03:00.000Z', endedAt: null }];
   await f.send(challenge(f, stage));
-  assert.equal(f.results.length, 1); assert.equal(f.results[0].status, 'confirmed');
+  blocked(f, 'handoff_source_withdrawn');
   assert.equal(f.plan.plan.campaign.materialSourceSha256, f.request.snapshot.campaign.materialSourceSha256);
   assert.deepEqual(f.harness.logs, []);
+});
+
+function reenterCampaignTodo(root) {
+  const prior = root.stateHistory[0];
+  root.updatedAt = '2026-10-07T13:00:00.000Z';
+  root.stateHistory = [{ ...prior, endedAt: '2026-10-07T12:30:00.000Z' },
+    { state: { id: sourceIds.backlog, name: 'Backlog', type: 'backlog' }, startedAt: '2026-10-07T12:30:00.000Z', endedAt: '2026-10-07T13:00:00.000Z' },
+    { state: prior.state, startedAt: '2026-10-07T13:00:00.000Z', endedAt: null }];
+}
+for (const stage of ['preparation', 'admission']) {
+  test(`${stage}: a missed exit/re-entry webhook does not reuse the prepared campaign authority`, async () => {
+    const f = await handoffFixture({ campaign: true }), original = structuredClone(f.request);
+    reenterCampaignTodo(f.issues.get(sourceIds.root));
+    await f.send(challenge(f, stage)); blocked(f, 'handoff_source_withdrawn');
+    assert.deepEqual(f.request, original);
+  });
+  test(`${stage}: unchanged campaign Todo interval survives timestamp-only updates`, async () => {
+    const f = await handoffFixture({ campaign: true });
+    f.issues.get(sourceIds.root).updatedAt = '2026-10-07T13:00:00.000Z';
+    await f.send(challenge(f, stage)); assert.equal(f.results[0].status, 'confirmed');
+  });
+}
+test('campaign re-entry between eligibility and full source read is refused at final revalidation', async () => {
+  const f = await handoffFixture({ campaign: true, beforeCall(call, current) {
+    if (call.role === 'getProject') reenterCampaignTodo(current.issues.get(sourceIds.root));
+  } });
+  await f.send(); blocked(f, 'handoff_source_withdrawn');
 });
 
 test('campaign revalidation rejects material source drift while readiness remains unchanged', async t => {

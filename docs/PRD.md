@@ -1,12 +1,14 @@
 # PRD — Première version utilisable de l’intégration Linear / Paperclip
 
-Version documentaire : 0.3 · 9 octobre 2026 · Europe/Paris.
+Version documentaire : 0.4 · 10 octobre 2026 · Europe/Paris.
 
 **Statut : cadrage révisé pour une livraison progressive.** La demande de
 simplification du 9 octobre remplace l’obligation de livrer toute l’autonomie de
 la v0.2 d’un seul tenant. Cette version fixe une V1 bornée et identifie les
 comportements reportés. Elle ne prouve aucune capacité installée ou activée.
-Elle n’autorise aucune implémentation, activation ou écriture sur des tickets réels.
+La révision du 10 octobre précise deux limites opérationnelles : arrêt individuel
+avant mission et reprise après échec post-fusion reportés (§6). Elle ne constitue
+pas une autorisation d’activation ou d’écriture sur des tickets réels.
 Le [TAD proposé](TAD.md) en décrit la réalisation ; les
 [vérifications restantes](TAD-QUESTIONS.md) portent sur cette V1 seulement.
 
@@ -95,9 +97,10 @@ supprimer la possibilité de lire et de diagnostiquer.
 | Prérequis manquant ou dépendance externe non prouvée | Bloquer et expliquer le besoin. L’humain prépare les tickets nécessaires ; la V1 ne les crée ni ne les engage automatiquement. |
 | Statut Linear humain incompatible | Signaler l’écart et retenir les effets dépendants jusqu’à clarification dans Paperclip. Pas de boucle de correction automatique des statuts humains. Un Done manuel ne clôt jamais la campagne interne. |
 | Panne Linear, écriture refusée ou réponse perdue | Conserver l’opération locale déjà engagée jusqu’à un point sûr ; aucun nouveau travail, fusion ou clôture. Relire et réconcilier avant reprise, sans double effet. |
-| Pause | Demande dans Paperclip ; aucun nouveau départ ni fusion après observation. L’opération déjà envoyée est réconciliée sous son identité initiale. |
-| Annulation | Arrêter le reste dans Paperclip, conserver livraisons intégrées et historique. Signaler les PR ouvertes à fermer manuellement ; aucun nettoyage automatique ni succès global. |
-| Échec après fusion ou base inattendue | Suspendre les nouvelles livraisons. L’humain décide du rétablissement ; pas de choix autonome correction/revert. Reprendre seulement avec base et preuves vérifiées. |
+| Pause | Dès que la campagne est fixée dans une mission Council, demande dans Paperclip ; aucun nouveau départ ni fusion après observation. L’opération déjà envoyée est réconciliée sous son identité initiale. |
+| Annulation | Dès que la campagne est fixée dans une mission Council, arrêter le reste dans Paperclip, conserver livraisons intégrées et historique. Signaler les PR ouvertes à fermer manuellement ; aucun nettoyage automatique ni succès global. |
+| Base inattendue avant fusion | Suspendre les nouvelles livraisons ; reprendre explicitement après vérification de la base et des preuves. |
+| Échec après fusion | Suspendre la suite et conserver les preuves. La reprise de cette campagne après réparation est reportée ; pas de correction/revert autonome ni de succès implicite. |
 
 Une campagne annulée libère le dépôt seulement après arrêt et réconciliation des
 effets envoyés. Le bilan d’annulation liste les résultats conservés et le travail
@@ -133,9 +136,9 @@ des prérequis de livraison de la V1.
 | M03 | Toute exécution passe par Paperclip/Council dans le mandat et le budget existants. Une seule campagne peut travailler sur le dépôt configuré. |
 | M04 | Chaque livraison de code reçoit sa PR, sa revue indépendante, ses contrôles et sa vérification après fusion avant le départ de la suivante. |
 | M05 | Plan, étapes importantes, blocages et bilan sont publiés sans réécrire les descriptions humaines. Les effets de statut restent bornés et les publications sont relues. |
-| M06 | Un changement matériel ou un cas reporté produit un arrêt récupérable avec action humaine explicite ; il n’élargit jamais silencieusement le travail. |
+| M06 | Un changement matériel ou un cas reporté produit un arrêt avec action humaine explicite, récupérable dans les cas pris en charge (§4–6) ; il n’élargit jamais silencieusement le travail. |
 | M07 | Doublon, interruption et réponse perdue préservent identités, résultats et budget. Un effet incertain n’est pas recréé sous une autre clé. |
-| M08 | Pause, reprise et annulation dans Paperclip respectent les points sûrs ; l’annulation conserve les résultats et ne vaut jamais réussite. |
+| M08 | Dès que la campagne est fixée dans une mission Council, pause, reprise et annulation dans Paperclip respectent les points sûrs ; l’annulation conserve les résultats et ne vaut jamais réussite. |
 | M09 | Le bilan couvre feuilles, obligations propres des parents et critères transversaux. Un reviewer indépendant donne un verdict global ; le ticket reste ouvert tant que critères, preuves ou publication finale manquent. |
 | M10 | Configuration désactivée par défaut, permissions limitées, références de secrets uniquement et absence d’adoption automatique des anciens travaux. Installation et qualification ne valent pas activation. |
 
@@ -143,6 +146,8 @@ des prérequis de livraison de la V1.
 
 | Évolution ultérieure | Coût évité pour la V1 | Comportement présent |
 | --- | --- | --- |
+| Arrêt individuel avant création/fixation de la mission Council | État de contrôle supplémentaire sur les demandes d’entrée | Une demande retenue pour dépôt occupé reste bloquée sans reprise automatique. Ne pas la reprendre si elle est abandonnée ; une désactivation globale n’est pas une annulation individuelle. |
+| Reprise de la même campagne après échec post-fusion | Chemin de réparation compatible avec l’occupation exclusive du dépôt | Campagne suspendue ; diagnostic et preuves conservés. Un correctif ou revert externe ne la relance pas. L’annulation suit les points sûrs ; une future campagne exige un nouvel engagement et toute son éligibilité. |
 | Investigations sans modification du dépôt | Parcours de livraison et preuve spécifiques sans PR | Préparer leurs résultats avant engagement ; les feuilles exécutables V1 livrent une modification du dépôt vérifiée par PR. |
 | Adaptation automatique des membres, critères et versions | Analyse sémantique, invalidation ciblée et replanification | Périmètre fixé, suspension expliquée. |
 | Absorption d’un ticket déjà engagé | Transfert concurrent de propriété, preuves et comptabilité | Engagement recouvrant retenu. |
@@ -171,9 +176,9 @@ signifie ni perdre du travail, ni déclarer un succès sans preuve.
 | D09–D10 | Conservées : arrêt en panne, arbitrages Paperclip et publication avant reprise dépendante. |
 | D11–D14 | Conservées dans le pilote : PR par feuille, plugin séparé, un dépôt par campagne, Slack exclu. |
 | D15–D16 | Reportées : adaptation automatique et correction automatique d’un statut humain. |
-| D17 | Conservée avec commandes Paperclip ; contrôle via Linear reporté. |
+| D17 | Conservée avec commandes Paperclip après fixation dans une mission ; contrôle via Linear et arrêt individuel antérieur reportés. |
 | D18–D19 | Reportées : absorption et création/engagement automatique de prérequis. |
-| D20 | Réduite : arrêt et rétablissement humain ; correction/revert autonome reporté. |
+| D20 | Réduite : arrêt et diagnostic ; reprise de campagne après échec post-fusion et correction/revert autonome reportés. |
 | D21 | Réduite : arrêt, réconciliation et conservation ; fermeture des PR manuelle. |
 
 Cette disposition et le passage du plan en commentaires remplacent les choix
@@ -189,8 +194,8 @@ comme obligations cachées dans les lots d’implémentation.
 | A02 — Entrée refusée ou répétée | Mauvais acteur, source incomplète, dépôt occupé ou signal répété : aucune admission indue ni seconde campagne. | M02, M03, M10 |
 | A03 — Redémarrage et réponse perdue | Reprise de la même identité ; commentaire, import ou fusion incertaine recherché avant toute nouvelle tentative. | M05, M07 |
 | A04 — Source ou état humain modifié | Arrêt expliqué, descriptions intactes, aucune adaptation silencieuse ni faux Done. | M05, M06, M09 |
-| A05 — Pause, annulation et reprise | Commande Paperclip honorée, aucun nouveau départ après observation, effets envoyés réconciliés, résultats conservés. | M07, M08 |
-| A06 — Panne ou incident intégré | Pas de livraison suivante pendant panne Linear, publication inconnue ou échec après fusion ; reprise explicite après vérification. | M04, M06, M07 |
+| A05 — Pause, annulation et reprise | Après fixation dans une mission Council, commande Paperclip honorée, aucun nouveau départ après observation, effets envoyés réconciliés, résultats conservés. | M07, M08 |
+| A06 — Panne ou incident intégré | Pas de livraison suivante pendant panne Linear, publication inconnue ou échec après fusion ; reprise explicite après vérification pour les cas pris en charge, arrêt conservé après échec post-fusion. | M04, M06, M07 |
 | A07 — Clôture prématurée | Enfants seuls terminés, critère transversal manquant ou bilan non publié : campagne non terminée. | M09 |
 | A08 — Mise en service bornée | Installation sans activation, anciens travaux inchangés ; révocation d’écriture conservant le diagnostic en lecture. | M02, M05, M10 |
 
