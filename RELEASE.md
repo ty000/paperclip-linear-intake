@@ -4,14 +4,15 @@ This repository publishes `@ty000/paperclip-linear-intake` from an exact Git tag
 The release workflow does not install or activate the plugin on a Paperclip host.
 It does not deploy a service, modify Linear, or publish from pull requests.
 
-## One-time bootstrap for the new npm package
+Version `0.6.3` was published on 2026-10-10. Publication does not imply host
+installation or activation.
 
-npm documents trusted-publisher configuration under an existing package's
-settings. Because `@ty000/paperclip-linear-intake` does not yet exist in the
-registry, an authorized `@ty000` maintainer must bootstrap it once:
+## One-time bootstrap for a new npm package name
 
-1. Select and record the actual first release version. Do not publish `0.6.2`
-   merely because it is the current preparation version.
+For a future package name that does not yet exist, an authorized maintainer
+must bootstrap it once before configuring its npm trusted publisher:
+
+1. Select and record a new first release version for that package name.
 2. Synchronize `package.json` and `src/manifest.ts`, run every source, package,
    PostgreSQL and Fallow check, and retain the exact qualified `.tgz` and digest.
 3. Use an interactive npm web login with 2FA to publish that exact archive:
@@ -67,8 +68,37 @@ matching stable Git tag.
 The package job creates one `.tgz`, records its SHA-256 checksum and installs it
 in a clean temporary consumer with development dependencies omitted and lifecycle
 scripts disabled. The publish job downloads that same Actions artifact, verifies
-the checksum and exact name/version/tag tuple, publishes that archive, then reads
-back the registry integrity and selected dist-tag before succeeding.
+the checksum and exact name/version/tag tuple, and publishes that archive once.
+A separate read-only `verify` job checks registry visibility as described below.
+
+## Registry visibility and verification-only recovery
+
+The upload job makes exactly one `npm publish` call. Only that job has OIDC
+permission and the `npm-release` environment. Registry verification has only
+`contents: read` and `actions: read`, with no npm credentials or publication.
+It compares the archive's name/version and SHA512 with registry metadata and
+requires the selected `latest` or `next` tag to point to that exact version.
+
+Visibility polling lasts at most 20 minutes, with at most 160 GETs and a
+30-second limit per request (including response body). Temporary transport
+errors and HTTP 404/429/5xx are retried within that budget; wrong integrity,
+inconsistent metadata and permanent HTTP errors fail immediately. An old
+or missing dist-tag waits within the same budget. No publication is retried.
+
+If upload succeeded but verification failed, **do not rerun the failed release
+job or publish again**. Run Actions → **Verify existing npm release** from the
+trusted default branch and provide only the original release `run_id`, for
+example `38058964024`. The workflow requires a completed `release.yml` tag-push
+run in this repository, successful release qualification jobs, and its exact
+unexpired package artifact. Version comes from that run's `v<version>` tag,
+not the current checkout. It reads the archived `package.json` without executing
+packaged code. An expired or missing artifact fails closed.
+
+The original failed run remains red; a successful verification-only run is new,
+separate evidence. This checks the dist-tag **now**: after a newer publication,
+an older release can legitimately stop being `latest` or `next` and will not
+pass this check. A timeout also stays red; investigate or replay verification
+only, without another upload or automatic dist-tag change.
 
 ## Install, update and compatibility
 
