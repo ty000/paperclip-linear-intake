@@ -5,6 +5,12 @@ A separate Paperclip plugin that retains an authorized Linear transition to
 source attestations to an explicitly enabled Council receiver. Council owns
 admission, accounting and implementation dispatch.
 
+**Source-read reduction candidate (source 0.6.3):** publication keeps native
+checks before its durable claim and a complete source observation before send.
+The [isolated qualification](docs/qualification/PUBLICATION-SOURCE-READS.md)
+measures 24 fewer source calls per new ordinary effect. This is source and
+fixture evidence, not installation, activation or a successful live campaign.
+
 **Bounded correction candidate (source 0.6.2):** see the
 [follow-up ledger](docs/qualification/V1-BOUNDED-CORRECTIONS.md) for engagement,
 publication-proof, diagnostic and final-summary corrections. Early individual

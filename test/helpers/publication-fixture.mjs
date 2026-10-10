@@ -20,7 +20,7 @@ export function setState(f, id, stateId) {
   i.completedAt=type==='completed'?'2026-10-07T12:00:00.000Z':null;i.canceledAt=type==='canceled'?'2026-10-07T12:00:00.000Z':null;
 }
 export async function publicationFixture(db, options={}) {
-  const f=await handoffFixture({campaign:true,configure(config){config.councilContinuityEnabled=true;config.publisher=publicationConfig();options.configure?.(config);}});
+  const f=await handoffFixture({campaign:true,prepare:options.prepareCampaign,configure(config){config.councilContinuityEnabled=true;config.publisher=publicationConfig();options.configure?.(config);}});
   const oldDb=f.harness.ctx.db;
   f.harness.ctx.db={namespace:db.namespace,query:(sql,params)=>sql.includes('campaign_publication')?db.query(sql,params):oldDb.query(sql,params),execute:db.execute.bind(db)};
   f.documents=new Map([[f.document.key,f.document]]); let documentNumber=100;
