@@ -1,8 +1,26 @@
 # Plan d’implémentation — V1 Linear / Paperclip
 
-10 octobre 2026 · Sources : [PRD v0.4](PRD.md), [TAD draft v0.3](TAD.md).
+10 octobre 2026 · Sources : [PRD v0.5](PRD.md), [TAD draft v0.4](TAD.md).
 
-**Lot courant :** [corrections bornées R01–R07](qualification/V1-BOUNDED-CORRECTIONS.md).
+**Lot courant : simplification B — webhooks et contrôles à l’action.**
+L’utilisateur a choisi de supprimer la surveillance périodique de Linear.
+Ce lot remplace les règles de cadence du correctif précédent pour les campagnes
+`milestone-fixed-v1` ; le parcours historique conserve son contrat.
+
+| Propriétaire | Base vérifiée | Travail / preuve attendue |
+| --- | --- | --- |
+| Intake | `06f9596`, version `0.6.5` | Retenir et regrouper les changements pertinents ; projeter leur génération dans Paperclip ; répondre aux observations demandées et aux relectures ciblées. Tests webhook, SQL/restart et absence de boucle sur les effets du plugin. |
+| Council | `2b0dbec`, version `0.7.47` | Demander une observation à un événement ou une vraie frontière d’action ; aucun renouvellement dû au seul âge ; borner les reprises et garder les contrôles de départ/fusion/clôture. Tests de jobs au repos et de décisions après invalidation. |
+| Paire de plugins | Candidats de ce lot | Vérifier les champs et capacités communs, les réponses en vol, les notifications perdues et la récupération bornée. PR distinctes, revue indépendante, tests isolés ; aucune preuve d’installation ou d’exécution réelle implicite. |
+
+Critères : A09 du PRD, avec les protections A03–A07 conservées. Les limites de
+tentatives survivent au redémarrage et à l’expiration. Un traitement local sans
+événement ni décision produit zéro lecture Linear. Aucune nouvelle infrastructure,
+aucun modèle pour la synchronisation, aucun changement du core/SDK, du mandat ou
+du budget. Les états L6 ci-dessous sont historiques ; ce lot ne reprend pas le
+pilote réel.
+
+**Lot antérieur :** [corrections bornées R01–R07](qualification/V1-BOUNDED-CORRECTIONS.md).
 Les sources L0–L5 et le premier lot de corrections sont fusionnés ; L6 réel
 reste à qualifier. Les états et candidats du 9 octobre ci-dessous restent
 historiques. Le PRD actuel reporte explicitement l’arrêt individuel avant mission

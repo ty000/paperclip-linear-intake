@@ -22,7 +22,7 @@ export function setState(f, id, stateId) {
 export async function publicationFixture(db, options={}) {
   const f=await handoffFixture({campaign:true,prepare:options.prepareCampaign,configure(config){config.councilContinuityEnabled=true;config.publisher=publicationConfig();options.configure?.(config);}});
   const oldDb=f.harness.ctx.db;
-  f.harness.ctx.db={namespace:db.namespace,query:(sql,params)=>sql.includes('campaign_publication')?db.query(sql,params):oldDb.query(sql,params),execute:db.execute.bind(db)};
+  f.harness.ctx.db={namespace:db.namespace,query:(sql,params)=>sql.includes('campaign_')?db.query(sql,params):oldDb.query(sql,params),execute:db.execute.bind(db)};
   f.documents=new Map([[f.document.key,f.document]]); let documentNumber=100;
   f.harness.ctx.issues.documents.get=async (issueId,key,companyId)=>{assert.equal(issueDocumentKeySchema.parse(key),key);assert.equal(companyId,ids.company);assert.equal(issueId,uuid(7));return structuredClone(f.documents.get(key)??null);};
   f.harness.ctx.issues.documents.upsert=async doc=>{assert.equal(issueDocumentKeySchema.parse(doc.key),doc.key);f.documents.set(doc.key,{...doc,id:uuid(documentNumber++),latestRevisionId:uuid(documentNumber++),latestRevisionNumber:1});};

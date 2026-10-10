@@ -6,6 +6,7 @@ export const CONTINUITY_MODE = "milestone-fixed-v1" as const;
 export const TERMINAL_PUBLICATION_PROTOCOL = "council-terminal-publication-claim-v1" as const;
 export const CONTINUITY_REQUEST_EVENT = "plugin.private.paperclip-council.linear-continuity-request";
 export const CONTINUITY_RESULT_NAME = "council-continuity-result";
+export const SOURCE_OBSERVATION_PROTOCOL = "council-linear-source-observation-v1" as const;
 const hash = z.string().regex(/^[a-f0-9]{64}$/), time = z.iso.datetime({ offset: true });
 // Native issueDocumentKeySchema bounds; reject aliases rather than trimming an identity.
 export const continuityDocumentKeySchema = z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9_-]*$/);
@@ -24,6 +25,9 @@ const continuityRequestSchema = z.strictObject({ protocol: z.literal(CONTINUITY_
   terminalPublicationProtocol: z.literal(TERMINAL_PUBLICATION_PROTOCOL), resumeVersion: z.number().int().nonnegative().max(2_147_483_647),
   binding: continuityBindingSchema, challengeId: z.uuid(), nonce: hash, requestedAt: time, expiresAt: time, sourceSha256: hash,
   consumedSequence: z.literal(0), control: z.enum(["running", "pause_requested", "paused", "cancel_requested", "cancelled"]),
+  sourceObservationProtocol: z.literal(SOURCE_OBSERVATION_PROTOCOL).optional(),
+  sourceInvalidationVersion: z.number().int().nonnegative().max(2_147_483_647).optional(),
+  observationPurpose: z.enum(["action", "event", "publication", "recovery", "readback"]).optional(),
   publications: z.array(publicationReferenceSchema).max(64) });
 const noticeSchema = z.strictObject({ protocol: z.literal(CONTINUITY_PROTOCOL), companyId: z.uuid(), missionId: z.uuid(),
   nativeRootId: z.uuid(), challengeId: z.uuid(), requestSha256: hash, request: proofReferenceSchema });
@@ -62,6 +66,8 @@ export function validateContinuityRequest(notice: ContinuityNotice, value: unkno
   const parsed = continuityRequestSchema.safeParse(value);
   requirePublication(parsed.success, "continuity_request_invalid");
   const request = parsed.data, b = request.binding, s = b.subject;
+  const observation = [request.sourceObservationProtocol, request.sourceInvalidationVersion, request.observationPurpose];
+  requirePublication(observation.every(value => value === undefined) || observation.every(value => value !== undefined), "continuity_observation_protocol_invalid");
   requireContinuityFresh(request);
   requirePublication(request.challengeId === notice.challengeId && contentDigest(request) === notice.requestSha256,
     "continuity_request_changed");

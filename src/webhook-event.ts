@@ -1,5 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "@paperclipai/plugin-sdk";
+import { contentDigest } from "./content-digest.js";
 
 // Linear webhook contract and SDK schema checked 2026-10-07:
 // https://linear.app/developers/webhooks
@@ -180,14 +181,7 @@ export type NormalizedWebhookEvent = ReturnType<typeof sourceFacts> & {
 /** Pure validation only. Withdrawal signals must never initiate source work. */
 export function verifyLinearEvent(rawBody: string | Uint8Array, headers: Headers, secret: string,
   authority: Authority, nowMs: number): NormalizedWebhookEvent | ReturnType<typeof ignored> {
-  const bytes = rawBytes(rawBody);
-  const unique = uniqueHeaders(headers);
-  verifySignature(bytes, unique.get("linear-signature"), secret);
-  const providerDeliveryId = validated(z.uuid({ version: "v4" }), unique.get("linear-delivery"), "webhook_delivery_invalid");
-  const envelope = parseEnvelope(bytes);
-  checkClock(envelope, nowMs);
-  checkEnvelopeHeaders(envelope, unique);
-  const scope = validated(authoritySchema, authority, "webhook_authority_invalid");
+  const { bytes, envelope, scope, providerDeliveryId } = verifiedEnvelope(rawBody, headers, secret, authority, nowMs);
   const filtered = envelopeFilter(envelope, scope);
   if (filtered) return filtered;
   const { decision, facts, sourceScopeWasAuthorized, currentScopeMatches } = classifyIssue(envelope, scope);
@@ -196,3 +190,54 @@ export function verifyLinearEvent(rawBody: string | Uint8Array, headers: Headers
     sourceEventId: sha256(JSON.stringify(facts)), webhookTimestamp: envelope.webhookTimestamp,
     receivedAt: new Date(nowMs).toISOString(), sourceScopeWasAuthorized, currentScopeMatches };
 }
+
+function verifiedEnvelope(rawBody: string | Uint8Array, headers: Headers, secret: string, authority: Authority, nowMs: number) {
+  const bytes = rawBytes(rawBody);
+  const unique = uniqueHeaders(headers);
+  verifySignature(bytes, unique.get("linear-signature"), secret);
+  const providerDeliveryId = validated(z.uuid({ version: "v4" }), unique.get("linear-delivery"), "webhook_delivery_invalid");
+  const envelope = parseEnvelope(bytes);
+  checkClock(envelope, nowMs);
+  checkEnvelopeHeaders(envelope, unique);
+  const scope = validated(authoritySchema, authority, "webhook_authority_invalid");
+  return { bytes, envelope, scope, providerDeliveryId };
+}
+
+const membershipSchema = issueSchema.extend({ parentId: z.uuid().nullable().optional(), projectMilestoneId: z.uuid().nullable().optional() });
+const fieldKinds: Record<string, string> = { title: "title", description: "description", stateId: "status", archivedAt: "archive",
+  teamId: "membership", projectId: "membership", projectMilestoneId: "membership", parentId: "hierarchy",
+  relations: "dependencies", relationIds: "dependencies", blockedByIds: "dependencies", blockingIds: "dependencies" };
+
+function campaignEnvelopeMatches(envelope: Envelope, scope: Authority) {
+  return [envelope.organizationId === scope.organizationId, envelope.webhookId === scope.webhookId, envelope.type === "Issue",
+    ["create", "update", "remove"].includes(envelope.action), Date.parse(envelope.createdAt) >= Date.parse(scope.activationAt)].every(Boolean);
+}
+
+function campaignFacts(envelope: Envelope, changedFields: string[]) {
+  const issue = validated(membershipSchema, envelope.data, "webhook_envelope_invalid");
+  const previous = validated(membershipSchema.partial(), envelope.updatedFrom ?? {}, "webhook_envelope_invalid");
+  return { organizationId: envelope.organizationId, issueId: issue.id, action: envelope.action,
+    revision: issue.updatedAt, eventAt: envelope.createdAt, changedFields, stateId: issue.stateId,
+    ...campaignMembership(issue), previousParentId: previous.parentId ?? null,
+    previousMilestoneId: previous.projectMilestoneId ?? null };
+}
+
+function campaignMembership(issue: z.infer<typeof membershipSchema>) {
+  return { teamId: issue.teamId, projectId: issue.projectId ?? null, parentId: issue.parentId ?? null,
+    milestoneId: issue.projectMilestoneId ?? null };
+}
+
+/** A signal for already enrolled campaigns grants no intake/admission authority. */
+export function verifyCampaignChange(rawBody: string | Uint8Array, headers: Headers, secret: string, authority: Authority, nowMs: number) {
+  const { bytes, envelope, scope, providerDeliveryId } = verifiedEnvelope(rawBody, headers, secret, authority, nowMs);
+  if (!campaignEnvelopeMatches(envelope, scope)) return undefined;
+  const changedFields = [...new Set(envelope.action === "update"
+    ? Object.keys(envelope.updatedFrom ?? {}).filter(key => fieldKinds[key]).map(key => fieldKinds[key]!) : ["membership"])].sort();
+  if (!changedFields.length) return undefined;
+  const facts = campaignFacts(envelope, changedFields);
+  const changes = Object.entries(envelope.updatedFrom ?? {}).filter(([field]) => fieldKinds[field])
+    .map(([field, before]) => [field, before, (envelope.data as Record<string, unknown>)[field]]);
+  return { ...facts, providerDeliveryId, rawBodySha256: sha256(bytes), sourceEventId: contentDigest({ facts,
+    changes: changes.sort(([a], [b]) => String(a).localeCompare(String(b))) }) };
+}
+export type CampaignChange = NonNullable<ReturnType<typeof verifyCampaignChange>>;

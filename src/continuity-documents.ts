@@ -1,6 +1,14 @@
 import type { PluginContext } from "@paperclipai/plugin-sdk";
 import { contentDigest } from "./content-digest.js";
-import { continuityDocumentKeySchema, requirePublication, type ProofReference } from "./continuity-contract.js";
+import { continuityDocumentKeySchema, publicationDocumentSchema, requirePublication, type ProofReference, type ContinuityRequest } from "./continuity-contract.js";
+
+export async function readPublicationDocument(ctx: PluginContext, request: ContinuityRequest, reference: ContinuityRequest["publications"][number]) {
+  const value = await readContinuityDocument(ctx, request.binding.companyId, request.binding.nativeRootId, reference.document);
+  const document = publicationDocumentSchema.parse(value);
+  requirePublication([document.intentId === reference.intentId, document.payloadSha256 === reference.payloadSha256,
+    contentDigest(document.payload) === reference.payloadSha256].every(Boolean), "publication_document_changed");
+  return document;
+}
 
 export async function readContinuityDocument(ctx: PluginContext, companyId: string, issueId: string, reference: ProofReference) {
   requirePublication(continuityDocumentKeySchema.safeParse(reference.key).success, "continuity_document_key");

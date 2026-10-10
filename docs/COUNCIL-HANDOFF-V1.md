@@ -102,3 +102,61 @@ Council-worker restart retained one request, one intake and one mission. The
 campaign stopped at settled N1 `ready_for_review`, before N2. Linear HTTP and CLI
 model content/usage were deterministic fixtures; whole-host/intake-worker restart,
 real-provider behavior and operational deployment are not claimed.
+
+## Event/action continuity (source 0.6.6)
+
+The optional fixed-campaign extension uses the existing native continuity
+request/result events and revision-pinned documents. Upgraded requests carry all
+three fields together: `sourceObservationProtocol:
+"council-linear-source-observation-v1"`, `sourceInvalidationVersion` (nonnegative
+integer) and `observationPurpose` (`action`, `event`, `publication`, `recovery` or
+`readback`). Responses echo them exactly and advertise `event-driven-source`.
+Legacy requests retain the historical capability list; upgraded Council requires
+the positive protocol/capability before treating a response as current proof.
+
+Signed relevant Issue events append a durable source-change identity for each
+affected enrolled campaign. The generation is monotonic within the binding;
+concurrent inserts serialize against its existing binding row. Delivery and
+semantic duplicates retain the original identity. Local projection coalesces the
+latest retained changes into the native root document `linear-source-invalidation`:
+`{protocol: "council-linear-source-invalidation-v1", binding, sourceSha256,
+generation, sourceIds, changedFields}`. IDs and field names are bounded; private
+descriptions are never copied into the journal or hint. This document is a mutable
+signal, not source/admission proof.
+
+The authenticated `plugin.ty000.linear-intake.council-source-invalidated` event
+carries `{protocol, companyId, missionId, nativeRootId, bindingSha256, generation,
+invalidation}`; `invalidation` is its exact document/revision/body-hash reference.
+The local scheduled job repairs missing/stale projections, and Council reads its
+known native root document to recover a lost hint. Neither path calls Linear.
+An observation echoes only its requested generation: a newer invalidation
+arriving during the read remains pending in Council. Duplicate and out-of-order
+hints cannot refresh source proof.
+
+No elapsed observation TTL alone authorizes a fresh source scan. Initial
+admission stays complete; an action, publication or running-campaign invalidation
+can request a bounded complete observation. Paused event requests do not read
+the source. Invalidation is retained until explicit resume; a pause/cancel
+decision remains an explicit publication, and explicit action/recovery can
+validate source before resuming. Project/milestone metadata and events outside
+the Issue subscription are detected at the next authorized complete action
+check, not by periodic surveillance.
+
+`readback` validates the pinned publication document and reads only existing
+claimed effects or required confirmed comment receipts under their original
+identities. It creates no intent, sends no pending effect and performs no full
+source scan. Its result cannot replace a source observation or clear invalidation.
+Council owns the durable finite retry budget and visible hold; expiry does not
+reset that budget. Completed identical challenges return the persisted response
+without remote reads; reusing a challenge with changed request bytes fails closed.
+Native readiness and publication document pins still apply on replay.
+
+An exact confirmed own status readback (same source, target state and revision)
+suppresses its status-only webhook echo. An echo arriving before confirmation can
+cause one extra observation. Comment-only echoes and unrelated Issue metadata do
+not invalidate source. This optimization never trusts an actor name or a matching
+status alone.
+
+Source/unit and disposable PostgreSQL checks cover these boundaries. This source
+revision supplies no recipe installation, live webhook, real Linear write or
+provider execution proof.
