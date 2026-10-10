@@ -1,8 +1,8 @@
 # TAD — Première version utilisable Linear / Paperclip / Council
 
-Version proposée : 0.3 · 10 octobre 2026 · Europe/Paris.
+Version proposée : 0.4 · 10 octobre 2026 · Europe/Paris.
 
-**Statut : draft révisé, dérivé du [PRD v0.4](PRD.md).** Il remplace le draft
+**Statut : draft révisé, dérivé du [PRD v0.5](PRD.md).** Il remplace le draft
 v0.1 fourni dans le chat. Il décrit une V1 à réaliser et qualifier ; aucune
 installation, activation ou exécution réelle n’est revendiquée par ce document.
 Les comportements reportés sont ceux du PRD, pas des prérequis techniques cachés.
@@ -126,6 +126,13 @@ Relire avant départ d’une livraison, avant fusion et avant clôture ; les sig
 intermédiaires peuvent accélérer la détection. Il n’y a pas de garantie de détection
 instantanée d’une modification survenue après la dernière lecture.
 
+Le choix B supprime le renouvellement périodique de cette observation. Une source
+récente est nécessaire au moment d’une décision dépendante, y compris la reprise,
+pas en permanence pendant l’exécution d’un run ou l’attente. Le job Council
+continue son travail local ; l’âge de l’observation seul ne l’autorise jamais à
+demander une lecture Linear. Un webhook pertinent provoque une invalidation
+durable et regroupée ; en pause, celle-ci attend la reprise explicite.
+
 Une modification observée suspend toute la campagne au prochain point sûr. La
 V1 n’adopte pas un nouveau périmètre dans la même campagne. L’opérateur restaure
 le périmètre engagé ou annule puis prépare une nouvelle demande conforme aux
@@ -140,6 +147,35 @@ Les tables restent privées à chaque plugin. Limiter les nouveaux échanges à 
 | --- | --- | --- |
 | Source prête / revalidation | Demande et source exactes, périmètre, objets natifs, observation actuelle ou blocage | Council rattache le résultat à son admission/campagne existante. |
 | Publication demandée / résultat | Campagne et étape, objet/champs permis, contenu et référence de résultat Council | Intégration retourne effet relu, refus ou résultat encore inconnu. |
+
+Pour une campagne fixe, Intake retient les changements signés pertinents puis
+projette une génération d’invalidation dans un document natif de la campagne.
+Le bus signale sa disponibilité. Council peut relire ce document local pour
+récupérer une notification perdue, sans interroger Linear. Une génération plus
+récente invalide une réponse en vol ; les doublons ne redéclenchent pas une lecture
+et les événements du plugin ne créent pas de boucle de publications.
+
+Les requêtes existantes distinguent observation nécessaire à une action ou à un
+événement, publication et récupération ciblée. Les deux plugins vérifient la
+capacité correspondante et la génération exacte ; un ancien pair ne peut pas
+autoriser silencieusement un départ avec une réponse incompatible. Réutiliser les
+identités, documents et reçus existants, sans ordonnanceur supplémentaire.
+
+La récupération automatique d’une notification ou d’un effet est bornée par un
+compteur durable. L’expiration, le redémarrage ou un passage du job ne réinitialise
+pas ce compteur. Une relecture d’effet incertain ne relit pas toute la campagne,
+n’émet pas une nouvelle écriture et ne fournit pas une preuve de fraîcheur pour
+un départ. Après épuisement, exposer le blocage et attendre une récupération
+explicite. Les changements absents des webhooks reçus restent détectables aux
+contrôles avant action ; aucune détection permanente n’est revendiquée.
+
+Le lot conserve le webhook `Issue` déjà configuré. Les modifications de contenu,
+statut, relations ou appartenance présentes dans ces événements peuvent invalider
+la campagne. Les métadonnées de projet/milestone et les relations qui ne produisent
+pas un événement `Issue` couvert sont vérifiées lors du prochain contrôle avant
+action. Il ne prétend pas recevoir un événement dédié à chaque objet Linear ;
+l’ajout d’autres abonnements est reporté. Voir les [types de webhooks documentés
+par Linear](https://linear.app/developers/webhooks).
 
 Pause/reprise, propriété des livraisons, budget et verdict restent internes à
 Council. Leur visibilité Linear passe par le même mécanisme de publication.
@@ -308,6 +344,7 @@ Traçabilité des exigences :
 | M08 | §7 : arrêts après fixation de la campagne dans une mission Council | A05 |
 | M09 | §8 : couverture et confirmation finale | A01, A04, A07 |
 | M10 | §§3, 10 : permissions et activation explicite | A02, A08 |
+| M11 | §§4–5 : invalidation durable, lectures à la demande et récupération bornée | A09 |
 
 Conserver les distinctions source/build, tests synthétiques, instance native,
 lecture réelle, écriture réelle et agents/Git réels dans les résultats de recette.

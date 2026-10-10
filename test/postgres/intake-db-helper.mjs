@@ -66,7 +66,8 @@ export async function isolatedDatabase() {
         ${INTAKE_DATABASE_NAMESPACE}.intake_requests, ${INTAKE_DATABASE_NAMESPACE}.intake_binding,
         ${INTAKE_DATABASE_NAMESPACE}.import_plans, ${INTAKE_DATABASE_NAMESPACE}.import_effects,
         ${INTAKE_DATABASE_NAMESPACE}.import_plan_effects, ${INTAKE_DATABASE_NAMESPACE}.campaign_publications,
-        ${INTAKE_DATABASE_NAMESPACE}.campaign_publication_bindings`);
+        ${INTAKE_DATABASE_NAMESPACE}.campaign_publication_bindings,
+        ${INTAKE_DATABASE_NAMESPACE}.campaign_source_changes, ${INTAKE_DATABASE_NAMESPACE}.campaign_continuity_responses`);
     },
     close: () => pool.end(),
   };

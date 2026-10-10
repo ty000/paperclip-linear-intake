@@ -62,7 +62,7 @@ export async function openPublicationClient(ctx: PluginContext, companyId: strin
         && issue.projectId === session.config.sourceReader!.projectId, "publication_issue_mismatch");
       const { uuid, title, description, parentId, teamId, projectId, relations, archivedAt } = issue;
       const projectMilestone = (raw as Record<string, unknown>).projectMilestone ?? null;
-      return { sourceId: uuid, stateId: issue.currentStateId, statusType: issue.statusType, teamId, projectId,
+      return { sourceId: uuid, stateId: issue.currentStateId, statusType: issue.statusType, teamId, projectId, updatedAt: issue.updatedAt,
         protectedSha256: contentDigest({ uuid, title, description, parentId, teamId, projectId, relations, projectMilestone, archivedAt }) };
     },
     async comment(issueId: string, body: string) { await call("saveComment", { issueId, body }); },
