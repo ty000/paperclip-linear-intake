@@ -9,7 +9,7 @@ import { openHandoff, verifyHandoffReadiness, type HandoffSession } from "./coun
 import { campaignSourceIdentity, guardContinuity, observeCampaign } from "./continuity-source.js";
 import { createPublicationStore, type PublicationStore } from "./publication-store.js";
 import { openPublicationClient, type PublicationClient } from "./publication-client.js";
-import { publicationEffects, validatePublicationScope, controlComment, reconcilePublication, dispatchPublication, verifyConfirmedComments } from "./publication-engine.js";
+import { publicationEffects, validatePublicationScope, controlComment, reconcilePublication, dispatchPublication, verifyConfirmedComments, type PublicationGuards } from "./publication-engine.js";
 import { publicationReceipt } from "./publication-receipt.js";
 import { ContinuitySourceError, continuityDiagnostic, type SourceDiagnostic } from "./continuity-diagnostic.js";
 
@@ -56,10 +56,10 @@ function previousComments(rows: import("./publication-store.js").PublicationReco
 }
 
 async function dispatchIfEnabled(session: HandoffSession, store: PublicationStore, client: PublicationClient,
-  row: import("./publication-store.js").PublicationRecord, guardWrite: () => Promise<void>, request: ContinuityRequest) {
+  row: import("./publication-store.js").PublicationRecord, guards: PublicationGuards, request: ContinuityRequest) {
   if (!statusControlAllows(request, row.payload.statusUpdates ?? [])) return row;
   const config = await guardContinuity(session);
-  return config.publisher!.enabled ? dispatchPublication(store, client, row, guardWrite) : row;
+  return config.publisher!.enabled ? dispatchPublication(store, client, row, guards) : row;
 }
 
 function isUnreconciledStatusDiagnostic(diagnostic: SourceDiagnostic, unreconciledStatusIds: ReadonlySet<string>) {
@@ -84,7 +84,7 @@ async function sourceObservation(session: HandoffSession, request: ContinuityReq
   return undefined;
 }
 
-async function publicationGuard(session: HandoffSession, request: ContinuityRequest, store: PublicationStore,
+async function publicationClaimGuard(session: HandoffSession, request: ContinuityRequest,
   client: PublicationClient, commentOnly: boolean) {
   const config = await guardContinuity(session);
   requirePublication(config.publisher?.enabled, "publication_disabled");
@@ -93,7 +93,13 @@ async function publicationGuard(session: HandoffSession, request: ContinuityRequ
     // A scoped diagnostic must still be publishable when a member changed.
     // No status or terminal-success comment passes this branch.
     await client.issue(request.binding.sourceRootId);
-  } else {
+  }
+}
+
+async function publicationGuard(session: HandoffSession, request: ContinuityRequest, store: PublicationStore,
+  client: PublicationClient, commentOnly: boolean) {
+  await publicationClaimGuard(session, request, client, commentOnly);
+  if (!commentOnly) {
     const diagnostic = await sourceObservation(session, request, store);
     if (diagnostic) throw new ContinuitySourceError(diagnostic);
     requirePublication(await store.sourceAllows(request), "publication_source_resume_required");
@@ -123,8 +129,16 @@ async function publishRow(session: HandoffSession, request: ContinuityRequest, s
     // Readiness for Council's CAS gives no permission to claim or send.
     return { claim: await requestTerminalClaim(session, request, store, client, row) };
   }
-  const guardWrite = () => publicationGuard(session, request, store, client, commentOnly);
-  const current = await dispatchIfEnabled(session, store, client, row, guardWrite, request);
+  // Native authority and readiness precede the durable claim; the complete
+  // double source observation remains immediately before its only send.
+  const guards = {
+    beforeClaim: async () => {
+      await publicationClaimGuard(session, request, client, commentOnly);
+      if (!commentOnly) requirePublication(await store.sourceAllows(request), "publication_source_resume_required");
+    },
+    beforeSend: () => publicationGuard(session, request, store, client, commentOnly),
+  };
+  const current = await dispatchIfEnabled(session, store, client, row, guards, request);
   if (!current.effects.every(effect => effect.state === "confirmed")) return {};
   await verifyConfirmedComments(store, client, current);
   return { acknowledgement: await publicationReceipt(session.ctx, store, current) };

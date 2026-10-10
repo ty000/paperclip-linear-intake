@@ -47,7 +47,7 @@ test('forged actor is rejected before configuration, source or journal I/O',asyn
 test('PostgreSQL CAS concurrent original-intent dispatch emits once across independent stores',async()=>{
  const f=await publicationFixture(database.db),{intentId,payload}=f.addIntent();const a=createPublicationStore(database.db),b=createPublicationStore(database.db);await a.bind(f.requestWire,f.request);
  const client=await openPublicationClient(f.harness.ctx,ids.company,async()=>{});const row=await a.ensure(f.requestWire,intentId,payload,publicationEffects(f.requestWire,intentId,payload,new Set([ids.root]),client.publisher.states));
- await Promise.allSettled([dispatchPublication(a,client,structuredClone(row),async()=>{}),dispatchPublication(b,client,structuredClone(row),async()=>{})]);assert.equal(f.writes.length,1);assert.equal((await a.get(ids.company,intentId)).effects[0].state,'confirmed');
+ await Promise.allSettled([dispatchPublication(a,client,structuredClone(row),{beforeClaim:async()=>{},beforeSend:async()=>{}}),dispatchPublication(b,client,structuredClone(row),{beforeClaim:async()=>{},beforeSend:async()=>{}})]);assert.equal(f.writes.length,1);assert.equal((await a.get(ids.company,intentId)).effects[0].state,'confirmed');
 });
 test('a later intent can read back an already-confirmed own status without sending it again',async()=>{
  const f=await publicationFixture(database.db);f.addIntent([state(ids.child,'started')]);await f.sendContinuity();f.requestWire.publications=[];f.addIntent([state(ids.child,'started')],uuid(41));await f.sendContinuity();

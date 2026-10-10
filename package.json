@@ -1,6 +1,6 @@
 {
   "name": "@ty000/paperclip-linear-intake",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Disabled-by-default Linear Todo retention and native family preparation for Paperclip",
   "type": "module",
   "license": "MIT",

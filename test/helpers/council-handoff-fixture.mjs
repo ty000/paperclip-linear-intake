@@ -144,7 +144,7 @@ export function challenge(f, stage = 'preparation') {
 
 export async function handoffFixture(options = {}) {
   const f = await sourceFixture({ campaignSource: options.campaign ? campaignSource : undefined,
-    prepare(current) { configure(current); if (options.campaign) configureCampaign(current); },
+    prepare(current) { configure(current); if (options.campaign) configureCampaign(current); options.prepare?.(current); },
     beforeCall: async (call, current) => { if (current.armed) await options.beforeCall?.(call, current); } });
   const observed = options.campaign ? await f.runCampaign()
     : await readSourceFamily(f.harness.ctx, sourceIds.company, sourceIds.root, false);

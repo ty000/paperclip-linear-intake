@@ -107,10 +107,12 @@ async function sendEffect(client: PublicationClient, effect: PublicationEffect) 
   else await client.status(effect.sourceId, effect.stateId!);
 }
 
+export type PublicationGuards = { beforeClaim: () => Promise<void>; beforeSend: () => Promise<void> };
+
 async function dispatchEffect(store: PublicationStore, client: PublicationClient, row: PublicationRecord,
-  index: number, guardWrite: () => Promise<void>) {
+  index: number, guards: PublicationGuards) {
   const effect = row.effects[index]!;
-  await guardWrite();
+  await guards.beforeClaim();
   const before = effect.kind === "status" ? await client.issue(effect.sourceId) : undefined;
   const repeated = await observeRepeatedStatus(store, row, index, before);
   if (repeated) return repeated;
@@ -118,7 +120,7 @@ async function dispatchEffect(store: PublicationStore, client: PublicationClient
   requirePublication(!await observe(client, effect, row.intentId, row.payloadSha256), "publication_preexisting_effect");
   const claimed: PublicationEffect = { ...effect, state: "claimed", ...(before ? { before } : {}) };
   row = await store.save(row, row.effects.map((e,n) => n === index ? claimed : e));
-  await guardWrite();
+  await guards.beforeSend();
   await sendEffect(client, effect);
   return reconcileClaim(store, client, row, index);
 }
@@ -133,7 +135,7 @@ async function acquirePublication(store: PublicationStore, row: PublicationRecor
 }
 
 export async function dispatchPublication(store: PublicationStore, client: PublicationClient, initial: PublicationRecord,
-  guardWrite: () => Promise<void>) {
+  guards: PublicationGuards) {
   let row = await reconcilePublication(store, client, initial);
   await verifyConfirmedComments(store, client, row);
   // A control comment has no status effect and cannot settle or release an older intent.
@@ -143,7 +145,7 @@ export async function dispatchPublication(store: PublicationStore, client: Publi
     if (effect.state === "confirmed") continue;
     requirePublication(effect.state === "pending", "publication_readback_pending");
     if (row.payload.kind === "closure" && effect.kind === "status") await verifyConfirmedComments(store, client, row);
-    row = await dispatchEffect(store, client, row, i, guardWrite);
+    row = await dispatchEffect(store, client, row, i, guards);
     if (row.effects[i]!.state !== "confirmed") break;
   }
   await store.release(row);
